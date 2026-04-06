@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 const C = {
   base: "#100b2e",
@@ -9,7 +10,7 @@ const C = {
   border: "rgba(255,255,255,0.06)",
   violet: "#9b72ff",
   blue: "#38bdf8",
-  mint: "#50e890",
+  mint: "#22c55e",
   gold: "#ffd166",
   amber: "#f59e0b",
   text: "#f0f6ff",
@@ -24,67 +25,28 @@ const C = {
 
 type Severity = "watch" | "action" | "urgent";
 
-interface StudentData {
-  name: string;
-  lastSession: string;
-  quests: number;
-  signal: string;
-  nextStep: string;
+interface RosterStudent {
+  studentId: string;
+  displayName: string;
+  launchBandCode: string | null;
+  inInterventionQueue: boolean;
+  lastActiveAt: string | null;
+  streakCount: number;
 }
 
-interface Rung {
+interface BandGroup {
+  bandCode: string;
   severity: Severity;
-  label: string;
-  count: string;
-  desc: string;
-  actionChip: string;
-  students: StudentData[];
+  students: RosterStudent[];
 }
 
-const RUNGS: Rung[] = [
-  {
-    severity: "watch",
-    label: "Watch",
-    count: "4 students",
-    desc: "Revisiting some quests — keep an eye on engagement",
-    actionChip: "✦ Check in during next session",
-    students: [
-      { name: "Amara", lastSession: "Mar 24", quests: 2, signal: "Revisit pattern", nextStep: "Try: Reading Quest at their current band — short session to rebuild momentum" },
-      { name: "Leo", lastSession: "Mar 23", quests: 3, signal: "Revisit pattern", nextStep: "Try: Math Quest at their current band — revisiting familiar content builds confidence" },
-      { name: "Priya", lastSession: "Mar 22", quests: 2, signal: "Revisit pattern", nextStep: "Try: Science Quest at their current band — a new topic may spark fresh engagement" },
-      { name: "Marcus", lastSession: "Mar 24", quests: 1, signal: "Revisit pattern", nextStep: "Try: Reading Quest at their current band — a familiar format to re-engage on their own terms" },
-    ],
-  },
-  {
-    severity: "action",
-    label: "Action",
-    count: "2 students",
-    desc: "Low engagement this week — consider a check-in",
-    actionChip: "✦ Schedule a brief check-in",
-    students: [
-      { name: "Jordan", lastSession: "Mar 20", quests: 0, signal: "Low engagement", nextStep: "Try: A short Story Quest at their current band — low-stakes entry to rebuild a habit" },
-      { name: "Sofia", lastSession: "Mar 19", quests: 1, signal: "Quest exit early", nextStep: "Try: Math Quest at their current band — a brief, achievable quest to re-anchor engagement" },
-    ],
-  },
-  {
-    severity: "urgent",
-    label: "Urgent",
-    count: "1 student",
-    desc: "Not started this week — may need extra support",
-    actionChip: "✦ Personal outreach recommended",
-    students: [
-      { name: "Eli", lastSession: "Mar 17", quests: 0, signal: "Not started", nextStep: "Reach out to check in — Eli may just be getting started and a warm invitation can go a long way" },
-    ],
-  },
-];
-
-const RESOLVED = [
-  { student: "Noah", flag: "low_engagement", date: "Mar 21, 2026", note: "Had a brief check-in — student mentioned they were on a school trip last week. Back on track now." },
-  { student: "Isla", flag: "revisit_pattern", date: "Mar 20, 2026", note: "Suggested a new quest band. Student completed two quests the following day." },
-  { student: "Kai", flag: "quest_exit_early", date: "Mar 19, 2026", note: "Sent a platform message; family responded that device time was limited that week. Monitoring resumed." },
-  { student: "Zara", flag: "not_started", date: "Mar 17, 2026", note: "Coordinated with family — student was at a family event. Welcomed back with a recommended quest." },
-  { student: "Theo", flag: "low_engagement", date: "Mar 15, 2026", note: "Engaged student in a live session. Re-introduced Reading Quest at current band. Great response." },
-];
+function classifySeverity(student: RosterStudent): Severity {
+  if (!student.lastActiveAt) return "urgent";
+  const daysSinceActive = (Date.now() - new Date(student.lastActiveAt).getTime()) / 86400_000;
+  if (daysSinceActive >= 7) return "urgent";
+  if (daysSinceActive >= 4) return "action";
+  return "watch";
+}
 
 function severityColor(s: Severity) {
   if (s === "watch") return C.watch;
@@ -101,25 +63,99 @@ function severityBorder(s: Severity) {
   if (s === "action") return "rgba(245,158,11,0.20)";
   return "rgba(248,113,113,0.20)";
 }
-function flagBadgeStyle(flag: string): React.CSSProperties {
-  if (flag === "low_engagement") return { background: "rgba(245,158,11,0.12)", color: C.action };
-  if (flag === "revisit_pattern") return { background: "rgba(245,197,66,0.12)", color: C.watch };
-  if (flag === "quest_exit_early") return { background: "rgba(248,113,113,0.12)", color: C.urgent };
-  return { background: "rgba(248,113,113,0.15)", color: "#fca5a5" };
+function severityLabel(s: Severity) {
+  if (s === "watch") return "Watch";
+  if (s === "action") return "Action";
+  return "Urgent";
+}
+function severityDesc(s: Severity) {
+  if (s === "watch") return "Revisiting some quests — keep an eye on engagement";
+  if (s === "action") return "Low engagement recently — consider a check-in";
+  return "No recent activity — may need extra support";
+}
+function severityChip(s: Severity) {
+  if (s === "watch") return "✦ Check in during next session";
+  if (s === "action") return "✦ Schedule a brief check-in";
+  return "✦ Personal outreach recommended";
+}
+
+function formatRelativeDate(dateStr: string | null): string {
+  if (!dateStr) return "Never";
+  const d = new Date(dateStr);
+  const diff = Math.floor((Date.now() - d.getTime()) / 86400_000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  if (diff < 7) return `${diff} days ago`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default function RemediationPage() {
-  const [activeTab, setActiveTab] = useState<"ladder" | "resolved" | "spec">("ladder");
-  const [openRungs, setOpenRungs] = useState<Set<Severity>>(new Set(["action", "urgent"]));
+  const [activeTab, setActiveTab] = useState<"ladder" | "resolved">("ladder");
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(["action-urgent", "urgent-urgent"]));
   const [openPanels, setOpenPanels] = useState<Set<string>>(new Set());
   const [resolveModal, setResolveModal] = useState<{ name: string; sev: Severity } | null>(null);
   const [resolveNote, setResolveNote] = useState("");
   const [toast, setToast] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [bandGroups, setBandGroups] = useState<BandGroup[]>([]);
 
-  function toggleRung(sev: Severity) {
-    setOpenRungs((prev) => {
+  useEffect(() => {
+    async function loadRoster() {
+      try {
+        setLoading(true);
+        const teacherId = getTeacherId();
+        const res = await fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`);
+        if (!res.ok) throw new Error(`Failed to load roster (${res.status})`);
+        const data = await res.json();
+        const roster: RosterStudent[] = data.roster ?? [];
+
+        // Filter to students in intervention queue
+        const interventionStudents = roster.filter((s) => s.inInterventionQueue);
+
+        // Group by band code, assign severity per student then pick worst for the group
+        const byBand: Record<string, RosterStudent[]> = {};
+        for (const student of interventionStudents) {
+          const band = student.launchBandCode ?? "General";
+          if (!byBand[band]) byBand[band] = [];
+          byBand[band].push(student);
+        }
+
+        const groups: BandGroup[] = Object.entries(byBand).map(([bandCode, students]) => {
+          // Worst severity in the group drives the group's severity
+          const severities = students.map(classifySeverity);
+          const sev: Severity = severities.includes("urgent")
+            ? "urgent"
+            : severities.includes("action")
+            ? "action"
+            : "watch";
+          return { bandCode, severity: sev, students };
+        });
+
+        // Sort groups: urgent first, then action, then watch
+        const order: Record<Severity, number> = { urgent: 0, action: 1, watch: 2 };
+        groups.sort((a, b) => order[a.severity] - order[b.severity]);
+
+        setBandGroups(groups);
+        // Auto-open urgent and action groups
+        const autoOpen = new Set<string>();
+        for (const g of groups) {
+          if (g.severity !== "watch") autoOpen.add(`${g.bandCode}-${g.severity}`);
+        }
+        setOpenGroups(autoOpen);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadRoster();
+  }, []);
+
+  function toggleGroup(key: string) {
+    setOpenGroups((prev) => {
       const n = new Set(prev);
-      n.has(sev) ? n.delete(sev) : n.add(sev);
+      n.has(key) ? n.delete(key) : n.add(key);
       return n;
     });
   }
@@ -142,6 +178,8 @@ export default function RemediationPage() {
     setToast(true);
     setTimeout(() => setToast(false), 2800);
   }
+
+  const totalInterventionCount = bandGroups.reduce((sum, g) => sum + g.students.length, 0);
 
   return (
     <AppFrame audience="teacher">
@@ -172,7 +210,7 @@ export default function RemediationPage() {
 
         {/* Tab nav */}
         <nav style={{ display: "flex", gap: 4, borderBottom: `1px solid ${C.border}`, marginBottom: 28, overflowX: "auto" }}>
-          {(["ladder", "resolved", "spec"] as const).map((tab) => (
+          {(["ladder", "resolved"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -183,7 +221,7 @@ export default function RemediationPage() {
                 transition: "color 0.2s, border-color 0.2s", whiteSpace: "nowrap", minHeight: 44,
               }}
             >
-              {tab === "ladder" ? "Support Ladder" : tab === "resolved" ? "Resolution Log" : "Spec"}
+              {tab === "ladder" ? "Support Ladder" : "Resolution Log"}
             </button>
           ))}
         </nav>
@@ -191,247 +229,221 @@ export default function RemediationPage() {
         {/* TAB: Support Ladder */}
         {activeTab === "ladder" && (
           <div>
-            {RUNGS.map((rung) => {
-              const isOpen = openRungs.has(rung.severity);
-              const color = severityColor(rung.severity);
-              return (
-                <div
-                  key={rung.severity}
-                  style={{
-                    borderRadius: 10, border: `1px solid ${severityBorder(rung.severity)}`,
-                    marginBottom: 16, overflow: "hidden",
-                    background: severityBg(rung.severity),
-                  }}
-                >
-                  {/* Rung header */}
-                  <div
-                    onClick={() => toggleRung(rung.severity)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 14,
-                      padding: "16px 20px", cursor: "pointer", userSelect: "none",
-                    }}
-                  >
-                    <span style={{ width: 12, height: 12, borderRadius: "50%", background: color, flexShrink: 0, display: "inline-block" }} />
-                    <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color }}>{rung.label}</span>
-                    <span style={{
-                      fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
-                      background: `${color}26`, color,
-                    }}>{rung.count}</span>
-                    <span style={{ fontSize: 12, color: C.muted, flex: 1 }}>{rung.desc}</span>
-                    <span style={{ fontSize: 16, color: C.muted, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▾</span>
-                  </div>
+            {loading && (
+              <div style={{ textAlign: "center", padding: "48px 0", color: C.muted, fontSize: 14 }}>
+                Loading class roster...
+              </div>
+            )}
 
-                  {/* Rung body */}
-                  {isOpen && (
-                    <div style={{ padding: "0 20px 20px" }}>
-                      {/* Student chips */}
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-                        {rung.students.map((st) => {
-                          const panelKey = `${rung.severity}-${st.name}`;
-                          const panelOpen = openPanels.has(panelKey);
-                          return (
-                            <button
-                              key={st.name}
-                              onClick={() => togglePanel(panelKey)}
-                              style={{
-                                display: "inline-flex", alignItems: "center", gap: 6,
-                                background: panelOpen ? "rgba(80,232,144,0.07)" : C.surface,
-                                border: `1px solid ${panelOpen ? "rgba(80,232,144,0.35)" : C.border}`,
-                                borderRadius: 20, padding: "6px 14px 6px 10px",
-                                fontSize: 13, fontWeight: 500, color: C.text, cursor: "pointer",
-                                minHeight: 44,
-                              }}
-                            >
-                              <span style={{
-                                width: 24, height: 24, borderRadius: "50%",
-                                background: "rgba(56,189,248,0.20)", color: C.blue,
-                                fontSize: 11, fontWeight: 700,
-                                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                              }}>{st.name[0]}</span>
-                              {st.name}
-                            </button>
-                          );
-                        })}
+            {error && (
+              <div style={{
+                background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)",
+                borderRadius: 10, padding: "16px 20px", color: "#fca5a5", fontSize: 13,
+              }}>
+                {error}
+              </div>
+            )}
+
+            {!loading && !error && bandGroups.length === 0 && (
+              <div style={{
+                background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.18)",
+                borderRadius: 10, padding: "32px 24px", textAlign: "center",
+              }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>All students on track</div>
+                <div style={{ fontSize: 13, color: C.muted }}>No students are currently in the intervention queue. Great work!</div>
+              </div>
+            )}
+
+            {!loading && !error && bandGroups.length > 0 && (
+              <>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10, marginBottom: 20,
+                  background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.15)",
+                  borderRadius: 8, padding: "10px 14px",
+                }}>
+                  <span style={{ fontSize: 13, color: C.blue, fontWeight: 600 }}>
+                    {totalInterventionCount} student{totalInterventionCount !== 1 ? "s" : ""} in the support queue
+                  </span>
+                  <span style={{ fontSize: 12, color: C.muted }}>across {bandGroups.length} skill band{bandGroups.length !== 1 ? "s" : ""}</span>
+                </div>
+
+                {bandGroups.map((group) => {
+                  const groupKey = `${group.bandCode}-${group.severity}`;
+                  const isOpen = openGroups.has(groupKey);
+                  const color = severityColor(group.severity);
+                  return (
+                    <div
+                      key={groupKey}
+                      style={{
+                        borderRadius: 10, border: `1px solid ${severityBorder(group.severity)}`,
+                        marginBottom: 16, overflow: "hidden",
+                        background: severityBg(group.severity),
+                      }}
+                    >
+                      {/* Group header */}
+                      <div
+                        onClick={() => toggleGroup(groupKey)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 14,
+                          padding: "16px 20px", cursor: "pointer", userSelect: "none",
+                        }}
+                      >
+                        <span style={{ width: 12, height: 12, borderRadius: "50%", background: color, flexShrink: 0, display: "inline-block" }} />
+                        <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color }}>{severityLabel(group.severity)}</span>
                         <span style={{
-                          display: "inline-flex", alignItems: "center", gap: 6,
-                          background: rung.severity === "urgent" ? "rgba(248,113,113,0.07)" : "rgba(80,232,144,0.08)",
-                          border: `1px solid ${rung.severity === "urgent" ? "rgba(248,113,113,0.30)" : "rgba(80,232,144,0.20)"}`,
-                          borderRadius: 20, padding: "6px 14px",
-                          fontSize: 12, fontWeight: 500,
-                          color: rung.severity === "urgent" ? C.urgent : C.mint,
-                        }}>{rung.actionChip}</span>
+                          fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
+                          background: `${color}26`, color,
+                        }}>{group.students.length} student{group.students.length !== 1 ? "s" : ""}</span>
+                        <span style={{
+                          fontSize: 11, padding: "2px 8px", borderRadius: 20,
+                          background: "rgba(56,189,248,0.10)", color: C.blue, fontWeight: 600,
+                        }}>Band: {group.bandCode}</span>
+                        <span style={{ fontSize: 12, color: C.muted, flex: 1 }}>{severityDesc(group.severity)}</span>
+                        <span style={{ fontSize: 16, color: C.muted, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▾</span>
                       </div>
 
-                      {/* Per-student panels */}
-                      {rung.students.map((st) => {
-                        const panelKey = `${rung.severity}-${st.name}`;
-                        if (!openPanels.has(panelKey)) return null;
-                        const isUrgent = rung.severity === "urgent";
-                        return (
-                          <div
-                            key={st.name}
-                            style={{
-                              background: C.surface, border: `1px solid ${C.border}`,
-                              borderRadius: 10, padding: 18, marginTop: 10,
-                            }}
-                          >
-                            <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                              {st.name}
-                              <span style={{
-                                fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
-                                background: `${color}1F`, color,
-                              }}>{rung.label}</span>
-                            </h3>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 12, marginBottom: 16 }}>
-                              {[
-                                { label: "Last session", value: st.lastSession },
-                                { label: "Quests explored this week", value: String(st.quests) },
-                                { label: "Signal", value: st.signal },
-                              ].map((m) => (
-                                <div key={m.label} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 12px" }}>
-                                  <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.muted, marginBottom: 4 }}>{m.label}</div>
-                                  <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{m.value}</div>
-                                </div>
-                              ))}
-                            </div>
-                            <div style={{
-                              background: isUrgent ? "rgba(248,113,113,0.06)" : "rgba(80,232,144,0.06)",
-                              border: `1px solid ${isUrgent ? "rgba(248,113,113,0.25)" : "rgba(80,232,144,0.18)"}`,
-                              borderRadius: 6, padding: "12px 14px", fontSize: 13,
-                              color: isUrgent ? "#fca5a5" : C.mint, marginBottom: 14,
-                            }}>
-                              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: isUrgent ? "rgba(252,165,165,0.55)" : "rgba(80,232,144,0.6)", marginBottom: 4 }}>Recommended next step</div>
-                              {st.nextStep}
-                            </div>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <button
-                                onClick={() => alert(`Platform message sent to ${st.name}'s family.`)}
-                                style={{
-                                  display: "inline-flex", alignItems: "center", gap: 6,
-                                  background: isUrgent ? "rgba(248,113,113,0.12)" : "rgba(56,189,248,0.12)",
-                                  color: isUrgent ? C.urgent : C.blue,
-                                  border: `1px solid ${isUrgent ? "rgba(248,113,113,0.25)" : "rgba(56,189,248,0.25)"}`,
-                                  borderRadius: 6, fontSize: 13, fontWeight: 600,
-                                  padding: "10px 16px", cursor: "pointer", minHeight: 44,
-                                }}
-                              >✉ Send Message</button>
-                              <button
-                                onClick={() => openResolve(st.name, rung.severity)}
-                                style={{
-                                  display: "inline-flex", alignItems: "center", gap: 6,
-                                  background: "rgba(255,255,255,0.05)", color: C.text,
-                                  border: `1px solid ${C.border}`,
-                                  borderRadius: 6, fontSize: 13, fontWeight: 600,
-                                  padding: "10px 16px", cursor: "pointer", minHeight: 44,
-                                }}
-                              >Mark Resolved</button>
-                            </div>
+                      {/* Group body */}
+                      {isOpen && (
+                        <div style={{ padding: "0 20px 20px" }}>
+                          {/* Student chips */}
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+                            {group.students.map((st) => {
+                              const panelKey = `${groupKey}-${st.studentId}`;
+                              const panelOpen = openPanels.has(panelKey);
+                              return (
+                                <button
+                                  key={st.studentId}
+                                  onClick={() => togglePanel(panelKey)}
+                                  style={{
+                                    display: "inline-flex", alignItems: "center", gap: 6,
+                                    background: panelOpen ? "rgba(34,197,94,0.07)" : C.surface,
+                                    border: `1px solid ${panelOpen ? "rgba(34,197,94,0.35)" : C.border}`,
+                                    borderRadius: 20, padding: "6px 14px 6px 10px",
+                                    fontSize: 13, fontWeight: 500, color: C.text, cursor: "pointer",
+                                    minHeight: 44,
+                                  }}
+                                >
+                                  <span style={{
+                                    width: 24, height: 24, borderRadius: "50%",
+                                    background: "rgba(56,189,248,0.20)", color: C.blue,
+                                    fontSize: 11, fontWeight: 700,
+                                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                                  }}>{st.displayName[0]}</span>
+                                  {st.displayName.split(" ")[0]}
+                                </button>
+                              );
+                            })}
+                            <span style={{
+                              display: "inline-flex", alignItems: "center", gap: 6,
+                              background: group.severity === "urgent" ? "rgba(248,113,113,0.07)" : "rgba(34,197,94,0.08)",
+                              border: `1px solid ${group.severity === "urgent" ? "rgba(248,113,113,0.30)" : "rgba(34,197,94,0.20)"}`,
+                              borderRadius: 20, padding: "6px 14px",
+                              fontSize: 12, fontWeight: 500,
+                              color: group.severity === "urgent" ? C.urgent : C.mint,
+                            }}>{severityChip(group.severity)}</span>
                           </div>
-                        );
-                      })}
+
+                          {/* Per-student panels */}
+                          {group.students.map((st) => {
+                            const panelKey = `${groupKey}-${st.studentId}`;
+                            if (!openPanels.has(panelKey)) return null;
+                            const isUrgent = group.severity === "urgent";
+                            const studentSev = classifySeverity(st);
+                            return (
+                              <div
+                                key={st.studentId}
+                                style={{
+                                  background: C.surface, border: `1px solid ${C.border}`,
+                                  borderRadius: 10, padding: 18, marginTop: 10,
+                                }}
+                              >
+                                <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                                  {st.displayName.split(" ")[0]}
+                                  <span style={{
+                                    fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
+                                    background: `${severityColor(studentSev)}1F`, color: severityColor(studentSev),
+                                  }}>{severityLabel(studentSev)}</span>
+                                </h3>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 12, marginBottom: 16 }}>
+                                  {[
+                                    { label: "Last active", value: formatRelativeDate(st.lastActiveAt) },
+                                    { label: "Streak days", value: String(st.streakCount) },
+                                    { label: "Skill band", value: st.launchBandCode ?? "General" },
+                                  ].map((m) => (
+                                    <div key={m.label} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 12px" }}>
+                                      <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.muted, marginBottom: 4 }}>{m.label}</div>
+                                      <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{m.value}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div style={{
+                                  background: isUrgent ? "rgba(248,113,113,0.06)" : "rgba(34,197,94,0.06)",
+                                  border: `1px solid ${isUrgent ? "rgba(248,113,113,0.25)" : "rgba(34,197,94,0.18)"}`,
+                                  borderRadius: 6, padding: "12px 14px", fontSize: 13,
+                                  color: isUrgent ? "#fca5a5" : C.mint, marginBottom: 14,
+                                }}>
+                                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: isUrgent ? "rgba(252,165,165,0.55)" : "rgba(34,197,94,0.6)", marginBottom: 4 }}>Recommended next step</div>
+                                  {isUrgent
+                                    ? `Reach out to check in — ${st.displayName.split(" ")[0]} may just need a warm invitation to re-engage`
+                                    : `Try: a quest at their current band (${st.launchBandCode ?? "General"}) — a short, familiar session to rebuild momentum`}
+                                </div>
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                  <button
+                                    onClick={() => alert(`Platform message sent to ${st.displayName.split(" ")[0]}'s family.`)}
+                                    style={{
+                                      display: "inline-flex", alignItems: "center", gap: 6,
+                                      background: isUrgent ? "rgba(248,113,113,0.12)" : "rgba(56,189,248,0.12)",
+                                      color: isUrgent ? C.urgent : C.blue,
+                                      border: `1px solid ${isUrgent ? "rgba(248,113,113,0.25)" : "rgba(56,189,248,0.25)"}`,
+                                      borderRadius: 6, fontSize: 13, fontWeight: 600,
+                                      padding: "10px 16px", cursor: "pointer", minHeight: 44,
+                                    }}
+                                  >✉ Send Message</button>
+                                  <button
+                                    onClick={() => openResolve(st.displayName.split(" ")[0], studentSev)}
+                                    style={{
+                                      display: "inline-flex", alignItems: "center", gap: 6,
+                                      background: "rgba(255,255,255,0.05)", color: C.text,
+                                      border: `1px solid ${C.border}`,
+                                      borderRadius: 6, fontSize: 13, fontWeight: 600,
+                                      padding: "10px 16px", cursor: "pointer", minHeight: 44,
+                                    }}
+                                  >Mark Resolved</button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-            <p style={{ fontSize: 12, color: C.muted, marginTop: 20 }}>
-              Signals are based on session engagement patterns only. No accuracy data is used or displayed. Student names shown are first names only per privacy policy.
-            </p>
+                  );
+                })}
+
+                <p style={{ fontSize: 12, color: C.muted, marginTop: 20 }}>
+                  Signals are based on session engagement patterns only. No accuracy data is used or displayed. Student names shown are first names only per privacy policy.
+                </p>
+              </>
+            )}
           </div>
         )}
 
         {/* TAB: Resolution Log */}
         {activeTab === "resolved" && (
           <div>
-            <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <thead>
-                  <tr>
-                    {["Student", "Flag type", "Resolved", "Resolution notes"].map((h) => (
-                      <th key={h} style={{
-                        background: C.surface, color: C.muted,
-                        fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em",
-                        padding: "12px 16px", textAlign: "left", borderBottom: `1px solid ${C.border}`,
-                        whiteSpace: "nowrap",
-                      }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {RESOLVED.map((r, i) => (
-                    <tr key={i} style={{ borderBottom: i < RESOLVED.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                      <td style={{ padding: "12px 16px", color: C.text, verticalAlign: "middle" }}><strong>{r.student}</strong></td>
-                      <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
-                        <span style={{
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                          fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 20,
-                          ...flagBadgeStyle(r.flag),
-                        }}>{r.flag}</span>
-                      </td>
-                      <td style={{ padding: "12px 16px", color: C.muted, whiteSpace: "nowrap", verticalAlign: "middle" }}>{r.date}</td>
-                      <td style={{ padding: "12px 16px", color: C.muted, fontSize: 12, maxWidth: 240, verticalAlign: "middle" }}>{r.note}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{
+              background: C.surface, border: `1px solid ${C.border}`,
+              borderRadius: 10, padding: "48px 24px", textAlign: "center",
+            }}>
+              <div style={{ fontSize: 36, marginBottom: 14 }}>📋</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>No resolved remediations yet</div>
+              <div style={{ fontSize: 13, color: C.muted, maxWidth: 320, margin: "0 auto", lineHeight: 1.6 }}>
+                When you mark a student as resolved from the Support Ladder, their record will appear here for your reference.
+              </div>
             </div>
             <p style={{ fontSize: 12, color: C.muted, marginTop: 16 }}>
               Resolved flags are retained for teacher reference only and are not externally disclosed (FERPA).
             </p>
-          </div>
-        )}
-
-        {/* TAB: Spec */}
-        {activeTab === "spec" && (
-          <div>
-            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "20px 22px", marginBottom: 16 }}>
-              <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: C.blue, marginBottom: 14 }}>Component</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 10, marginBottom: 8 }}>
-                {[
-                  { k: "Name", v: "RemediationLadder" },
-                  { k: "Design System ID", v: "#293" },
-                  { k: "Route", v: "/teacher/remediation" },
-                  { k: "Auth", v: "Teacher role required" },
-                  { k: "Persona", v: "Teacher (#38bdf8)" },
-                ].map((i) => (
-                  <div key={i.k} style={{ fontSize: 13, lineHeight: 1.5 }}>
-                    <div style={{ color: C.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>{i.k}</div>
-                    <div style={{ color: C.text, fontWeight: 500 }}>{i.v}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "20px 22px", marginBottom: 16 }}>
-              <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: C.blue, marginBottom: 14 }}>Flag Type Definitions</h2>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                  <thead>
-                    <tr>
-                      {["flag_type", "Trigger condition", "Default severity"].map((h) => (
-                        <th key={h} style={{ background: "rgba(255,255,255,0.03)", color: C.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em", padding: "8px 12px", textAlign: "left", borderBottom: `1px solid ${C.border}` }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { type: "low_engagement", trigger: "Fewer than 2 quest sessions in a 7-day window", sev: "action" },
-                      { type: "revisit_pattern", trigger: "Student revisited same quest band 3+ times without progressing", sev: "watch" },
-                      { type: "quest_exit_early", trigger: "Student exited a quest before midpoint on 2+ occasions in a week", sev: "action" },
-                      { type: "not_started", trigger: "Zero quest activity for 7+ calendar days", sev: "urgent" },
-                    ].map((r, i, arr) => (
-                      <tr key={r.type} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                        <td style={{ padding: "8px 12px", color: C.blue, fontFamily: "monospace" }}>{r.type}</td>
-                        <td style={{ padding: "8px 12px", color: C.text }}>{r.trigger}</td>
-                        <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600 }}>{r.sev}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div style={{ background: "rgba(255,123,107,0.06)", border: "1px solid rgba(255,123,107,0.25)", borderRadius: 10, padding: "14px 16px", fontSize: 12, color: "rgba(240,246,255,0.65)", lineHeight: 1.6 }}>
-              <strong style={{ color: "#ff7b6b" }}>Privacy: </strong>Student first names only · NO accuracy % · flags = engagement signals only (never "struggling" or "below average") · positive framing always · FERPA: School-linked only; not externally disclosed.
-            </div>
           </div>
         )}
       </div>
@@ -454,12 +466,12 @@ export default function RemediationPage() {
             <textarea
               value={resolveNote}
               onChange={(e) => setResolveNote(e.target.value)}
-              placeholder="e.g. Had a brief check-in — student mentioned they were on a school trip..."
+              placeholder="e.g. Had a brief check-in — student mentioned they were on a school trip last week..."
               style={{
                 width: "100%", background: C.base, border: `1px solid ${C.border}`,
                 borderRadius: 6, color: C.text, fontSize: 13,
                 padding: "10px 12px", resize: "vertical", minHeight: 90, marginBottom: 16,
-                fontFamily: "inherit",
+                fontFamily: "inherit", boxSizing: "border-box",
               }}
             />
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -480,7 +492,7 @@ export default function RemediationPage() {
       <div style={{
         position: "fixed", bottom: 24, left: "50%",
         transform: `translateX(-50%) translateY(${toast ? 0 : 80}px)`,
-        background: C.surface, border: "1px solid rgba(80,232,144,0.3)",
+        background: C.surface, border: "1px solid rgba(34,197,94,0.3)",
         color: C.text, fontSize: 13, fontWeight: 500,
         padding: "12px 20px", borderRadius: 8, zIndex: 200,
         transition: "transform 0.3s ease", whiteSpace: "nowrap",

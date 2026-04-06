@@ -1,313 +1,340 @@
-"use client";
-
-import { useState } from "react";
+import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
+import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
+import OwnerGate from "../owner-gate";
+
+export const dynamic = "force-dynamic";
 
 const C = {
   base: "#0d1117",
-  card: "#161b22",
+  surface: "#161b22",
   border: "rgba(255,255,255,0.06)",
+  accent: "#50e890",
   text: "#f0f6ff",
-  muted: "#8b949e",
-  green: "#50e890",
-  greenBg: "rgba(80,232,144,0.12)",
+  muted: "rgba(255,255,255,0.4)",
+  red: "#f85149",
   amber: "#f0a030",
-  amberBg: "rgba(240,160,48,0.12)",
+  blue: "#38bdf8",
   violet: "#a78bfa",
-  violetBg: "rgba(167,139,250,0.12)",
-  gray: "#8b949e",
-  grayBg: "rgba(139,148,158,0.12)",
-  red: "#f87171",
-  redBg: "rgba(248,113,113,0.12)",
 };
 
-interface ContentEvent {
-  id: string;
-  title: string;
-  content_type: string;
-  status: string;
-  statusLabel: string;
-  statusColor: "green" | "amber" | "violet" | "gray";
-  scheduled_at: string;
-  assigned_to: string;
-  release_version: string;
-  notes: string;
-  calDay: number;
+type BatchStatus = "Draft" | "Review" | "Approved" | "Live";
+
+interface WeekPlan {
+  weekOf: string;
+  weekLabel: string;
+  questionsReleasing: number;
+  bandTargets: string[];
+  themeFocus: string;
+  highlight?: string;
 }
 
-const EVENTS: ContentEvent[] = [
+interface ContentBatch {
+  id: string;
+  name: string;
+  band: string;
+  questions: number;
+  status: BatchStatus;
+  owner: string;
+  targetRelease: string;
+  version: string;
+}
+
+const statusColor: Record<BatchStatus, string> = {
+  Draft: C.muted,
+  Review: C.amber,
+  Approved: C.accent,
+  Live: C.blue,
+};
+
+const statusBg: Record<BatchStatus, string> = {
+  Draft: "rgba(255,255,255,0.06)",
+  Review: "rgba(240,160,48,0.12)",
+  Approved: "rgba(80,232,144,0.12)",
+  Live: "rgba(56,189,248,0.12)",
+};
+
+const WEEKS: WeekPlan[] = [
   {
-    id: "evt-1",
-    title: "Space Pack — Planet Patrol",
-    content_type: "theme_pack",
-    status: "scheduled",
-    statusLabel: "Scheduled",
-    statusColor: "green",
-    scheduled_at: "Apr 1, 2026 09:00",
-    assigned_to: "Maya Chen",
-    release_version: "v2.5.1",
-    notes: "Includes 8 new planet-themed activities. Child safety sign-off completed 2026-03-18.",
-    calDay: 1,
+    weekOf: "Apr 6–12",
+    weekLabel: "This Week",
+    questionsReleasing: 48,
+    bandTargets: ["P0", "P1", "P2"],
+    themeFocus: "Space & Planets",
+    highlight: "🚀 Space Pack launch — Planet Patrol goes live Apr 7",
   },
   {
-    id: "evt-2",
-    title: "P3 Social Studies Quest Batch",
-    content_type: "quest_batch",
-    status: "in_review",
-    statusLabel: "In Review",
-    statusColor: "amber",
-    scheduled_at: "Apr 7, 2026 10:00",
-    assigned_to: "Jordan Lee",
-    release_version: "v2.5.2",
-    notes: "P3 batch — community helpers unit. Awaiting curriculum review.",
-    calDay: 7,
+    weekOf: "Apr 13–19",
+    weekLabel: "Week 2",
+    questionsReleasing: 32,
+    bandTargets: ["P2", "P3"],
+    themeFocus: "Community Helpers",
+    highlight: "P3 Social Studies Quest Batch — curriculum-aligned",
   },
   {
-    id: "evt-3",
-    title: "v2.6 System Update",
-    content_type: "system_update",
-    status: "approved",
-    statusLabel: "Approved",
-    statusColor: "violet",
-    scheduled_at: "Apr 10, 2026 02:00",
-    assigned_to: "Sam Rivera",
-    release_version: "v2.6.0",
-    notes: "Maintenance window 2–4 AM. Performance improvements + new teacher command center features.",
-    calDay: 10,
+    weekOf: "Apr 20–26",
+    weekLabel: "Week 3",
+    questionsReleasing: 56,
+    bandTargets: ["P0", "P1", "P2", "P3"],
+    themeFocus: "Reading Foundations Q2",
+    highlight: "🔖 Largest batch of Q2 — P0 priority reading block",
   },
   {
-    id: "evt-4",
-    title: "Ocean Adventure — Deep Sea Pack",
-    content_type: "theme_pack",
-    status: "draft",
-    statusLabel: "Draft",
-    statusColor: "gray",
-    scheduled_at: "Apr 15, 2026 09:00",
-    assigned_to: "Priya Nair",
-    release_version: "v2.5.3",
-    notes: "Deep sea theme. Child safety review not yet started.",
-    calDay: 15,
-  },
-  {
-    id: "evt-5",
-    title: "P0 Reading Quest Batch Q2",
-    content_type: "quest_batch",
-    status: "scheduled",
-    statusLabel: "Scheduled",
-    statusColor: "green",
-    scheduled_at: "Apr 22, 2026 09:00",
-    assigned_to: "Maya Chen",
-    release_version: "v2.5.4",
-    notes: "P0 priority — requires Owner approval before advancing. Owner sign-off received 2026-04-01.",
-    calDay: 22,
-  },
-  {
-    id: "evt-6",
-    title: "Arts Pack — Sketch Lab",
-    content_type: "theme_pack",
-    status: "in_review",
-    statusLabel: "In Review",
-    statusColor: "amber",
-    scheduled_at: "Apr 28, 2026 09:00",
-    assigned_to: "Jordan Lee",
-    release_version: "v2.5.5",
-    notes: "Creative arts theme — Sketch Lab activities. Awaiting child safety review.",
-    calDay: 28,
+    weekOf: "Apr 27–May 3",
+    weekLabel: "Week 4",
+    questionsReleasing: 24,
+    bandTargets: ["P1", "P2"],
+    themeFocus: "Creative Arts — Sketch Lab",
+    highlight: "Arts pack pending child safety review before go",
   },
 ];
 
-// April 2026: starts on Wednesday (index 2 in Mon-Sun week)
-const MONTH_OFFSET = 2; // Mon=0, so Wed=2
-const MONTH_DAYS = 30;
-const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const BATCHES: ContentBatch[] = [
+  { id: "CB-041", name: "Space Pack — Planet Patrol", band: "P0–P2", questions: 48, status: "Approved", owner: "Maya Chen", targetRelease: "Apr 7, 2026", version: "v2.5.1" },
+  { id: "CB-042", name: "P3 Social Studies Quest Batch", band: "P3", questions: 32, status: "Review", owner: "Jordan Lee", targetRelease: "Apr 14, 2026", version: "v2.5.2" },
+  { id: "CB-043", name: "Reading Foundations Q2 — P0 Block", band: "P0", questions: 30, status: "Approved", owner: "Maya Chen", targetRelease: "Apr 22, 2026", version: "v2.5.4" },
+  { id: "CB-044", name: "Reading Foundations Q2 — P1–P3 Extension", band: "P1–P3", questions: 26, status: "Review", owner: "Sam Rivera", targetRelease: "Apr 22, 2026", version: "v2.5.4" },
+  { id: "CB-045", name: "Arts Pack — Sketch Lab", band: "P1–P2", questions: 24, status: "Review", owner: "Jordan Lee", targetRelease: "Apr 28, 2026", version: "v2.5.5" },
+  { id: "CB-046", name: "Ocean Adventure — Deep Sea Pack", band: "P0–P2", questions: 40, status: "Draft", owner: "Priya Nair", targetRelease: "May 6, 2026", version: "v2.6.1" },
+  { id: "CB-047", name: "Math Mastery Q2 — Addition & Subtraction", band: "P1–P2", questions: 44, status: "Draft", owner: "Sam Rivera", targetRelease: "May 13, 2026", version: "v2.6.2" },
+  { id: "CB-048", name: "Science Explorers — Weather & Seasons", band: "P2–P3", questions: 36, status: "Draft", owner: "Priya Nair", targetRelease: "May 20, 2026", version: "v2.6.3" },
+  { id: "CB-049", name: "Phonics Sprint — P0 Intensive", band: "P0", questions: 50, status: "Draft", owner: "Maya Chen", targetRelease: "Jun 2, 2026", version: "v2.7.0" },
+  { id: "CB-050", name: "End-of-Year Review Pack — All Bands", band: "P0–P5", questions: 80, status: "Draft", owner: "Jordan Lee", targetRelease: "Jun 15, 2026", version: "v2.7.2" },
+];
 
-type TabType = "calendar" | "list";
+// Calculate next release
+const nextRelease = BATCHES.find((b) => b.status === "Approved");
+const daysToNextRelease = 1;
 
-function chipStyle(color: "green" | "amber" | "violet" | "gray" | "red"): React.CSSProperties {
-  const map = {
-    green: { background: C.greenBg, color: C.green },
-    amber: { background: C.amberBg, color: C.amber },
-    violet: { background: C.violetBg, color: C.violet },
-    gray: { background: C.grayBg, color: C.gray },
-    red: { background: C.redBg, color: C.red },
-  };
-  return { display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" as const, ...map[color] };
-}
+// Stats
+const liveCount = BATCHES.filter((b) => b.status === "Live").length;
+const approvedCount = BATCHES.filter((b) => b.status === "Approved").length;
+const reviewCount = BATCHES.filter((b) => b.status === "Review").length;
+const draftCount = BATCHES.filter((b) => b.status === "Draft").length;
 
-function eventBtnStyle(color: "green" | "amber" | "violet" | "gray"): React.CSSProperties {
-  const borderMap = { green: "rgba(80,232,144,0.2)", amber: "rgba(240,160,48,0.2)", violet: "rgba(167,139,250,0.2)", gray: "rgba(139,148,158,0.2)" };
-  const bgMap = { green: C.greenBg, amber: C.amberBg, violet: C.violetBg, gray: C.grayBg };
-  const textMap = { green: C.green, amber: C.amber, violet: C.violet, gray: C.gray };
-  return { borderRadius: 5, padding: "4px 7px", fontSize: 11, fontWeight: 500, marginBottom: 3, cursor: "pointer", lineHeight: 1.35, whiteSpace: "nowrap" as const, overflow: "hidden", textOverflow: "ellipsis", minHeight: 28, display: "flex", alignItems: "center", border: `1px solid ${borderMap[color]}`, background: bgMap[color], color: textMap[color], width: "100%", textAlign: "left" as const };
-}
-
-export default function ContentCalendarPage() {
-  const [tab, setTab] = useState<TabType>("calendar");
-  const [openEventId, setOpenEventId] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState("all");
-  const [detailNotes, setDetailNotes] = useState<Record<string, string>>({});
-
-  const openEvent = openEventId ? EVENTS.find((e) => e.id === openEventId) : null;
-
-  // Build calendar cells: empty prefix + days 1..30 + empty suffix
-  const totalCells = MONTH_OFFSET + MONTH_DAYS;
-  const rows = Math.ceil(totalCells / 7);
-  const paddedCells = rows * 7;
-
-  const tabBtnStyle = (active: boolean): React.CSSProperties => ({
-    background: "none",
-    border: "none",
-    borderBottom: `2px solid ${active ? C.green : "transparent"}`,
-    padding: "10px 18px",
-    fontFamily: "inherit",
-    fontSize: 14,
-    fontWeight: 500,
-    color: active ? C.green : C.muted,
-    cursor: "pointer",
-    marginBottom: -1,
-    minHeight: 44,
-  });
-
-  const filterTypes = [
-    { key: "all", label: "All" },
-    { key: "theme_pack", label: "Theme Packs" },
-    { key: "quest_batch", label: "Quest Batches" },
-    { key: "system_update", label: "System Updates" },
-    { key: "band_update", label: "Band Updates" },
-  ];
-
-  const filteredEvents = filterType === "all" ? EVENTS : EVENTS.filter((e) => e.content_type === filterType);
+export default async function ContentCalendarPage() {
+  const configured = isOwnerAccessConfigured();
+  const allowed = configured && (await hasOwnerAccess());
 
   return (
     <AppFrame audience="owner" currentPath="/owner/content-calendar">
-    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", background: C.base, color: C.text, minHeight: "100vh", lineHeight: 1.5 }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 16px 64px" }}>
-          {/* Page header */}
-          <div style={{ marginBottom: 28 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 4 }}>Content Publish Calendar</h1>
-            <p style={{ fontSize: 14, color: C.muted }}>Schedule and track theme packs, quest batches, band updates, and system releases.</p>
-          </div>
+      <div style={{ minHeight: "100vh", background: C.base, padding: "28px 24px 60px", fontFamily: "system-ui,-apple-system,sans-serif", color: C.text }}>
+        {!allowed ? (
+          <OwnerGate configured={configured} />
+        ) : (
+          <div style={{ maxWidth: 1100 }}>
+            {/* Header */}
+            <div style={{ marginBottom: 28 }}>
+              <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, marginBottom: 6 }}>📅 Content Calendar</h1>
+              <p style={{ fontSize: 14, color: C.muted, margin: 0 }}>Scheduled releases and content pipeline</p>
+            </div>
 
-          {/* Tab nav */}
-          <nav style={{ display: "flex", gap: 4, borderBottom: `1px solid ${C.border}`, marginBottom: 28 }}>
-            <button style={tabBtnStyle(tab === "calendar")} onClick={() => setTab("calendar")}>Calendar</button>
-            <button style={tabBtnStyle(tab === "list")} onClick={() => setTab("list")}>List View</button>
-          </nav>
+            {/* Stats row */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
+              {[
+                { label: "Live", value: liveCount, color: C.blue, bg: "rgba(56,189,248,0.08)" },
+                { label: "Approved", value: approvedCount, color: C.accent, bg: "rgba(80,232,144,0.08)" },
+                { label: "In Review", value: reviewCount, color: C.amber, bg: "rgba(240,160,48,0.08)" },
+                { label: "Draft", value: draftCount, color: C.muted, bg: "rgba(255,255,255,0.04)" },
+              ].map((s) => (
+                <div
+                  key={s.label}
+                  style={{ background: s.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px" }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: C.muted, marginBottom: 8 }}>{s.label}</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: s.color }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
 
-          {/* ─── Calendar Tab ─── */}
-          {tab === "calendar" && (
-            <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                <button style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: C.muted, fontSize: 16 }}>←</button>
-                <h2 style={{ fontSize: 18, fontWeight: 600 }}>April 2026</h2>
-                <button style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: C.muted, fontSize: 16 }}>→</button>
+            {/* Next Release countdown */}
+            {nextRelease && (
+              <div
+                style={{
+                  background: "rgba(80,232,144,0.06)",
+                  border: `1px solid rgba(80,232,144,0.2)`,
+                  borderRadius: 12,
+                  padding: "16px 20px",
+                  marginBottom: 28,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                }}
+              >
+                <span style={{ fontSize: 22 }}>🚀</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 2 }}>
+                    Next Release — {nextRelease.targetRelease}
+                  </div>
+                  <div style={{ fontSize: 12, color: C.muted }}>
+                    {nextRelease.name} · {nextRelease.band} · {nextRelease.questions} questions · {nextRelease.version}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: C.accent }}>{daysToNextRelease}d</div>
+                  <div style={{ fontSize: 11, color: C.muted }}>until release</div>
+                </div>
               </div>
+            )}
 
-              {/* Calendar grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, background: C.border, borderRadius: 10, overflow: "hidden", border: `1px solid ${C.border}` }}>
-                {/* Day labels */}
-                {DAY_LABELS.map((d) => (
-                  <div key={d} style={{ background: C.card, padding: "10px 8px", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.muted, textAlign: "center" }}>{d}</div>
-                ))}
-                {/* Cells */}
-                {Array.from({ length: paddedCells }).map((_, idx) => {
-                  const dayNum = idx - MONTH_OFFSET + 1;
-                  const isEmpty = dayNum < 1 || dayNum > MONTH_DAYS;
-                  const eventsForDay = EVENTS.filter((e) => e.calDay === dayNum);
-                  return (
-                    <div key={idx} style={{ background: isEmpty ? "rgba(13,17,23,0.7)" : C.card, minHeight: 100, padding: 8, verticalAlign: "top", position: "relative" }}>
-                      {!isEmpty && (
-                        <>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: C.muted, marginBottom: 6, width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>{dayNum}</div>
-                          {eventsForDay.map((evt) => (
-                            <button key={evt.id} style={eventBtnStyle(evt.statusColor)} onClick={() => setOpenEventId(openEventId === evt.id ? null : evt.id)}>
-                              {evt.title}
-                            </button>
+            {/* Weekly Calendar Strips */}
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: C.muted, marginBottom: 14 }}>
+                4-Week Content Schedule
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {WEEKS.map((week, idx) => (
+                  <div
+                    key={week.weekOf}
+                    style={{
+                      display: "flex",
+                      alignItems: "stretch",
+                      background: C.surface,
+                      border: `1px solid ${idx === 0 ? "rgba(80,232,144,0.2)" : C.border}`,
+                      borderRadius: 10,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* Week label strip */}
+                    <div
+                      style={{
+                        width: 110,
+                        flexShrink: 0,
+                        background: idx === 0 ? "rgba(80,232,144,0.06)" : "rgba(255,255,255,0.02)",
+                        borderRight: `1px solid ${C.border}`,
+                        padding: "14px 16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 800, color: idx === 0 ? C.accent : C.muted, marginBottom: 2 }}>
+                        {week.weekLabel}
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted }}>{week.weekOf}</div>
+                    </div>
+
+                    {/* Content */}
+                    <div style={{ flex: 1, padding: "14px 18px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{week.themeFocus}</span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            background: "rgba(80,232,144,0.1)",
+                            color: C.accent,
+                          }}
+                        >
+                          {week.questionsReleasing} Qs
+                        </span>
+                        <div style={{ display: "flex", gap: 5 }}>
+                          {week.bandTargets.map((b) => (
+                            <span
+                              key={b}
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                background: "rgba(167,139,250,0.1)",
+                                color: C.violet,
+                              }}
+                            >
+                              {b}
+                            </span>
                           ))}
-                        </>
+                        </div>
+                      </div>
+                      {week.highlight && (
+                        <div style={{ fontSize: 12, color: C.muted }}>{week.highlight}</div>
                       )}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
-
-              {/* Detail panel */}
-              {openEvent && (
-                <div style={{ marginTop: 20, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-                    <div>
-                      <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>{openEvent.title}</h3>
-                      <span style={chipStyle(openEvent.statusColor)}>{openEvent.statusLabel}</span>
-                    </div>
-                    <button onClick={() => setOpenEventId(null)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 20, lineHeight: 1, padding: 4, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 6 }}>✕</button>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16, marginBottom: 20 }}>
-                    {[
-                      { label: "Content Type", val: openEvent.content_type.replace("_", " ") },
-                      { label: "Scheduled At", val: openEvent.scheduled_at },
-                      { label: "Assigned To", val: openEvent.assigned_to },
-                      { label: "Release Version", val: openEvent.release_version },
-                    ].map((f) => (
-                      <div key={f.label}>
-                        <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.muted, display: "block", marginBottom: 5 }}>{f.label}</label>
-                        <span style={{ fontSize: 14, color: C.text, fontWeight: 500 }}>{f.val}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.muted, marginBottom: 6 }}>Notes</p>
-                  <textarea
-                    value={detailNotes[openEvent.id] ?? openEvent.notes}
-                    onChange={(e) => setDetailNotes((prev) => ({ ...prev, [openEvent.id]: e.target.value }))}
-                    style={{ width: "100%", background: C.base, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontFamily: "inherit", fontSize: 14, color: C.text, resize: "vertical", minHeight: 72, marginBottom: 16 }}
-                    placeholder="Add notes for this release..."
-                  />
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button style={{ fontFamily: "inherit", fontSize: 14, fontWeight: 600, padding: "0 20px", height: 44, borderRadius: 8, cursor: "pointer", background: C.greenBg, color: C.green, border: `1px solid rgba(80,232,144,0.25)`, display: "inline-flex", alignItems: "center", gap: 7 }}>✓ Approve</button>
-                    <button style={{ fontFamily: "inherit", fontSize: 14, fontWeight: 600, padding: "0 20px", height: 44, borderRadius: 8, cursor: "pointer", background: C.redBg, color: C.red, border: `1px solid rgba(248,113,113,0.25)`, display: "inline-flex", alignItems: "center", gap: 7 }}>↻ Defer</button>
-                    <button onClick={() => setOpenEventId(null)} style={{ fontFamily: "inherit", fontSize: 14, fontWeight: 600, padding: "0 20px", height: 44, borderRadius: 8, cursor: "pointer", background: "transparent", color: C.muted, border: `1px solid ${C.border}`, display: "inline-flex", alignItems: "center", gap: 7 }}>Cancel</button>
-                  </div>
-                </div>
-              )}
             </div>
-          )}
 
-          {/* ─── List Tab ─── */}
-          {tab === "list" && (
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {filterTypes.map((f) => (
-                    <button key={f.key} onClick={() => setFilterType(f.key)} style={{ background: filterType === f.key ? C.greenBg : C.card, border: `1px solid ${filterType === f.key ? "rgba(80,232,144,0.3)" : C.border}`, borderRadius: 20, padding: "6px 14px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, color: filterType === f.key ? C.green : C.muted, cursor: "pointer", minHeight: 36, display: "flex", alignItems: "center" }}>{f.label}</button>
-                  ))}
-                </div>
+            {/* Pipeline Status Table */}
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, marginBottom: 32, overflow: "hidden" }}>
+              <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>Content Pipeline</span>
+                <span style={{ fontSize: 11, color: C.muted, marginLeft: 10 }}>Q2 2026 — quarterly view</span>
               </div>
-
-              <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
+              <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
-                      {["Title", "Content Type", "Status", "Scheduled At", "Assigned To", "Release Version"].map((h) => (
-                        <th key={h} style={{ background: C.card, padding: "12px 16px", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.muted, textAlign: "left", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{h}</th>
+                      {["Batch", "Band", "Questions", "Status", "Owner", "Target Release", "Version"].map((h) => (
+                        <th
+                          key={h}
+                          style={{
+                            padding: "10px 16px",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.07em",
+                            color: C.muted,
+                            textAlign: "left",
+                            borderBottom: `1px solid ${C.border}`,
+                            background: "rgba(255,255,255,0.02)",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredEvents.map((evt, i) => (
-                      <tr key={evt.id} style={{ borderBottom: i < filteredEvents.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                        <td style={{ padding: "13px 16px", fontSize: 13, color: C.text, fontWeight: 500 }}>{evt.title}</td>
-                        <td style={{ padding: "13px 16px", fontSize: 11, fontWeight: 600, color: C.muted, fontFamily: "'Courier New', monospace" }}>{evt.content_type}</td>
-                        <td style={{ padding: "13px 16px" }}><span style={chipStyle(evt.statusColor)}>{evt.statusLabel}</span></td>
-                        <td style={{ padding: "13px 16px", fontSize: 12, color: C.muted }}>{evt.scheduled_at}</td>
-                        <td style={{ padding: "13px 16px", fontSize: 13, color: C.text }}>{evt.assigned_to}</td>
-                        <td style={{ padding: "13px 16px", fontSize: 13, color: C.text }}>{evt.release_version}</td>
+                    {BATCHES.map((batch, idx) => (
+                      <tr key={batch.id} style={{ borderBottom: idx < BATCHES.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{batch.name}</div>
+                          <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{batch.id}</div>
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: 12, color: C.violet, fontWeight: 600 }}>{batch.band}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: C.text, textAlign: "center" }}>{batch.questions}</td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: "3px 10px",
+                              borderRadius: 10,
+                              background: statusBg[batch.status],
+                              color: statusColor[batch.status],
+                            }}
+                          >
+                            {batch.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted }}>{batch.owner}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted, whiteSpace: "nowrap" }}>{batch.targetRelease}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted, fontFamily: "monospace" }}>{batch.version}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Footer */}
+            <div style={{ display: "flex", gap: 20, borderTop: `1px solid ${C.border}`, paddingTop: 20 }}>
+              <Link href="/owner/release-calendar" style={{ fontSize: 13, color: C.muted, textDecoration: "none" }}>
+                Release Calendar
+              </Link>
+              <Link href="/owner/content-health" style={{ fontSize: 13, color: C.muted, textDecoration: "none" }}>
+                Content Health
+              </Link>
+              <Link href="/owner" style={{ fontSize: 13, color: C.muted, textDecoration: "none" }}>
+                Owner Home
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </AppFrame>
   );
