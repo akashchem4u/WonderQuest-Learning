@@ -204,6 +204,18 @@ export default function ParentAccessPage() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<ParentAccessResponse | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const [showAddChild, setShowAddChild] = useState(false);
+  const [addChildForm, setAddChildForm] = useState({
+    displayName: "",
+    username: "",
+    pin: "",
+    birthYear: "",
+    avatarKey: "bunny_purple",
+    launchBandCode: "K1",
+  });
+  const [addChildSubmitting, setAddChildSubmitting] = useState(false);
+  const [addChildError, setAddChildError] = useState("");
+  const [addChildSuccess, setAddChildSuccess] = useState("");
 
   const returningMode = accessMode === "returning";
 
@@ -306,6 +318,51 @@ export default function ParentAccessPage() {
       setError(caughtError instanceof Error ? caughtError.message : "Parent access failed.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function suggestBandFromBirthYear(year: string): string {
+    const birthYear = parseInt(year, 10);
+    if (!birthYear || birthYear < 1900) return "K1";
+    const age = 2026 - birthYear;
+    if (age <= 5) return "PREK";
+    if (age <= 7) return "K1";
+    if (age <= 9) return "G23";
+    return "G45";
+  }
+
+  async function handleAddChild(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setAddChildSubmitting(true);
+    setAddChildError("");
+    setAddChildSuccess("");
+    try {
+      const response = await fetch("/api/parent/create-child", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName: addChildForm.displayName,
+          username: addChildForm.username,
+          pin: addChildForm.pin,
+          avatarKey: addChildForm.avatarKey,
+          launchBandCode: addChildForm.launchBandCode,
+          birthYear: addChildForm.birthYear ? parseInt(addChildForm.birthYear, 10) : undefined,
+        }),
+      });
+      const payload = (await response.json()) as { success?: boolean; child?: { displayName: string }; error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Could not create child account.");
+      setAddChildSuccess(`${payload.child?.displayName ?? "Child"} account created! They can now sign in.`);
+      setAddChildForm({ displayName: "", username: "", pin: "", birthYear: "", avatarKey: "bunny_purple", launchBandCode: "K1" });
+      // Refresh dashboard data
+      const sessionRes = await fetch("/api/parent/session", { method: "GET" });
+      if (sessionRes.ok) {
+        const refreshed = (await sessionRes.json()) as ParentAccessResponse;
+        setResult(refreshed);
+      }
+    } catch (caughtError) {
+      setAddChildError(caughtError instanceof Error ? caughtError.message : "Could not create child account.");
+    } finally {
+      setAddChildSubmitting(false);
     }
   }
 
@@ -1430,6 +1487,240 @@ export default function ParentAccessPage() {
               </div>
             </div>
           )}
+
+          {/* ── Add a child ───────────────────────────────────────────────── */}
+          <div style={{ marginBottom: "24px" }}>
+            {!showAddChild ? (
+              <button
+                type="button"
+                onClick={() => { setShowAddChild(true); setAddChildError(""); setAddChildSuccess(""); }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  border: "1.5px solid rgba(155,114,255,0.35)",
+                  background: "rgba(155,114,255,0.07)",
+                  color: "rgba(195,170,255,0.85)",
+                  font: "600 0.85rem system-ui",
+                  cursor: "pointer",
+                  fontFamily: "system-ui",
+                }}
+              >
+                + Add a child
+              </button>
+            ) : (
+              <div
+                style={{
+                  background: "rgba(155,114,255,0.07)",
+                  border: "1.5px solid rgba(155,114,255,0.3)",
+                  borderRadius: "16px",
+                  padding: "24px",
+                  maxWidth: "560px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
+                  <span style={{ font: "700 1rem system-ui", color: C.text }}>Add a child account</span>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddChild(false); setAddChildError(""); setAddChildSuccess(""); }}
+                    style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: "1.1rem", fontFamily: "system-ui" }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {addChildSuccess ? (
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: "10px",
+                      background: "rgba(80,232,144,0.1)",
+                      border: "1px solid rgba(80,232,144,0.3)",
+                      color: "#50e890",
+                      font: "600 0.88rem system-ui",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    {addChildSuccess}
+                    <button
+                      type="button"
+                      onClick={() => { setShowAddChild(false); setAddChildSuccess(""); }}
+                      style={{ display: "block", marginTop: "8px", background: "none", border: "none", color: "rgba(80,232,144,0.7)", cursor: "pointer", font: "500 0.8rem system-ui", fontFamily: "system-ui", padding: 0 }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleAddChild} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div>
+                      <label style={{ display: "block", font: "600 0.78rem system-ui", color: "rgba(255,255,255,0.6)", marginBottom: "6px", fontFamily: "system-ui" }}>
+                        Display name
+                      </label>
+                      <input
+                        required
+                        placeholder="e.g. Maya"
+                        value={addChildForm.displayName}
+                        onChange={(e) => setAddChildForm((f) => ({ ...f, displayName: e.target.value }))}
+                        style={inputStyle}
+                        type="text"
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", font: "600 0.78rem system-ui", color: "rgba(255,255,255,0.6)", marginBottom: "6px", fontFamily: "system-ui" }}>
+                        Username (child uses this to sign in)
+                      </label>
+                      <input
+                        required
+                        placeholder="e.g. maya2024"
+                        value={addChildForm.username}
+                        onChange={(e) => setAddChildForm((f) => ({ ...f, username: e.target.value }))}
+                        style={inputStyle}
+                        type="text"
+                        autoComplete="off"
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", font: "600 0.78rem system-ui", color: "rgba(255,255,255,0.6)", marginBottom: "6px", fontFamily: "system-ui" }}>
+                        4-digit PIN
+                      </label>
+                      <input
+                        required
+                        placeholder="e.g. 1234"
+                        maxLength={4}
+                        value={addChildForm.pin}
+                        onChange={(e) => setAddChildForm((f) => ({ ...f, pin: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+                        style={inputStyle}
+                        type="password"
+                        inputMode="numeric"
+                        autoComplete="off"
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", font: "600 0.78rem system-ui", color: "rgba(255,255,255,0.6)", marginBottom: "6px", fontFamily: "system-ui" }}>
+                        Birth year (optional — helps suggest the right band)
+                      </label>
+                      <input
+                        placeholder="e.g. 2018"
+                        value={addChildForm.birthYear}
+                        onChange={(e) => {
+                          const yr = e.target.value;
+                          const suggested = yr ? suggestBandFromBirthYear(yr) : addChildForm.launchBandCode;
+                          setAddChildForm((f) => ({ ...f, birthYear: yr, launchBandCode: suggested }));
+                        }}
+                        style={inputStyle}
+                        type="number"
+                        min={2010}
+                        max={2025}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", font: "600 0.78rem system-ui", color: "rgba(255,255,255,0.6)", marginBottom: "8px", fontFamily: "system-ui" }}>
+                        Learning band
+                      </label>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                        {[
+                          { code: "PREK", label: "🐣 Pre-K", sub: "Ages 2–5" },
+                          { code: "K1", label: "⚽ K–Grade 1", sub: "Ages 5–7" },
+                          { code: "G23", label: "🚀 Grades 2–3", sub: "Ages 7–9" },
+                          { code: "G45", label: "🏗️ Grades 4–5", sub: "Ages 9–11" },
+                        ].map((band) => (
+                          <button
+                            key={band.code}
+                            type="button"
+                            onClick={() => setAddChildForm((f) => ({ ...f, launchBandCode: band.code }))}
+                            style={{
+                              padding: "10px 12px",
+                              borderRadius: "10px",
+                              border: `1.5px solid ${addChildForm.launchBandCode === band.code ? "#9b72ff" : "rgba(255,255,255,0.1)"}`,
+                              background: addChildForm.launchBandCode === band.code ? "rgba(155,114,255,0.15)" : "rgba(255,255,255,0.03)",
+                              color: addChildForm.launchBandCode === band.code ? "#c4a0ff" : C.muted,
+                              cursor: "pointer",
+                              textAlign: "left",
+                              fontFamily: "system-ui",
+                            }}
+                          >
+                            <div style={{ font: "600 0.82rem system-ui" }}>{band.label}</div>
+                            <div style={{ font: "400 0.7rem system-ui", color: "rgba(255,255,255,0.35)", marginTop: "2px" }}>{band.sub}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", font: "600 0.78rem system-ui", color: "rgba(255,255,255,0.6)", marginBottom: "8px", fontFamily: "system-ui" }}>
+                        Avatar
+                      </label>
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        {[
+                          { key: "bunny_purple", emoji: "🐰", label: "Bunny" },
+                          { key: "bear_blue", emoji: "🐻", label: "Bear" },
+                          { key: "lion_gold", emoji: "🦁", label: "Lion" },
+                          { key: "fox_orange", emoji: "🦊", label: "Fox" },
+                          { key: "panda_white", emoji: "🐼", label: "Panda" },
+                          { key: "owl_teal", emoji: "🦉", label: "Owl" },
+                        ].map((av) => (
+                          <button
+                            key={av.key}
+                            type="button"
+                            onClick={() => setAddChildForm((f) => ({ ...f, avatarKey: av.key }))}
+                            style={{
+                              padding: "10px 12px",
+                              borderRadius: "10px",
+                              border: `1.5px solid ${addChildForm.avatarKey === av.key ? "#ffd166" : "rgba(255,255,255,0.1)"}`,
+                              background: addChildForm.avatarKey === av.key ? "rgba(255,209,102,0.12)" : "rgba(255,255,255,0.03)",
+                              cursor: "pointer",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "4px",
+                              fontFamily: "system-ui",
+                            }}
+                          >
+                            <span style={{ fontSize: "1.4rem" }}>{av.emoji}</span>
+                            <span style={{ font: "600 0.68rem system-ui", color: addChildForm.avatarKey === av.key ? "#ffd166" : C.muted }}>{av.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {addChildError && (
+                      <p
+                        style={{
+                          font: "500 0.82rem system-ui",
+                          color: "#ff6b6b",
+                          background: "rgba(255,107,107,0.1)",
+                          border: "1px solid rgba(255,107,107,0.25)",
+                          borderRadius: "8px",
+                          padding: "10px 14px",
+                          margin: 0,
+                        }}
+                      >
+                        {addChildError}
+                      </p>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={addChildSubmitting}
+                      style={{
+                        ...primaryBtnStyle,
+                        opacity: addChildSubmitting ? 0.7 : 1,
+                        cursor: addChildSubmitting ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {addChildSubmitting ? "Creating…" : "Create child account"}
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* ── Navigation cards ──────────────────────────────────────────── */}
           <div

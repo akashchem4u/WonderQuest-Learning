@@ -4,8 +4,10 @@
 //          getTeacherClassRoster, getTeacherStudentDetail,
 //          createAssignment, getTeacherAssignments,
 //          createIntervention, resolveIntervention,
-//          upsertTeacherNote, getTeacherInterventions
+//          upsertTeacherNote, getTeacherInterventions,
+//          accessTeacherWithCredentials
 
+import crypto from "crypto";
 import { db } from "@/lib/db";
 
 // ─── Teacher Profile Types ────────────────────────────────────────────────────
@@ -557,4 +559,61 @@ export async function upsertTeacherNote(
      do update set body = excluded.body, updated_at = now()`,
     [teacherId, studentId, body],
   );
+}
+
+// ─── Credential-based Teacher Access ─────────────────────────────────────────
+
+function hashTeacherPassword(password: string, username: string): string {
+  return crypto.createHash("sha256")
+    .update(`${username}:${password}:wonderquest-teacher`)
+    .digest("hex");
+}
+
+function verifyTeacherPassword(password: string, username: string, hash: string): boolean {
+  return hashTeacherPassword(password, username) === hash;
+}
+
+export async function accessTeacherWithCredentials(input: {
+  username: string;
+  password: string;
+}): Promise<{ ok: boolean; teacherId: string; isNew: boolean; error?: string }> {
+  const { username, password } = input;
+
+  const existing = await db.query(
+    `select id, display_name, username, password_hash
+     from public.teacher_profiles
+     where username = $1 and tester_flag = false
+     limit 1`,
+    [username],
+  );
+
+  if (existing.rowCount && existing.rows.length > 0) {
+    const row = existing.rows[0];
+    const passwordHash = row.password_hash as string | null;
+
+    if (!passwordHash) {
+      // Legacy profile without password — allow any password and set it
+      await db.query(
+        `update public.teacher_profiles set password_hash = $2, username = $3 where id = $1`,
+        [row.id, hashTeacherPassword(password, username), username],
+      );
+      return { ok: true, teacherId: row.id as string, isNew: false };
+    }
+
+    if (!verifyTeacherPassword(password, username, passwordHash)) {
+      return { ok: false, teacherId: "", isNew: false, error: "Wrong username or password." };
+    }
+
+    return { ok: true, teacherId: row.id as string, isNew: false };
+  }
+
+  // Self-register new teacher
+  const inserted = await db.query(
+    `insert into public.teacher_profiles (display_name, username, password_hash, tester_flag)
+     values ($1, $2, $3, false)
+     returning id`,
+    [username, username, hashTeacherPassword(password, username)],
+  );
+
+  return { ok: true, teacherId: inserted.rows[0].id as string, isNew: true };
 }

@@ -3,13 +3,11 @@ import {
   TEACHER_COOKIE_NAME,
   TeacherAccessThrottleError,
   assertTeacherAccessAllowed,
-  isTeacherAccessConfigured,
-  isValidTeacherCode,
   issueTeacherAccessToken,
   recordTeacherAccessAttempt,
 } from "@/lib/teacher-access";
 import { getRequestIpAddress, getRequestUserAgent } from "@/lib/child-access";
-import { getOrCreateTeacherProfile } from "@/lib/teacher-service";
+import { accessTeacherWithCredentials } from "@/lib/teacher-service";
 
 export const TEACHER_ID_COOKIE_NAME = "wonderquest-teacher-id";
 
@@ -18,31 +16,26 @@ export async function POST(request: NextRequest) {
   const userAgent = getRequestUserAgent(request);
 
   try {
-    const body = (await request.json()) as { code?: string };
-    const code = body.code?.trim() ?? "";
+    const body = (await request.json()) as { username?: string; password?: string };
+    const username = (body.username ?? "").trim().toLowerCase();
+    const password = (body.password ?? "").trim();
 
-    if (!isTeacherAccessConfigured()) {
-      return NextResponse.json(
-        { error: "Teacher access code is not configured yet." },
-        { status: 400 },
-      );
+    if (!username || !password) {
+      return NextResponse.json({ error: "Username and password are required." }, { status: 400 });
     }
 
     await assertTeacherAccessAllowed(ipAddress);
 
-    if (!isValidTeacherCode(code)) {
+    const result = await accessTeacherWithCredentials({ username, password });
+
+    if (!result.ok) {
       await recordTeacherAccessAttempt({ ipAddress, userAgent, succeeded: false });
-      return NextResponse.json(
-        { error: "Teacher access code is not valid." },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: result.error }, { status: 401 });
     }
 
     await recordTeacherAccessAttempt({ ipAddress, userAgent, succeeded: true });
 
-    const profile = await getOrCreateTeacherProfile({});
-
-    const response = NextResponse.json({ ok: true, teacherId: profile.id, isNew: profile.isNew });
+    const response = NextResponse.json({ ok: true, teacherId: result.teacherId, isNew: result.isNew });
     response.cookies.set({
       name: TEACHER_COOKIE_NAME,
       value: issueTeacherAccessToken(),
@@ -54,7 +47,7 @@ export async function POST(request: NextRequest) {
     });
     response.cookies.set({
       name: TEACHER_ID_COOKIE_NAME,
-      value: profile.id,
+      value: result.teacherId,
       httpOnly: false,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

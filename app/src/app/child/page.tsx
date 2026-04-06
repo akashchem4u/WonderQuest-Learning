@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAvatarsForBand } from "@/lib/launch-data";
-import { launchBands } from "@/lib/launch-plan";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -212,28 +210,13 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
 
 export default function ChildAccessPage() {
   const router = useRouter();
-  const [accessMode, setAccessMode] = useState<"new" | "returning">("new");
-  const [selectedBand, setSelectedBand] = useState("K1");
-  const [fixSavedBand, setFixSavedBand] = useState(false);
-  const [selectedMode, setSelectedMode] = useState("guided-quest");
+  const accessMode = "returning" as const;
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [selectedAvatar, setSelectedAvatar] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [recoveryHint, setRecoveryHint] = useState("");
   const [result, setResult] = useState<ChildAccessResponse | null>(null);
-
-  const avatars = useMemo(() => getAvatarsForBand(selectedBand), [selectedBand]);
-  const returningMode = accessMode === "returning";
-  const selectedBandIsEarlyLearner = selectedBand === "PREK" || selectedBand === "K1";
-  const earlyLearnerBand = returningMode
-    ? fixSavedBand
-      ? selectedBandIsEarlyLearner
-      : false
-    : selectedBandIsEarlyLearner;
-  const guidedOnlyMode = earlyLearnerBand || returningMode;
 
   useEffect(() => {
     let cancelled = false;
@@ -254,20 +237,6 @@ export default function ChildAccessPage() {
     void trySessionRestore();
     return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!avatars.some((item) => item.avatar_key === selectedAvatar)) {
-      setSelectedAvatar(avatars[0]?.avatar_key ?? "");
-    }
-  }, [avatars, selectedAvatar]);
-
-  useEffect(() => {
-    if (guidedOnlyMode) setSelectedMode("guided-quest");
-  }, [guidedOnlyMode]);
-
-  useEffect(() => {
-    if (!returningMode) setFixSavedBand(false);
-  }, [returningMode]);
 
   function appendPinDigit(digit: string) {
     setPin((cur) => (cur.length >= 4 ? cur : `${cur}${digit}`));
@@ -294,9 +263,7 @@ export default function ChildAccessPage() {
         body: JSON.stringify({
           username,
           pin,
-          displayName,
-          avatarKey: selectedAvatar,
-          launchBandCode: returningMode && !fixSavedBand ? "" : selectedBand,
+          launchBandCode: "",
         }),
       });
       const payload = (await response.json()) as ChildAccessResponse & { error?: string };
@@ -304,12 +271,9 @@ export default function ChildAccessPage() {
       setResult(payload);
     } catch (caughtError) {
       const message = caughtError instanceof Error ? caughtError.message : "Child access failed.";
-      if (returningMode && message === "Wrong username or PIN.") {
+      if (message === "Wrong username or PIN.") {
         setError("Oops, that PIN did not match.");
-        setRecoveryHint("Try the same 4 digits again, or switch to new adventurer for first-time setup.");
-      } else if (returningMode && message === "Display name and avatar are required for first-time setup.") {
-        setError("We couldn't find that adventurer yet.");
-        setRecoveryHint("Check the username, or switch to new adventurer to create the profile.");
+        setRecoveryHint("Try the same 4 digits again, or ask a parent to check your username.");
       } else {
         setError(message);
       }
@@ -357,6 +321,9 @@ export default function ChildAccessPage() {
     transition: "background 0.1s",
   };
 
+  // suppress unused variable warning
+  void accessMode;
+
   return (
     <PageShell>
       {/* Hero */}
@@ -365,7 +332,7 @@ export default function ChildAccessPage() {
         <h1 className="home-title">
           Start your <span>adventure</span>
         </h1>
-        <p className="home-sub">Set up in seconds, then straight into quests.</p>
+        <p className="home-sub">Sign in to continue your quests.</p>
       </section>
 
       {/* Form */}
@@ -378,123 +345,7 @@ export default function ChildAccessPage() {
       >
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-          {/* ── New / Returning ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {(
-              [
-                { mode: "new" as const, icon: "🌟", label: "New adventurer" },
-                { mode: "returning" as const, icon: "⚡", label: "Sign in" },
-              ] as const
-            ).map(({ mode, icon, label }) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => { setAccessMode(mode); setError(""); setRecoveryHint(""); }}
-                style={{
-                  padding: "18px 12px",
-                  borderRadius: 18,
-                  border: `2px solid ${accessMode === mode ? "#9b72ff" : "rgba(255,255,255,0.08)"}`,
-                  background: accessMode === mode ? "rgba(155,114,255,0.14)" : "rgba(255,255,255,0.03)",
-                  color: accessMode === mode ? "#c4a0ff" : "rgba(255,255,255,0.5)",
-                  fontFamily: "inherit",
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  transition: "all 0.15s",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <span style={{ fontSize: 30 }} aria-hidden="true">{icon}</span>
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* ── Band selector ── */}
-          {(!returningMode || fixSavedBand) && (
-            <div>
-              <div style={sectionLabel}>
-                {returningMode ? "Fix band" : "Choose band"}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {launchBands.map((band) => {
-                  const profile = getBandProfile(band.code);
-                  const isSelected = selectedBand === band.code;
-                  return (
-                    <button
-                      key={band.code}
-                      type="button"
-                      onClick={() => setSelectedBand(band.code)}
-                      style={{
-                        padding: "14px 16px",
-                        borderRadius: 16,
-                        border: `2px solid ${isSelected ? "#9b72ff" : "rgba(255,255,255,0.08)"}`,
-                        background: isSelected ? "rgba(155,114,255,0.12)" : "rgba(255,255,255,0.03)",
-                        color: "#fff",
-                        fontFamily: "inherit",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <div style={{ fontSize: 22, marginBottom: 6 }} aria-hidden="true">{profile.emoji}</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: isSelected ? "#c4a0ff" : "#fff" }}>
-                        {profile.title}
-                      </div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 600, marginTop: 2 }}>
-                        {profile.ageLabel}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              {returningMode && (
-                <button
-                  type="button"
-                  onClick={() => setFixSavedBand(false)}
-                  style={{
-                    marginTop: 10,
-                    background: "none",
-                    border: "none",
-                    color: "rgba(255,255,255,0.35)",
-                    fontSize: 12,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    padding: 0,
-                  }}
-                >
-                  ← Keep saved band
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Fix band toggle for returning */}
-          {returningMode && !fixSavedBand && (
-            <button
-              type="button"
-              onClick={() => setFixSavedBand(true)}
-              style={{
-                padding: "12px 16px",
-                borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "rgba(255,255,255,0.03)",
-                color: "rgba(255,255,255,0.4)",
-                fontFamily: "inherit",
-                fontSize: 13,
-                cursor: "pointer",
-                textAlign: "left",
-                fontWeight: 600,
-              }}
-            >
-              🛠️ Fix saved band (optional)
-            </button>
-          )}
-
-          {/* ── Username + Display name ── */}
+          {/* ── Username ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <input
               autoComplete="username"
@@ -504,15 +355,6 @@ export default function ChildAccessPage() {
               placeholder="Username"
               style={inputStyle}
             />
-            {!returningMode && (
-              <input
-                name="displayName"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Display name (what we call you)"
-                style={inputStyle}
-              />
-            )}
           </div>
 
           {/* ── PIN ── */}
@@ -592,95 +434,6 @@ export default function ChildAccessPage() {
             </div>
           </div>
 
-          {/* ── Avatar (new only) ── */}
-          {!returningMode && (
-            <div>
-              <div style={sectionLabel}>Choose your guide</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
-                {avatars.map((avatar) => {
-                  const symbol = getAvatarSymbol(avatar.avatar_key);
-                  const isSelected = selectedAvatar === avatar.avatar_key;
-                  return (
-                    <button
-                      key={avatar.avatar_key}
-                      type="button"
-                      onClick={() => setSelectedAvatar(avatar.avatar_key)}
-                      style={{
-                        padding: "14px 8px",
-                        borderRadius: 16,
-                        border: `2px solid ${isSelected ? "#ffd166" : "rgba(255,255,255,0.08)"}`,
-                        background: isSelected ? "rgba(255,209,102,0.12)" : "rgba(255,255,255,0.04)",
-                        color: "#fff",
-                        fontFamily: "inherit",
-                        cursor: "pointer",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 5,
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <span style={{ fontSize: 28 }} aria-hidden="true">{symbol}</span>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: isSelected ? "#ffd166" : "rgba(255,255,255,0.4)",
-                        }}
-                      >
-                        {avatar.display_name}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* ── Mode (non-guided bands only) ── */}
-          {!guidedOnlyMode && (
-            <div>
-              <div style={sectionLabel}>Session style</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[
-                  { id: "guided-quest", label: "Guided Quest", desc: "Automatically picks the right questions for your level." },
-                  { id: "self-directed-challenge", label: "Self-Directed", desc: "More control — ask for harder or easier items." },
-                ].map((mode) => (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => setSelectedMode(mode.id)}
-                    style={{
-                      padding: "14px 16px",
-                      borderRadius: 14,
-                      border: `2px solid ${selectedMode === mode.id ? "#9b72ff" : "rgba(255,255,255,0.08)"}`,
-                      background: selectedMode === mode.id ? "rgba(155,114,255,0.12)" : "rgba(255,255,255,0.03)",
-                      color: "#fff",
-                      fontFamily: "inherit",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 800,
-                        color: selectedMode === mode.id ? "#c4a0ff" : "#fff",
-                        marginBottom: 3,
-                      }}
-                    >
-                      {mode.label}
-                    </div>
-                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 600 }}>
-                      {mode.desc}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* ── Error ── */}
           {error && (
             <div
@@ -725,12 +478,21 @@ export default function ChildAccessPage() {
               transition: "all 0.15s",
             }}
           >
-            {submitting
-              ? "Starting…"
-              : returningMode
-                ? "▶ Sign In & Play"
-                : "✨ Create & Play"}
+            {submitting ? "Starting…" : "▶ Sign In & Play"}
           </button>
+
+          {/* Helper text */}
+          <p
+            style={{
+              textAlign: "center",
+              fontSize: 13,
+              fontWeight: 500,
+              color: "rgba(255,255,255,0.35)",
+              margin: 0,
+            }}
+          >
+            Don&apos;t have an account? Ask a parent to set one up for you.
+          </p>
         </form>
       </div>
     </PageShell>

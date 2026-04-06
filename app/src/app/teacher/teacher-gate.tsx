@@ -7,46 +7,18 @@ type TeacherGateProps = {
 };
 
 export default function TeacherGate({ configured }: TeacherGateProps) {
-  const [code, setCode] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [attemptCount, setAttemptCount] = useState(0);
   const maxAttempts = 5;
   const lockedOut = attemptCount >= maxAttempts;
-  const slotCount = Math.min(Math.max(code.length + 1, 6), 10);
-
-  function appendDigit(digit: string) {
-    if (lockedOut) {
-      return;
-    }
-
-    setCode((current) => (current.length >= 10 ? current : `${current}${digit}`));
-    setError("");
-  }
-
-  function removeDigit() {
-    setCode((current) => current.slice(0, -1));
-    setError("");
-  }
-
-  function clearDigits() {
-    setCode("");
-    setError("");
-  }
-
-  function handleCodeFieldChange(event: React.ChangeEvent<HTMLInputElement>) {
-    if (lockedOut) {
-      return;
-    }
-
-    setCode(event.target.value.replace(/\D/g, "").slice(0, 10));
-    setError("");
-  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!configured || lockedOut) {
+    if (lockedOut) {
       return;
     }
 
@@ -59,7 +31,7 @@ export default function TeacherGate({ configured }: TeacherGateProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ username, password }),
       });
 
       const payload = (await response.json()) as { error?: string };
@@ -87,98 +59,74 @@ export default function TeacherGate({ configured }: TeacherGateProps) {
     <form className="gate-form gate-form-teacher" onSubmit={handleSubmit}>
       <div className="gate-role-badge gate-role-badge-teacher">Teacher access</div>
       <div className="gate-heading">
-        <strong>Enter school or teacher code</strong>
+        <strong>Sign in to teacher dashboard</strong>
         <p>
-          {configured
-            ? "Use the same classroom code each time to reach the teacher dashboard."
-            : "This feature is not set up yet. Contact your administrator."}
+          {lockedOut
+            ? "Too many attempts. Please wait before trying again."
+            : "Enter your teacher username and password."}
         </p>
       </div>
 
-      <div className={`gate-code-display ${error ? "is-error" : ""} ${lockedOut ? "is-locked" : ""}`}>
-        {Array.from({ length: slotCount }, (_, index) => (
-          <span className={`gate-code-cell ${code[index] ? "has-value" : ""}`} key={index}>
-            {code[index] ?? ""}
-          </span>
-        ))}
+      <div className="gate-entry-row">
+        <label className="gate-entry-label" htmlFor="teacher-username-input">
+          Username
+        </label>
+        <input
+          autoComplete="username"
+          className="gate-entry-input"
+          disabled={lockedOut}
+          id="teacher-username-input"
+          name="teacherUsername"
+          onChange={(e) => { setUsername(e.target.value); setError(""); }}
+          placeholder="Enter username"
+          type="text"
+          value={username}
+        />
       </div>
 
       <div className="gate-entry-row">
-        <label className="gate-entry-label" htmlFor="teacher-code-input">
-          Type the code with your keyboard or use the keypad
+        <label className="gate-entry-label" htmlFor="teacher-password-input">
+          Password
         </label>
         <input
-          autoComplete="one-time-code"
+          autoComplete="current-password"
           className="gate-entry-input"
           disabled={lockedOut}
-          id="teacher-code-input"
-          inputMode="numeric"
-          maxLength={10}
-          name="teacherCode"
-          onChange={handleCodeFieldChange}
-          pattern="[0-9]*"
-          placeholder="Enter code"
+          id="teacher-password-input"
+          name="teacherPassword"
+          onChange={(e) => { setPassword(e.target.value); setError(""); }}
+          placeholder="Enter password"
           type="password"
-          value={code}
+          value={password}
         />
       </div>
 
       {error ? (
         <div className="gate-error-card">
-          <strong>{lockedOut ? "Teacher access paused." : "That code did not match."}</strong>
+          <strong>{lockedOut ? "Teacher access paused." : "Sign in failed."}</strong>
           <p>
             {lockedOut
-              ? "Too many tries. Contact the school admin for a fresh code."
+              ? "Too many tries. Contact the school admin for assistance."
               : `${Math.max(maxAttempts - attemptCount, 0)} attempt${maxAttempts - attemptCount === 1 ? "" : "s"} remaining before this gate pauses.`}
           </p>
         </div>
       ) : null}
 
-      {configured && !lockedOut ? (
-        <div className="gate-keypad">
-          {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
-            <button
-              className="gate-key"
-              key={digit}
-              onClick={() => appendDigit(digit)}
-              type="button"
-            >
-              {digit}
-            </button>
-          ))}
-          <button className="gate-key gate-key-quiet" onClick={clearDigits} type="button">
-            Clear
-          </button>
-          <button className="gate-key" onClick={() => appendDigit("0")} type="button">
-            0
-          </button>
-          <button className="gate-key gate-key-quiet" onClick={removeDigit} type="button">
-            Delete
-          </button>
-        </div>
-      ) : null}
-
-      {!configured ? (
-        <p className="soft-copy">
-          Teacher access is not available right now.
-        </p>
-      ) : null}
-
       <div className="form-actions">
         <button
           className="primary-link button-link"
-          disabled={!configured || lockedOut || submitting || code.length === 0}
+          disabled={lockedOut || submitting || !username || !password}
           type="submit"
         >
-          {submitting ? "Checking..." : "Enter teacher dashboard"}
+          {submitting ? "Checking..." : "Sign in to dashboard"}
         </button>
         <button
           className="secondary-link button-link"
-          disabled={!configured || submitting}
-          onClick={clearDigits}
+          disabled={submitting}
+          onClick={() => { setUsername(""); setPassword(""); setError(""); }}
           type="button"
         >
-          Clear code
+          Clear
         </button>
       </div>
     </form>

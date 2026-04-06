@@ -356,3 +356,62 @@ export async function accessChild(
     },
   };
 }
+
+// ─── Parent-initiated child account creation ──────────────────────────────────
+
+export async function createChildForParent(
+  guardianId: string,
+  input: {
+    username: string;
+    displayName: string;
+    pin: string;
+    avatarKey: string;
+    launchBandCode: string;
+    birthYear?: number;
+  },
+) {
+  const username = normalizeUsername(ensureText(input.username));
+  const pin = ensureText(input.pin);
+  const displayName = ensureText(input.displayName);
+  const avatarKey = ensureText(input.avatarKey) || "bunny_purple";
+  const launchBandCode = ensureLaunchBandCode(ensureText(input.launchBandCode) || "K1");
+
+  if (!username) throw new Error("Username is required.");
+  if (!displayName) throw new Error("Display name is required.");
+  if (!validatePin(pin)) throw new Error("PIN must be exactly 4 digits.");
+
+  // Check username not already taken
+  const existing = await db.query(
+    "select id from public.student_profiles where username = $1 limit 1",
+    [username],
+  );
+  if (existing.rowCount) throw new Error("That username is already taken. Try another.");
+
+  const insertedChild = await db.query(
+    `insert into public.student_profiles
+       (username, pin_hash, display_name, avatar_key, launch_band_code, birth_year)
+     values ($1, $2, $3, $4, $5, $6)
+     returning id, username, display_name, avatar_key, launch_band_code`,
+    [username, hashPin(pin, username), displayName, avatarKey, launchBandCode, input.birthYear ?? null],
+  );
+  const child = insertedChild.rows[0];
+
+  // Link guardian → student
+  await db.query(
+    `insert into public.guardian_student_links (guardian_id, student_id)
+     values ($1, $2)
+     on conflict do nothing`,
+    [guardianId, child.id],
+  );
+
+  return {
+    success: true,
+    child: {
+      id: child.id as string,
+      username: child.username as string,
+      displayName: child.display_name as string,
+      avatarKey: child.avatar_key as string,
+      launchBandCode: child.launch_band_code as string,
+    },
+  };
+}
