@@ -184,7 +184,7 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
   ];
 
   return (
-    <AppFrame audience="child" currentPath="/child">
+    <AppFrame audience="kid" currentPath="/child">
       <main
         style={{
           display: "grid",
