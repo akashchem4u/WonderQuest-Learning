@@ -208,6 +208,10 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
 
 // ─── Access gate ──────────────────────────────────────────────────────────────
 
+const PIN_ATTEMPTS_KEY = "wonderquest-pin-attempts";
+const MAX_PIN_ATTEMPTS = 5;
+const LOCKOUT_SECONDS = 60;
+
 export default function ChildAccessPage() {
   const router = useRouter();
   const accessMode = "returning" as const;
@@ -217,6 +221,19 @@ export default function ChildAccessPage() {
   const [error, setError] = useState("");
   const [recoveryHint, setRecoveryHint] = useState("");
   const [result, setResult] = useState<ChildAccessResponse | null>(null);
+  const [failCount, setFailCount] = useState(0);
+
+  // On mount: check for existing fail count
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = parseInt(localStorage.getItem(PIN_ATTEMPTS_KEY) ?? "0", 10);
+      if (stored >= MAX_PIN_ATTEMPTS) {
+        router.push(`/child/pin-lockout?seconds=${LOCKOUT_SECONDS}`);
+      } else {
+        setFailCount(stored);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let cancelled = false;
@@ -268,12 +285,23 @@ export default function ChildAccessPage() {
       });
       const payload = (await response.json()) as ChildAccessResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Child access failed.");
+      // Success — clear fail count
+      if (typeof window !== "undefined") localStorage.removeItem(PIN_ATTEMPTS_KEY);
       setResult(payload);
     } catch (caughtError) {
       const message = caughtError instanceof Error ? caughtError.message : "Child access failed.";
-      if (message === "Wrong username or PIN.") {
+      if (message === "Wrong username or PIN." || message.toLowerCase().includes("pin")) {
+        // Increment fail counter
+        const newCount = failCount + 1;
+        setFailCount(newCount);
+        if (typeof window !== "undefined") localStorage.setItem(PIN_ATTEMPTS_KEY, String(newCount));
+        if (newCount >= MAX_PIN_ATTEMPTS) {
+          router.push(`/child/pin-lockout?seconds=${LOCKOUT_SECONDS}`);
+          return;
+        }
+        const remaining = MAX_PIN_ATTEMPTS - newCount;
         setError("Oops, that PIN did not match.");
-        setRecoveryHint("Try the same 4 digits again, or ask a parent to check your username.");
+        setRecoveryHint(`${remaining} attempt${remaining === 1 ? "" : "s"} left before lockout. Ask a parent if you need help.`);
       } else {
         setError(message);
       }
