@@ -230,7 +230,7 @@ export default function ParentSkillDetailPage() {
 
     // Fetch skills list, latest report, and per-skill sessions in parallel
     Promise.all([
-      fetch(`/api/parent/skills?studentId=${encodeURIComponent(studentId)}`)
+      fetch(`/api/parent/skills?childId=${encodeURIComponent(studentId)}`)
         .then((r) => (r.ok ? r.json() : null)),
       fetch(`/api/parent/report?studentId=${encodeURIComponent(studentId)}&weekOffset=0`)
         .then((r) => (r.ok ? r.json() : null)),
@@ -238,10 +238,23 @@ export default function ParentSkillDetailPage() {
         .then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([skillsData, reportData, activityData]) => {
-        // Match skill
-        const skills: LiveSkill[] = skillsData?.skills ?? [];
-        const matched = skills.find((s) => s.skillCode === skillCode);
-        setSkill(matched ?? null);
+        // Match skill — API returns displayName/attempts/correctAttempts/masteryScore
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawSkills: any[] = skillsData?.skills ?? [];
+        const rawMatch = rawSkills.find((s) => s.skillCode === skillCode);
+        const matched: LiveSkill | null = rawMatch
+          ? {
+              skillCode: rawMatch.skillCode,
+              skillName: rawMatch.displayName ?? rawMatch.skillName ?? "",
+              subjectCode: rawMatch.subjectCode ?? "",
+              launchBandCode: rawMatch.launchBandCode ?? "",
+              correctCount: Number(rawMatch.correctAttempts ?? rawMatch.correctCount ?? 0),
+              totalCount: Number(rawMatch.attempts ?? rawMatch.totalCount ?? 0),
+              masteryPct: Number(rawMatch.masteryScore ?? rawMatch.masteryPct ?? 0),
+              lastPracticed: rawMatch.updatedAt ?? rawMatch.lastPracticed ?? null,
+            }
+          : null;
+        setSkill(matched);
 
         // Match skill in report
         const rSkills: ReportSkill[] = reportData?.report?.skills ?? [];

@@ -5,6 +5,7 @@
 // Exports: getOwnerOverview, getTeacherOverview, getTeacherSkillDetail, getOwnerTriageDetail
 
 import { db } from "@/lib/db";
+import { formatTeacherBandLabel } from "@/lib/teacher-band-format";
 
 // ─── Label builders (teacher) ─────────────────────────────────────────────────
 
@@ -31,6 +32,71 @@ function buildTeacherRecommendedAction(displayName: string, masteryRate: number)
 
   return `Plan a slower teacher-led pass on ${displayName} with one-step support, quick retries, and visible examples.`;
 }
+
+type TeacherRosterStudentRow = {
+  student_id: string;
+  display_name: string;
+  launch_band_code: string;
+};
+
+function mapTeacherBandLabel(code: string) {
+  return formatTeacherBandLabel(code);
+}
+
+async function getTeacherRosterStudents(teacherId: string) {
+  const result = await db.query(
+    `
+      select
+        sp.id as student_id,
+        sp.display_name,
+        sp.launch_band_code
+      from public.teacher_student_roster tsr
+      join public.student_profiles sp
+        on sp.id = tsr.student_id
+      where tsr.teacher_id = $1
+        and tsr.active = true
+      order by sp.display_name asc
+    `,
+    [teacherId],
+  );
+
+  return result.rows as TeacherRosterStudentRow[];
+}
+
+function getTeacherWinTypes() {
+  return ["level_up", "badge", "streak", "milestone-earned"];
+}
+
+type TeacherWinItem = {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  value: string | null;
+  createdAt: string;
+  studentId: string;
+  studentDisplayName: string;
+  launchBandCode: string;
+  launchBandLabel: string;
+};
+
+type TeacherSkillTrendPoint = {
+  day: string;
+  attempts: number;
+  correctAttempts: number;
+  accuracyRate: number;
+};
+
+type TeacherSkillTrend = {
+  skillCode: string;
+  displayName: string;
+  launchBandCode: string;
+  launchBandLabel: string;
+  totalAttempts: number;
+  totalCorrectAttempts: number;
+  accuracyRate: number;
+  points: TeacherSkillTrendPoint[];
+};
 
 // ─── Exported service functions ───────────────────────────────────────────────
 
@@ -190,11 +256,13 @@ export async function getOwnerOverview() {
     byBand: byBand.rows.map((row) => ({
       code: row.code as string,
       displayName: row.display_name as string,
+      displayLabel: mapTeacherBandLabel(row.code as string),
       studentCount: Number(row.student_count ?? 0),
     })),
     topLearners: topLearners.rows.map((row) => ({
       displayName: row.display_name as string,
       launchBandCode: row.launch_band_code as string,
+      launchBandLabel: mapTeacherBandLabel(row.launch_band_code as string),
       totalPoints: Number(row.total_points ?? 0),
       currentLevel: Number(row.current_level ?? 1),
       badgeCount: Number(row.badge_count ?? 0),
@@ -239,7 +307,7 @@ export async function getOwnerOverview() {
   };
 }
 
-export async function getTeacherOverview() {
+export async function getTeacherOverview(teacherId?: string) {
   const counts = await db.query(
     `
       select
@@ -315,6 +383,7 @@ export async function getTeacherOverview() {
     skillCode: row.skill_code as string,
     displayName: row.display_name as string,
     launchBandCode: row.launch_band_code as string,
+    launchBandLabel: mapTeacherBandLabel(row.launch_band_code as string),
     learnerCount: Number(row.learner_count ?? 0),
     attempts: Number(row.attempts ?? 0),
     correctAttempts: Number(row.correct_attempts ?? 0),
@@ -336,6 +405,7 @@ export async function getTeacherOverview() {
     byBand: byBand.rows.map((row) => ({
       code: row.code as string,
       displayName: row.display_name as string,
+      displayLabel: mapTeacherBandLabel(row.code as string),
       studentCount: Number(row.student_count ?? 0),
     })),
     skillSummary: mappedSummary,
@@ -347,12 +417,155 @@ export async function getTeacherOverview() {
       id: row.id as string,
       sessionMode: row.session_mode as string,
       launchBandCode: row.launch_band_code as string,
+      launchBandLabel: mapTeacherBandLabel(row.launch_band_code as string),
       startedAt: row.started_at as string,
       effectivenessScore:
         row.effectiveness_score === null
           ? null
           : Number(row.effectiveness_score),
     })),
+    recentWins: teacherId ? await getTeacherWins(teacherId, { limit: 3 }) : [],
+  };
+}
+
+export async function getTeacherWins(
+  teacherId: string,
+  options: { days?: number; limit?: number } = {},
+) {
+  const rosterStudents = await getTeacherRosterStudents(teacherId);
+
+  if (!rosterStudents.length) {
+    return [];
+  }
+
+  const days = Math.min(Math.max(Math.floor(options.days ?? 7), 1), 30);
+  const limit = Math.min(Math.max(Math.floor(options.limit ?? 20), 1), 100);
+  const result = await db.query(
+    `
+      select
+        sn.id,
+        sn.type,
+        sn.title,
+        sn.description,
+        sn.value,
+        sn.created_at,
+        sp.id as student_id,
+        sp.display_name as student_display_name,
+        sp.launch_band_code
+      from public.student_notifications sn
+      join public.teacher_student_roster tsr
+        on tsr.student_id = sn.student_id
+       and tsr.teacher_id = $1
+       and tsr.active = true
+      join public.student_profiles sp
+        on sp.id = sn.student_id
+      where sn.type = any($2::text[])
+        and sn.created_at >= now() - make_interval(days => $3)
+      order by sn.created_at desc, sn.id desc
+      limit $4
+    `,
+    [teacherId, getTeacherWinTypes(), days, limit],
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    type: row.type as string,
+    title: row.title as string,
+    description: row.description as string,
+    value: (row.value as string | undefined) ?? null,
+    createdAt: row.created_at as string,
+    studentId: row.student_id as string,
+    studentDisplayName: row.student_display_name as string,
+    launchBandCode: row.launch_band_code as string,
+    launchBandLabel: mapTeacherBandLabel(row.launch_band_code as string),
+  })) satisfies TeacherWinItem[];
+}
+
+export async function getTeacherSkillTrends(
+  teacherId: string,
+  options: { days?: number } = {},
+) {
+  const rosterStudents = await getTeacherRosterStudents(teacherId);
+
+  if (!rosterStudents.length) {
+    return {
+      teacherId,
+      rangeDays: Math.min(Math.max(Math.floor(options.days ?? 30), 1), 90),
+      skills: [] as TeacherSkillTrend[],
+    };
+  }
+
+  const days = Math.min(Math.max(Math.floor(options.days ?? 30), 1), 90);
+  const result = await db.query(
+    `
+      select
+        sk.code as skill_code,
+        sk.display_name,
+        sk.launch_band_code,
+        date_trunc('day', cs.started_at)::date as day,
+        count(sr.id) as attempts,
+        count(*) filter (where sr.correct) as correct_attempts
+      from public.session_results sr
+      join public.challenge_sessions cs
+        on cs.id = sr.session_id
+      join public.skills sk
+        on sk.id = sr.skill_id
+      join public.teacher_student_roster tsr
+        on tsr.student_id = cs.student_id
+       and tsr.teacher_id = $1
+       and tsr.active = true
+      where cs.started_at >= now() - make_interval(days => $2)
+      group by sk.code, sk.display_name, sk.launch_band_code, date_trunc('day', cs.started_at)::date
+      having count(sr.id) > 0
+      order by sk.launch_band_code asc, sk.code asc, day asc
+    `,
+    [teacherId, days],
+  );
+
+  const skillMap = new Map<string, TeacherSkillTrend>();
+
+  for (const row of result.rows) {
+    const skillCode = row.skill_code as string;
+    const attempts = Number(row.attempts ?? 0);
+    const correctAttempts = Number(row.correct_attempts ?? 0);
+    const accuracyRate = attempts > 0 ? Number(((correctAttempts / attempts) * 100).toFixed(1)) : 0;
+    const existing =
+      skillMap.get(skillCode) ??
+      ({
+        skillCode,
+        displayName: row.display_name as string,
+        launchBandCode: row.launch_band_code as string,
+        launchBandLabel: mapTeacherBandLabel(row.launch_band_code as string),
+        totalAttempts: 0,
+        totalCorrectAttempts: 0,
+        accuracyRate: 0,
+        points: [],
+      } satisfies TeacherSkillTrend);
+
+    existing.totalAttempts += attempts;
+    existing.totalCorrectAttempts += correctAttempts;
+    existing.points.push({
+      day: (row.day as string).slice(0, 10),
+      attempts,
+      correctAttempts,
+      accuracyRate,
+    });
+
+    skillMap.set(skillCode, existing);
+  }
+
+  const skills = [...skillMap.values()].map((skill) => ({
+    ...skill,
+    accuracyRate:
+      skill.totalAttempts > 0
+        ? Number(((skill.totalCorrectAttempts / skill.totalAttempts) * 100).toFixed(1))
+        : 0,
+  }));
+
+  return {
+    teacherId,
+    rangeDays: days,
+    skills,
   };
 }
 
@@ -461,6 +674,7 @@ export async function getTeacherSkillDetail(skillCode: string) {
       id: row.id as string,
       sessionMode: row.session_mode as string,
       launchBandCode: row.launch_band_code as string,
+      launchBandLabel: mapTeacherBandLabel(row.launch_band_code as string),
       startedAt: row.started_at as string,
       correct: Boolean(row.correct),
       firstTry: Boolean(row.first_try),
