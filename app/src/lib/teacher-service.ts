@@ -1,11 +1,139 @@
 // teacher-service.ts
 // Teacher-facing data access layer.
-// Exports: getTeacherClassRoster, getTeacherStudentDetail,
+// Exports: getOrCreateTeacherProfile, getTeacherProfile, updateTeacherProfile,
+//          getTeacherClassRoster, getTeacherStudentDetail,
 //          createAssignment, getTeacherAssignments,
 //          createIntervention, resolveIntervention,
 //          upsertTeacherNote, getTeacherInterventions
 
 import { db } from "@/lib/db";
+
+// ─── Teacher Profile Types ────────────────────────────────────────────────────
+
+export type TeacherProfile = {
+  id: string;
+  displayName: string;
+  email: string | null;
+  schoolName: string | null;
+  gradeLevels: string[];
+  testerFlag: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TeacherProfileUpdate = {
+  displayName?: string;
+  schoolName?: string;
+  gradeLevels?: string[];
+};
+
+// ─── Teacher Profile Functions ────────────────────────────────────────────────
+
+export async function getOrCreateTeacherProfile(input: {
+  email?: string;
+  displayName?: string;
+  schoolName?: string;
+}): Promise<{ id: string; displayName: string; email: string | null; schoolName: string | null; isNew: boolean }> {
+  // Look for an existing non-tester profile
+  const existing = await db.query(
+    `select id, display_name, email, school_name
+     from public.teacher_profiles
+     where tester_flag = false
+     order by created_at asc
+     limit 1`,
+    [],
+  );
+
+  if (existing.rowCount && existing.rows.length > 0) {
+    const row = existing.rows[0];
+    return {
+      id: row.id as string,
+      displayName: row.display_name as string,
+      email: (row.email as string | null) ?? null,
+      schoolName: (row.school_name as string | null) ?? null,
+      isNew: false,
+    };
+  }
+
+  // Create a new profile
+  const created = await db.query(
+    `insert into public.teacher_profiles (display_name, email, school_name, tester_flag)
+     values ($1, $2, $3, false)
+     returning id, display_name, email, school_name`,
+    [
+      input.displayName ?? "Teacher",
+      input.email ?? null,
+      input.schoolName ?? null,
+    ],
+  );
+
+  const row = created.rows[0];
+  return {
+    id: row.id as string,
+    displayName: row.display_name as string,
+    email: (row.email as string | null) ?? null,
+    schoolName: (row.school_name as string | null) ?? null,
+    isNew: true,
+  };
+}
+
+export async function getTeacherProfile(teacherId: string): Promise<TeacherProfile | null> {
+  const result = await db.query(
+    `select id, display_name, email, school_name, grade_levels, tester_flag, created_at, updated_at
+     from public.teacher_profiles
+     where id = $1
+     limit 1`,
+    [teacherId],
+  );
+
+  if (!result.rowCount || result.rows.length === 0) return null;
+
+  const row = result.rows[0];
+  return {
+    id: row.id as string,
+    displayName: row.display_name as string,
+    email: (row.email as string | null) ?? null,
+    schoolName: (row.school_name as string | null) ?? null,
+    gradeLevels: (row.grade_levels as string[] | null) ?? [],
+    testerFlag: Boolean(row.tester_flag),
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
+export async function updateTeacherProfile(
+  teacherId: string,
+  updates: Partial<TeacherProfileUpdate>,
+): Promise<void> {
+  const setClauses: string[] = [];
+  const values: unknown[] = [];
+  let paramIdx = 1;
+
+  if (updates.displayName !== undefined) {
+    setClauses.push(`display_name = $${paramIdx++}`);
+    values.push(updates.displayName);
+  }
+  if (updates.schoolName !== undefined) {
+    setClauses.push(`school_name = $${paramIdx++}`);
+    values.push(updates.schoolName);
+  }
+  if (updates.gradeLevels !== undefined) {
+    setClauses.push(`grade_levels = $${paramIdx++}`);
+    values.push(updates.gradeLevels);
+  }
+
+  if (setClauses.length === 0) return;
+
+  setClauses.push(`updated_at = now()`);
+  values.push(teacherId);
+
+  await db.query(
+    `update public.teacher_profiles
+     set ${setClauses.join(", ")}
+     where id = $${paramIdx}`,
+    values,
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -306,6 +434,52 @@ export async function getTeacherAssignments(teacherId: string) {
     assignedCount: Number(r.assigned_count),
     completedCount: Number(r.completed_count),
   }));
+}
+
+export async function getAssignmentProgress(teacherId: string, assignmentId: string) {
+  // Verify assignment belongs to teacher
+  const asgn = await db.query(
+    `select id, title, skill_codes, due_date, created_at, session_mode
+     from public.assignments
+     where id = $1 and teacher_id = $2
+     limit 1`,
+    [assignmentId, teacherId],
+  );
+
+  if (!asgn.rowCount) return null;
+
+  const a = asgn.rows[0];
+
+  const students = await db.query(
+    `select ast.student_id, sp.display_name, sp.avatar_key,
+            ast.completed_at, ast.session_id
+     from public.assignment_students ast
+     join public.student_profiles sp on sp.id = ast.student_id
+     where ast.assignment_id = $1
+     order by sp.display_name asc`,
+    [assignmentId],
+  );
+
+  const studentList = students.rows.map((r) => ({
+    studentId: r.student_id as string,
+    displayName: r.display_name as string,
+    avatarKey: r.avatar_key as string,
+    completed: r.completed_at != null,
+    completedAt: (r.completed_at as string | null) ?? null,
+    sessionId: (r.session_id as string | null) ?? null,
+  }));
+
+  return {
+    assignmentId: a.id as string,
+    title: a.title as string,
+    skillCodes: a.skill_codes as string[],
+    sessionMode: a.session_mode as string,
+    dueDate: (a.due_date as string | null) ?? null,
+    createdAt: a.created_at as string,
+    totalStudents: studentList.length,
+    completedCount: studentList.filter((s) => s.completed).length,
+    students: studentList,
+  };
 }
 
 // ─── Interventions ────────────────────────────────────────────────────────────

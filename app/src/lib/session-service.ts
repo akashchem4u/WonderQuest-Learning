@@ -10,6 +10,11 @@ import {
   getQuestionByKey,
   getSampleQuestions,
 } from "@/lib/content-bank";
+import { checkAndTriggerInterventions } from "@/lib/intervention-trigger-service";
+import {
+  detectNewMilestones,
+  storeMilestoneNotifications,
+} from "@/lib/milestone-service";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -379,6 +384,49 @@ function buildQuestionCard(questionKey: string) {
   };
 }
 
+// ─── Assignment helpers ───────────────────────────────────────────────────────
+
+async function getActiveAssignment(studentId: string) {
+  const result = await db.query(
+    `
+      SELECT a.id, a.skill_codes, a.launch_band_code, a.session_mode, a.title
+      FROM public.assignments a
+      JOIN public.assignment_students ast ON ast.assignment_id = a.id
+      WHERE ast.student_id = $1
+        AND ast.completed_at IS NULL
+        AND (a.due_date IS NULL OR a.due_date >= now())
+      ORDER BY a.created_at ASC
+      LIMIT 1
+    `,
+    [studentId],
+  );
+
+  if (!result.rowCount) return null;
+
+  const row = result.rows[0];
+  return {
+    id: row.id as string,
+    title: row.title as string,
+    skillCodes: row.skill_codes as string[],
+    sessionMode: row.session_mode as string,
+  };
+}
+
+export async function completeAssignmentIfActive(
+  studentId: string,
+  assignmentId: string,
+  sessionId: string,
+) {
+  await db.query(
+    `
+      UPDATE public.assignment_students
+      SET completed_at = now(), session_id = $1
+      WHERE assignment_id = $2 AND student_id = $3 AND completed_at IS NULL
+    `,
+    [sessionId, assignmentId, studentId],
+  );
+}
+
 // ─── Exported service functions ───────────────────────────────────────────────
 
 export async function createPlaySession(input: PlaySessionInput) {
@@ -401,6 +449,8 @@ export async function createPlaySession(input: PlaySessionInput) {
   const studentRow = student.rows[0];
 
   await ensureProgressionState(studentRow.id as string);
+
+  const activeAssignment = await getActiveAssignment(input.studentId);
 
   const selectedQuestions = await selectSessionQuestions(
     input.studentId,
@@ -452,6 +502,7 @@ export async function createPlaySession(input: PlaySessionInput) {
     },
     progression: toProgression(progression.rows[0]),
     questions,
+    activeAssignment,
   };
 }
 
@@ -612,7 +663,7 @@ export async function answerQuestion(input: AnswerInput) {
 
   const current = await db.query(
     `
-      select total_points, current_level, badge_count, trophy_count
+      select total_points, current_level, badge_count, trophy_count, streak_count
       from public.progression_states
       where student_id = $1
       limit 1
@@ -621,6 +672,7 @@ export async function answerQuestion(input: AnswerInput) {
   );
 
   const previousProgression = toProgression(current.rows[0]);
+  const prevStreakCount = Number(current.rows[0]?.streak_count ?? 0);
   const nextTotalPoints = previousProgression.totalPoints + pointsEarned;
   const nextProgression = {
     totalPoints: nextTotalPoints,
@@ -680,6 +732,17 @@ export async function answerQuestion(input: AnswerInput) {
         where id = $1
       `,
       [input.sessionId, effectivenessScore],
+    );
+
+    // Mark active assignment complete if one exists for this student
+    const assignment = await getActiveAssignment(input.studentId);
+    if (assignment) {
+      await completeAssignmentIfActive(input.studentId, assignment.id, input.sessionId);
+    }
+
+    // Fire-and-forget: check and auto-trigger skill-weakness interventions
+    checkAndTriggerInterventions(input.studentId, input.sessionId).catch(
+      (err) => console.error("[intervention-trigger]", err),
     );
   }
 

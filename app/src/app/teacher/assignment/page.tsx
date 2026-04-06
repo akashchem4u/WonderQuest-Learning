@@ -44,6 +44,27 @@ type Assignment = {
   completedCount: number;
 };
 
+type AssignmentProgressStudent = {
+  studentId: string;
+  displayName: string;
+  avatarKey: string;
+  completed: boolean;
+  completedAt: string | null;
+  sessionId: string | null;
+};
+
+type AssignmentProgress = {
+  assignmentId: string;
+  title: string;
+  skillCodes: string[];
+  sessionMode: string;
+  dueDate: string | null;
+  createdAt: string;
+  totalStudents: number;
+  completedCount: number;
+  students: AssignmentProgressStudent[];
+};
+
 export default function TeacherAssignmentPage() {
   const [step, setStep] = useState<Step>(1);
   const [assignmentType, setAssignmentType] = useState<"quest" | "skill" | "free">("skill");
@@ -57,6 +78,9 @@ export default function TeacherAssignmentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const [progressModal, setProgressModal] = useState<AssignmentProgress | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState(false);
 
   const STEPS = [
     { n: 1, label: "Type" },
@@ -82,6 +106,20 @@ export default function TeacherAssignmentPage() {
   useEffect(() => {
     fetchAssignments();
   }, []);
+
+  function openProgressModal(assignmentId: string) {
+    setLoadingProgress(true);
+    setProgressModal(null);
+    fetch(`/api/teacher/assignments/${assignmentId}/progress?teacherId=demo-teacher`)
+      .then((r) => r.json())
+      .then((data: { progress?: AssignmentProgress }) => {
+        setProgressModal(data.progress ?? null);
+      })
+      .catch(() => {
+        setProgressModal(null);
+      })
+      .finally(() => setLoadingProgress(false));
+  }
 
   function toggleSkill(id: string) {
     setSelectedSkills((prev) => {
@@ -336,7 +374,11 @@ export default function TeacherAssignmentPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {assignments.map((a) => (
-                <div key={a.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  key={a.id}
+                  onClick={() => openProgressModal(a.id)}
+                  style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
+                >
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 3 }}>{a.title}</div>
                     <div style={{ fontSize: 11, color: C.muted }}>
@@ -348,6 +390,7 @@ export default function TeacherAssignmentPage() {
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{a.completedCount}/{a.assignedCount}</div>
                     <div style={{ fontSize: 10, color: C.muted }}>done</div>
                   </div>
+                  <div style={{ fontSize: 11, color: C.blue, fontWeight: 700 }}>→</div>
                 </div>
               ))}
             </div>
@@ -359,6 +402,105 @@ export default function TeacherAssignmentPage() {
           <Link href="/teacher/command" style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none" }}>Command Center</Link>
         </div>
       </div>
+
+      {/* Progress loading overlay */}
+      {loadingProgress && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(16,11,46,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
+          <div style={{ background: C.surface, borderRadius: 16, padding: "28px 32px", border: `1px solid ${C.border}`, color: C.muted, fontSize: 14 }}>
+            Loading progress…
+          </div>
+        </div>
+      )}
+
+      {/* Progress modal */}
+      {progressModal && !loadingProgress && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(16,11,46,0.75)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 200, padding: "0 0 0 0" }}
+          onClick={() => setProgressModal(null)}
+        >
+          <div
+            style={{ background: "#1a1f2e", borderTopLeftRadius: 20, borderTopRightRadius: 20, border: `1px solid ${C.border}`, borderBottom: "none", width: "100%", maxWidth: 680, maxHeight: "80vh", overflowY: "auto", padding: "24px 24px 40px" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 4 }}>{progressModal.title}</div>
+                <div style={{ fontSize: 12, color: C.muted }}>
+                  {progressModal.skillCodes.length > 0 ? progressModal.skillCodes.join(", ") : "No skills"} ·{" "}
+                  {progressModal.dueDate
+                    ? `Due ${new Date(progressModal.dueDate).toLocaleDateString("en", { month: "short", day: "numeric" })}`
+                    : "No due date"}
+                </div>
+              </div>
+              <button onClick={() => setProgressModal(null)} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 8, color: C.muted, fontSize: 18, cursor: "pointer", padding: "4px 10px", fontFamily: "system-ui" }}>✕</button>
+            </div>
+
+            {/* Completion summary */}
+            <div style={{ background: C.surface, borderRadius: 12, padding: "16px 18px", border: `1px solid ${C.border}`, marginBottom: 20, display: "flex", alignItems: "center", gap: 20 }}>
+              <div style={{ textAlign: "center" as const }}>
+                <div style={{ fontSize: 32, fontWeight: 900, color: progressModal.completedCount === progressModal.totalStudents && progressModal.totalStudents > 0 ? C.mint : C.gold }}>
+                  {progressModal.completedCount}/{progressModal.totalStudents}
+                </div>
+                <div style={{ fontSize: 11, color: C.muted, fontWeight: 600 }}>students completed</div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ height: 10, background: "rgba(255,255,255,0.08)", borderRadius: 8, overflow: "hidden" }}>
+                  <div
+                    style={{
+                      height: "100%",
+                      borderRadius: 8,
+                      background: progressModal.completedCount === progressModal.totalStudents && progressModal.totalStudents > 0 ? C.mint : C.gold,
+                      width: progressModal.totalStudents > 0 ? `${Math.round((progressModal.completedCount / progressModal.totalStudents) * 100)}%` : "0%",
+                      transition: "width 0.4s ease",
+                    }}
+                  />
+                </div>
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>
+                  {progressModal.totalStudents > 0
+                    ? `${Math.round((progressModal.completedCount / progressModal.totalStudents) * 100)}% complete`
+                    : "No students assigned"}
+                </div>
+              </div>
+            </div>
+
+            {/* Student list */}
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+              Student Progress
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {progressModal.students.length === 0 ? (
+                <div style={{ fontSize: 12, color: C.muted }}>No students assigned.</div>
+              ) : (
+                progressModal.students.map((s) => (
+                  <div
+                    key={s.studentId}
+                    style={{ background: C.surface, border: `1px solid ${s.completed ? "rgba(80,232,144,0.25)" : C.border}`, borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12 }}
+                  >
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: s.completed ? "rgba(80,232,144,0.15)" : "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>
+                      {s.completed ? "✅" : "⏳"}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.displayName}</div>
+                      {s.completed && s.completedAt && (
+                        <div style={{ fontSize: 11, color: C.mint }}>
+                          Completed {new Date(s.completedAt).toLocaleDateString("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                      )}
+                      {!s.completed && (
+                        <div style={{ fontSize: 11, color: C.muted }}>Not yet completed</div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: s.completed ? C.mint : C.muted }}>
+                      {s.completed ? "Done" : "Pending"}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AppFrame>
   );
 }
