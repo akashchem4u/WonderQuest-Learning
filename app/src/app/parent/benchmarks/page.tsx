@@ -263,17 +263,46 @@ function SectionHeading({
   );
 }
 
-function BandCard({ band }: { band: (typeof BANDS)[0] }) {
+function BandCard({
+  band,
+  isActive,
+  activeChildName,
+}: {
+  band: (typeof BANDS)[0];
+  isActive?: boolean;
+  activeChildName?: string | null;
+}) {
   return (
     <div
       style={{
         borderRadius: "16px",
         padding: "22px",
-        background: band.bg,
-        border: `1.5px solid ${band.border}`,
+        background: isActive ? band.bg : "rgba(255,255,255,0.03)",
+        border: isActive ? `2px solid ${band.color}` : `1px solid ${C.border}`,
         fontFamily: "system-ui",
+        position: "relative",
       }}
     >
+      {isActive && (
+        <div
+          style={{
+            position: "absolute",
+            top: -10,
+            right: 14,
+            background: C.violet,
+            color: "#fff",
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.06em",
+            padding: "3px 10px",
+            borderRadius: 20,
+            textTransform: "uppercase",
+            fontFamily: "system-ui",
+          }}
+        >
+          {activeChildName ? `${activeChildName}'s band` : "Your child's band"}
+        </div>
+      )}
       <div
         style={{
           display: "flex",
@@ -748,7 +777,18 @@ export default function ParentBenchmarksPage() {
             }}
           >
             {BANDS.map((band) => (
-              <BandCard key={band.code} band={band} />
+              <BandCard
+                key={band.code}
+                band={band}
+                isActive={
+                  band.code === activeBandCode ||
+                  (band.code === "PREK" && activeBandCode === "P0") ||
+                  (band.code === "K1" && activeBandCode === "P1") ||
+                  (band.code === "G23" && activeBandCode === "P2") ||
+                  (band.code === "G45" && activeBandCode === "P3")
+                }
+                activeChildName={childName}
+              />
             ))}
           </div>
 
@@ -784,13 +824,107 @@ export default function ParentBenchmarksPage() {
           </div>
         </div>
 
-        {/* ── Section 2: Mastery score ─────────────────────────────────────── */}
+        {/* ── Section 3: Mastery score ─────────────────────────────────────── */}
         <div style={sectionStyle}>
           <SectionHeading
-            eyebrow="Section 2"
-            title="How the mastery score is calculated"
-            subtitle="The mastery score is a 0–100 measure of how consistently your child gets a skill right — across sessions, not just in one sitting."
+            eyebrow="Section 3"
+            title="How mastery is measured"
+            subtitle="Mastery = 70%+ accuracy on at least 3 attempts. The score never goes down — one off session does not erase prior learning."
           />
+
+          {/* ── Mastery visual bar ── */}
+          <div
+            style={{
+              ...cardContainerStyle,
+              marginBottom: "24px",
+              padding: "20px 24px",
+            }}
+          >
+            <div
+              style={{
+                font: "700 0.75rem/1 system-ui",
+                color: "rgba(255,255,255,0.4)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: "14px",
+              }}
+            >
+              Mastery threshold — 70%
+            </div>
+            <div
+              style={{
+                height: 16,
+                borderRadius: 8,
+                background: "rgba(255,255,255,0.08)",
+                position: "relative",
+                overflow: "visible",
+                marginTop: 20,
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  height: "100%",
+                  width: "70%",
+                  background: "linear-gradient(90deg, rgba(255,209,102,0.7), rgba(255,209,102,0.4))",
+                  borderRadius: "8px 0 0 8px",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: "70%",
+                  top: 0,
+                  height: "100%",
+                  width: "30%",
+                  background: "linear-gradient(90deg, rgba(34,197,94,0.5), rgba(34,197,94,0.8))",
+                  borderRadius: "0 8px 8px 0",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: "70%",
+                  top: -8,
+                  bottom: -8,
+                  width: 2,
+                  background: C.mint,
+                  borderRadius: 1,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: "70%",
+                  top: -26,
+                  transform: "translateX(-50%)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: C.mint,
+                  whiteSpace: "nowrap",
+                  fontFamily: "system-ui",
+                }}
+              >
+                70% mastery line
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: 12,
+              }}
+            >
+              <span style={{ font: "600 0.75rem/1 system-ui", color: C.gold }}>
+                Building (&lt;70%)
+              </span>
+              <span style={{ font: "600 0.75rem/1 system-ui", color: C.mint }}>
+                Mastered (≥70%)
+              </span>
+            </div>
+          </div>
 
           <div
             style={{
@@ -998,10 +1132,10 @@ export default function ParentBenchmarksPage() {
           </div>
         </div>
 
-        {/* ── Section 3: Effective time ────────────────────────────────────── */}
+        {/* ── Section 4: Effective time ────────────────────────────────────── */}
         <div style={sectionStyle}>
           <SectionHeading
-            eyebrow="Section 3"
+            eyebrow="Section 4"
             title={`What "effective time" means`}
             subtitle="Not all session time is equal. Effective time shows how long your child was genuinely engaged — not counting pauses or distractions."
           />
@@ -1132,10 +1266,158 @@ export default function ParentBenchmarksPage() {
           </div>
         </div>
 
-        {/* ── Section 4: FAQ ───────────────────────────────────────────────── */}
+        {/* ── Section 5: Your child's current band ─────────────────────────── */}
+        <div style={sectionStyle}>
+          <SectionHeading
+            eyebrow="Section 5"
+            title={childName ? `${childName}'s current band` : "Your child's current band"}
+            subtitle="A personalised look at where your child is right now in the WonderQuest curriculum."
+          />
+          {sessionLoading ? (
+            <div
+              style={{
+                font: "400 0.9rem/1.5 system-ui",
+                color: C.muted,
+                padding: "20px 0",
+              }}
+            >
+              Loading…
+            </div>
+          ) : activeBandCode ? (
+            (() => {
+              const ab = BANDS.find(
+                (b) =>
+                  b.code === activeBandCode ||
+                  (b.code === "PREK" && activeBandCode === "P0") ||
+                  (b.code === "K1" && activeBandCode === "P1") ||
+                  (b.code === "G23" && activeBandCode === "P2") ||
+                  (b.code === "G45" && activeBandCode === "P3"),
+              );
+              if (!ab) return null;
+              return (
+                <div
+                  style={{
+                    borderRadius: 16,
+                    padding: "28px 24px",
+                    background: ab.bg,
+                    border: `2px solid ${ab.color}`,
+                    maxWidth: 560,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: "50%",
+                        background: ab.color,
+                      }}
+                    />
+                    <div>
+                      <div style={{ font: "800 1.1rem/1.1 system-ui", color: C.text }}>
+                        {ab.name}
+                      </div>
+                      <div
+                        style={{
+                          font: "500 0.8rem/1 system-ui",
+                          color: "rgba(255,255,255,0.45)",
+                          marginTop: 3,
+                        }}
+                      >
+                        {ab.ages}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        marginLeft: "auto",
+                        background: C.violet,
+                        borderRadius: 20,
+                        padding: "4px 14px",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: "#fff",
+                        letterSpacing: "0.04em",
+                        flexShrink: 0,
+                        fontFamily: "system-ui",
+                      }}
+                    >
+                      {ab.code}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      font: "700 0.8rem/1 system-ui",
+                      color: "rgba(255,255,255,0.4)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      marginBottom: 10,
+                    }}
+                  >
+                    Currently working on
+                  </div>
+                  <ul
+                    style={{
+                      listStyle: "none",
+                      margin: 0,
+                      padding: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6,
+                      marginBottom: 18,
+                    }}
+                  >
+                    {ab.skills.map((skill) => (
+                      <li
+                        key={skill}
+                        style={{
+                          font: "400 0.875rem/1.4 system-ui",
+                          color: "rgba(255,255,255,0.75)",
+                          display: "flex",
+                          alignItems: "baseline",
+                          gap: 8,
+                        }}
+                      >
+                        <span
+                          style={{ color: ab.color, fontSize: 9, flexShrink: 0 }}
+                        >
+                          ●
+                        </span>
+                        {skill}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()
+          ) : (
+            <div
+              style={{
+                font: "400 0.9rem/1.6 system-ui",
+                color: C.muted,
+                padding: "16px 20px",
+                background: C.surface,
+                borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                maxWidth: 480,
+              }}
+            >
+              Band information is not available yet. Once your child completes their
+              first session, their learning band will appear here.
+            </div>
+          )}
+        </div>
+
+        {/* ── Section 6: FAQ ───────────────────────────────────────────────── */}
         <div style={{ ...sectionStyle, borderBottom: "none" }}>
           <SectionHeading
-            eyebrow="Section 4"
+            eyebrow="Section 6"
             title="Common questions"
             subtitle="Answers to questions parents ask most often about how WonderQuest measures and reports progress."
           />

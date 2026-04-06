@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
@@ -27,11 +28,23 @@ interface SkillRow {
   masteryPct: number;
 }
 
+interface SessionLogEntry {
+  sessionId: string;
+  startedAt: string;
+  sessionMode: string;
+  starsEarned: number;
+  correctCount: number;
+  totalQuestions: number;
+  durationMinutes: number | null;
+}
+
 interface ReportData {
   studentId: string;
   displayName: string;
   launchBandCode: string;
   weekLabel: string;
+  weekStart?: string;
+  weekEnd?: string;
   stats: {
     starsEarned: number;
     sessions: number;
@@ -40,6 +53,7 @@ interface ReportData {
     streakDays: number;
   };
   skills: SkillRow[];
+  sessionLog?: SessionLogEntry[];
 }
 
 type TabType = "preview" | "teacher";
@@ -139,16 +153,54 @@ export default function PrintReportPage() {
   const stats = report?.stats;
   const subjectRows = report ? getSubjectRows(report.skills) : [];
   const topSkills = report?.skills.slice(0, 6) ?? [];
+  const skillStrengths = report
+    ? [...report.skills].sort((a, b) => b.masteryPct - a.masteryPct).slice(0, 5)
+    : [];
+  const skillGaps = report
+    ? [...report.skills]
+        .filter((s) => s.sessionCount > 0)
+        .sort((a, b) => a.masteryPct - b.masteryPct)
+        .slice(0, 5)
+    : [];
+  const sessionLog = report?.sessionLog ?? [];
+  const today = new Date().toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <AppFrame audience="parent" currentPath="/parent">
       <div style={{ background: C.base, minHeight: "100vh", padding: 24, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", color: C.text }}>
 
-        {/* Tab bar */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
-          <button style={tabBtnStyle(tab === "preview")} onClick={() => setTab("preview")}>Print Preview</button>
-          <button style={tabBtnStyle(tab === "teacher")} onClick={() => setTab("teacher")}>Teacher Message Section</button>
+        {/* Top bar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24, flexWrap: "wrap" }}>
+          <Link
+            href="/parent/report"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              color: C.parent,
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: "none",
+              padding: "7px 14px",
+              borderRadius: 8,
+              background: "rgba(167,139,250,0.1)",
+              border: "1px solid rgba(167,139,250,0.25)",
+            }}
+          >
+            ← Back to report
+          </Link>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button style={tabBtnStyle(tab === "preview")} onClick={() => setTab("preview")}>Print Preview</button>
+            <button style={tabBtnStyle(tab === "teacher")} onClick={() => setTab("teacher")}>Teacher Message Section</button>
+          </div>
         </div>
+
+        {/* Print CSS */}
+        <style>{`@media print { .no-print { display: none !important; } }`}</style>
 
         {/* ─── Tab 1: Print Preview ─── */}
         {tab === "preview" && (
@@ -249,6 +301,76 @@ export default function PrintReportPage() {
                   </>
                 )}
 
+                {/* Strengths */}
+                {skillStrengths.length > 0 && (
+                  <>
+                    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#7c3aed", marginBottom: 10, marginTop: 18 }}>Strengths</div>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, marginBottom: 8 }}>
+                      <tbody>
+                        {skillStrengths.map((sk, i) => (
+                          <tr key={i} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                            <td style={{ padding: "4px 0", color: "#222", fontFamily: "'Segoe UI', sans-serif" }}>{sk.skillName}</td>
+                            <td style={{ padding: "4px 0", color: "#666", fontSize: 11, fontFamily: "'Segoe UI', sans-serif" }}>{sk.subject}</td>
+                            <td style={{ padding: "4px 0", textAlign: "right" }}>
+                              <span style={{ background: sk.masteryPct >= 70 ? "#f0fdf4" : "#fefce8", color: sk.masteryPct >= 70 ? "#166534" : "#854d0e", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700, fontFamily: "'Segoe UI', sans-serif" }}>{sk.masteryPct}%</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "16px 0" }} />
+                  </>
+                )}
+
+                {/* Skill gaps */}
+                {skillGaps.length > 0 && (
+                  <>
+                    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#9a3412", marginBottom: 10, marginTop: 18 }}>Areas to work on</div>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, marginBottom: 8 }}>
+                      <tbody>
+                        {skillGaps.map((sk, i) => (
+                          <tr key={i} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                            <td style={{ padding: "4px 0", color: "#222", fontFamily: "'Segoe UI', sans-serif" }}>{sk.skillName}</td>
+                            <td style={{ padding: "4px 0", color: "#666", fontSize: 11, fontFamily: "'Segoe UI', sans-serif" }}>{sk.subject}</td>
+                            <td style={{ padding: "4px 0", textAlign: "right" }}>
+                              <span style={{ background: "#fff7ed", color: "#9a3412", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700, fontFamily: "'Segoe UI', sans-serif" }}>{sk.masteryPct}%</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "16px 0" }} />
+                  </>
+                )}
+
+                {/* Recent sessions */}
+                {sessionLog.length > 0 && (
+                  <>
+                    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#333", marginBottom: 10, marginTop: 18 }}>Recent Sessions</div>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, marginBottom: 8 }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid #ddd", color: "#777", fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                          <th style={{ textAlign: "left", padding: "3px 0", fontWeight: 700, fontFamily: "'Segoe UI', sans-serif" }}>Date</th>
+                          <th style={{ textAlign: "right", padding: "3px 0", fontWeight: 700, fontFamily: "'Segoe UI', sans-serif" }}>Stars</th>
+                          <th style={{ textAlign: "right", padding: "3px 0", fontWeight: 700, fontFamily: "'Segoe UI', sans-serif" }}>Score</th>
+                          <th style={{ textAlign: "right", padding: "3px 0", fontWeight: 700, fontFamily: "'Segoe UI', sans-serif" }}>Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sessionLog.slice(0, 7).map((s, i) => (
+                          <tr key={i} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                            <td style={{ padding: "4px 0", color: "#333", fontFamily: "'Segoe UI', sans-serif" }}>{new Date(s.startedAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</td>
+                            <td style={{ padding: "4px 0", textAlign: "right", color: "#d97706", fontFamily: "'Segoe UI', sans-serif" }}>⭐ {s.starsEarned}</td>
+                            <td style={{ padding: "4px 0", textAlign: "right", color: "#555", fontFamily: "'Segoe UI', sans-serif" }}>{s.totalQuestions > 0 ? `${s.correctCount}/${s.totalQuestions}` : "—"}</td>
+                            <td style={{ padding: "4px 0", textAlign: "right", color: "#555", fontFamily: "'Segoe UI', sans-serif" }}>{s.durationMinutes != null ? `${s.durationMinutes}m` : "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "16px 0" }} />
+                  </>
+                )}
+
                 {/* Note from team */}
                 <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#333", marginBottom: 10, marginTop: 18 }}>A Note from the WonderQuest Team</div>
                 <p style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 12, color: "#333", lineHeight: 1.65 }}>
@@ -264,9 +386,9 @@ export default function PrintReportPage() {
 
                 {/* Footer */}
                 <div style={{ marginTop: 20, paddingTop: 12, borderTop: "1px solid #ddd", fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 11, color: "#999", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: 700, color: "#555", fontSize: 12 }}>WonderQuest</span>
-                  <span>wonderquest.app</span>
-                  <span style={{ fontStyle: "italic", color: "#bbb", fontSize: 10 }}>For personal use — not for redistribution</span>
+                  <span style={{ fontWeight: 700, color: "#7c3aed", fontSize: 12 }}>WonderQuest</span>
+                  <span>Generated by WonderQuest &middot; wonderquest-learning.onrender.com</span>
+                  <span style={{ fontStyle: "italic", color: "#bbb", fontSize: 10 }}>For personal use only</span>
                 </div>
               </div>
             </div>
@@ -307,7 +429,7 @@ export default function PrintReportPage() {
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button style={{ flex: 1, padding: "10px 14px", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer", background: "#f0a500", color: "#1a0e00", minWidth: 110 }}>Generate PDF</button>
-                <button onClick={() => window.print()} style={{ flex: 1, padding: "10px 14px", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer", background: C.parent, color: "#fff", minWidth: 110 }}>Print</button>
+                <button onClick={() => window.print()} style={{ flex: 1, padding: "10px 14px", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer", background: C.parent, color: "#fff", minWidth: 110 }}>🖨️ Print this report</button>
               </div>
             </div>
           </div>
