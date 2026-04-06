@@ -25,12 +25,21 @@ type OwnerOverview = {
   counts: {
     students: number;
     guardians: number;
+    teachers: number;
     sessions: number;
     feedbackItems: number;
     totalPoints: number;
     exampleItems: number;
     explainers: number;
   };
+  sessionActivity: {
+    sessionsLast7d: number;
+    sessionsLast30d: number;
+    completedLast7d: number;
+    activeStudents7d: number;
+    completionRate7d: number;
+  };
+  dailyActivity: { day: string; sessions: number; completed: number }[];
   byBand: { code: string; displayName: string; studentCount: number }[];
   topLearners: {
     displayName: string;
@@ -131,14 +140,22 @@ export default function OwnerPage() {
   const feedbackBadgeCount = overview?.counts.feedbackItems ?? null;
   SB_OPS[3].badge = feedbackBadgeCount !== null && feedbackBadgeCount > 0 ? String(feedbackBadgeCount) : null;
 
-  // Stat tiles derived from real data
-  const stats = overview
+  // Header stat tiles (4 cards)
+  const headerStats = overview
     ? [
         { label: "Students", value: fmtNum(overview.counts.students), delta: `${overview.counts.guardians} guardians`, deltaColor: C.mint },
-        { label: "Sessions", value: fmtNum(overview.counts.sessions), delta: `${fmtNum(overview.counts.totalPoints)} pts earned`, deltaColor: C.mint },
-        { label: "Feedback items", value: fmtNum(overview.counts.feedbackItems), delta: overview.feedbackByReviewStatus.find(r => r.reviewStatus === "pending") ? `${overview.feedbackByReviewStatus.find(r => r.reviewStatus === "pending")!.count} pending` : "0 pending", deltaColor: C.amber },
-        { label: "Examples", value: fmtNum(overview.counts.exampleItems), delta: `${overview.counts.explainers} explainers`, deltaColor: C.mint },
-        { label: "Bands active", value: String(overview.byBand.filter(b => b.studentCount > 0).length), delta: `${overview.byBand.length} total bands`, deltaColor: C.mint },
+        { label: "Parents", value: fmtNum(overview.counts.guardians), delta: `${overview.counts.students} students linked`, deltaColor: C.mint },
+        { label: "Teachers", value: fmtNum(overview.counts.teachers), delta: "active accounts", deltaColor: C.mint },
+        { label: "Active students (7d)", value: fmtNum(overview.sessionActivity.activeStudents7d), delta: "unique learners", deltaColor: C.violet },
+      ]
+    : null;
+
+  // Session stat tiles (3 cards)
+  const sessionStats = overview
+    ? [
+        { label: "Sessions (last 7d)", value: fmtNum(overview.sessionActivity.sessionsLast7d), delta: `${overview.sessionActivity.completedLast7d} completed`, deltaColor: C.mint },
+        { label: "Sessions (last 30d)", value: fmtNum(overview.sessionActivity.sessionsLast30d), delta: "rolling 30 days", deltaColor: C.mint },
+        { label: "Completion rate (7d)", value: `${overview.sessionActivity.completionRate7d}%`, delta: `${overview.sessionActivity.completedLast7d} of ${overview.sessionActivity.sessionsLast7d}`, deltaColor: overview.sessionActivity.completionRate7d >= 60 ? C.mint : C.amber },
       ]
     : null;
 
@@ -312,14 +329,14 @@ export default function OwnerPage() {
                 Good morning 👋
               </div>
               <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", marginTop: "2px" }}>
-                {loading ? "Loading overview…" : error ? `Error: ${error}` : `${overview!.counts.students} students · ${overview!.counts.sessions} sessions total`}
+                {loading ? "Loading overview…" : error ? `Error: ${error}` : `${overview!.counts.students} students · ${overview!.counts.teachers} teachers · ${overview!.sessionActivity.sessionsLast7d} sessions last 7d`}
               </div>
             </div>
 
             {/* Loading skeleton */}
             {loading && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "8px" }}>
-                {[0,1,2,3,4].map((i) => (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px" }}>
+                {[0,1,2,3].map((i) => (
                   <div key={i} style={{ background: C.surface, borderRadius: "10px", padding: "10px 12px", border: `1px solid ${C.border}`, height: "68px", opacity: 0.4 }} />
                 ))}
               </div>
@@ -335,9 +352,9 @@ export default function OwnerPage() {
             {/* ── Real data ───────────────────────────────────────────── */}
             {overview && !loading && (
               <>
-                {/* Stat row */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "8px" }}>
-                  {stats!.map((stat) => (
+                {/* Header stat row — 4 cards */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px" }}>
+                  {headerStats!.map((stat) => (
                     <div
                       key={stat.label}
                       style={{
@@ -356,6 +373,101 @@ export default function OwnerPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Sessions row — 3 cards */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "8px" }}>
+                  {sessionStats!.map((stat) => (
+                    <div
+                      key={stat.label}
+                      style={{
+                        background: C.surface,
+                        borderRadius: "10px",
+                        padding: "10px 12px",
+                        border: `1px solid ${C.border}`,
+                      }}
+                    >
+                      <div style={{ fontSize: "18px", fontWeight: 900, color: C.text }}>{stat.value}</div>
+                      <div style={{ fontSize: "9px", color: "rgba(255,255,255,0.35)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "2px" }}>
+                        {stat.label}
+                      </div>
+                      <div style={{ fontSize: "10px", fontWeight: 700, color: stat.deltaColor, marginTop: "2px" }}>
+                        {stat.delta}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Band distribution + Daily activity row */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  {/* Band distribution */}
+                  <div style={{ background: C.surface, borderRadius: "12px", padding: "14px 16px", border: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: C.muted, marginBottom: "10px" }}>
+                      Band Distribution
+                    </div>
+                    {overview.byBand.length === 0 && (
+                      <div style={{ fontSize: "11px", color: C.muted }}>No band data yet.</div>
+                    )}
+                    {(() => {
+                      const totalStudents = overview.byBand.reduce((sum, b) => sum + b.studentCount, 0);
+                      return overview.byBand.filter(b => b.studentCount > 0).map((band, i) => {
+                        const pct = totalStudents > 0 ? Math.round((band.studentCount / totalStudents) * 100) : 0;
+                        return (
+                          <div
+                            key={band.code}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "5px 0",
+                              borderBottom: i < overview.byBand.filter(b => b.studentCount > 0).length - 1 ? `1px solid rgba(255,255,255,0.04)` : "none",
+                            }}
+                          >
+                            <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.65)", width: "90px", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{band.displayName}</div>
+                            <div style={{ flex: 1, height: "5px", background: "rgba(255,255,255,0.07)", borderRadius: "3px", overflow: "hidden" }}>
+                              <div style={{ width: `${pct}%`, height: "100%", background: C.violet, borderRadius: "3px" }} />
+                            </div>
+                            <div style={{ fontSize: "10px", color: C.muted, width: "30px", textAlign: "right", flexShrink: 0 }}>{pct}%</div>
+                            <div style={{ fontSize: "10px", fontWeight: 700, color: "rgba(255,255,255,0.4)", width: "20px", textAlign: "right", flexShrink: 0 }}>{band.studentCount}</div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  {/* Daily activity sparkline — last 14 days */}
+                  <div style={{ background: C.surface, borderRadius: "12px", padding: "14px 16px", border: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: C.muted, marginBottom: "10px" }}>
+                      Daily Sessions (14d)
+                    </div>
+                    {overview.dailyActivity.length === 0 ? (
+                      <div style={{ fontSize: "11px", color: C.muted }}>No session data yet.</div>
+                    ) : (
+                      <>
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 60 }}>
+                          {overview.dailyActivity.map((d) => {
+                            const maxSessions = Math.max(...overview.dailyActivity.map(x => x.sessions), 1);
+                            return (
+                              <div key={d.day} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+                                <div style={{
+                                  width: "100%",
+                                  height: Math.max(4, (d.sessions / maxSessions) * 48),
+                                  background: C.violet,
+                                  borderRadius: 3,
+                                }} />
+                                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>
+                                  {new Date(d.day).toLocaleDateString([], { weekday: "narrow" })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div style={{ marginTop: "8px", fontSize: "10px", color: C.muted }}>
+                          {overview.dailyActivity.reduce((sum, d) => sum + d.sessions, 0)} total sessions in period
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* 2-col grid */}

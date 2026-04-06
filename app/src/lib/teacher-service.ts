@@ -622,3 +622,50 @@ export async function accessTeacherWithCredentials(input: {
 
   return { ok: true, teacherId: inserted.rows[0].id as string, isNew: true };
 }
+
+// ── Class Code Functions ──────────────────────────────────────────────────────
+
+export async function ensureTeacherClassCode(teacherId: string): Promise<string> {
+  const existing = await db.query(
+    `select class_code from public.teacher_profiles where id = $1`,
+    [teacherId]
+  );
+  if (existing.rows[0]?.class_code) return existing.rows[0].class_code as string;
+
+  // Generate a fresh 6-char code
+  const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+  await db.query(
+    `update public.teacher_profiles set class_code = $2 where id = $1`,
+    [teacherId, code]
+  );
+  return code;
+}
+
+export async function joinClassByCode(input: {
+  classCode: string;
+  studentId: string;
+}): Promise<{ ok: boolean; teacherName: string; schoolName: string | null }> {
+  const teacher = await db.query(
+    `select id, display_name, school_name from public.teacher_profiles
+     where upper(class_code) = upper($1) and tester_flag = false
+     limit 1`,
+    [input.classCode]
+  );
+
+  if (!teacher.rowCount) throw new Error("Class code not found. Check the code and try again.");
+
+  const row = teacher.rows[0];
+
+  await db.query(
+    `insert into public.teacher_student_roster (teacher_id, student_id)
+     values ($1, $2)
+     on conflict (teacher_id, student_id) do update set active = true`,
+    [row.id, input.studentId]
+  );
+
+  return {
+    ok: true,
+    teacherName: row.display_name as string,
+    schoolName: (row.school_name as string | null) ?? null,
+  };
+}

@@ -106,6 +106,7 @@ export async function getOwnerOverview() {
       select
         (select count(*) from public.student_profiles where tester_flag = false) as student_count,
         (select count(*) from public.guardian_profiles where tester_flag = false) as guardian_count,
+        (select count(*) from public.teacher_profiles where tester_flag = false) as teacher_count,
         (select count(*) from public.challenge_sessions cs join public.student_profiles sp on sp.id = cs.student_id where sp.tester_flag = false) as session_count,
         (
           select count(*)
@@ -122,6 +123,30 @@ export async function getOwnerOverview() {
         ) as total_points,
         (select count(*) from public.example_items) as example_count,
         (select count(*) from public.explainer_assets) as explainer_count
+    `,
+  );
+
+  const sessionActivity = await db.query(
+    `
+      select
+        count(*) filter (where started_at >= now() - interval '7 days') as sessions_last_7d,
+        count(*) filter (where started_at >= now() - interval '30 days') as sessions_last_30d,
+        count(*) filter (where started_at >= now() - interval '7 days' and ended_at is not null) as completed_last_7d,
+        count(distinct student_id) filter (where started_at >= now() - interval '7 days') as active_students_7d
+      from public.play_sessions
+    `,
+  );
+
+  const dailyActivity = await db.query(
+    `
+      select
+        date_trunc('day', started_at)::date as day,
+        count(*) as sessions,
+        count(*) filter (where ended_at is not null) as completed
+      from public.play_sessions
+      where started_at >= now() - interval '14 days'
+      group by 1
+      order by 1
     `,
   );
 
@@ -243,16 +268,32 @@ export async function getOwnerOverview() {
     `,
   );
 
+  const sessionsLast7d = Number(sessionActivity.rows[0]?.sessions_last_7d ?? 0);
+  const completedLast7d = Number(sessionActivity.rows[0]?.completed_last_7d ?? 0);
+
   return {
     counts: {
       students: Number(counts.rows[0]?.student_count ?? 0),
       guardians: Number(counts.rows[0]?.guardian_count ?? 0),
+      teachers: Number(counts.rows[0]?.teacher_count ?? 0),
       sessions: Number(counts.rows[0]?.session_count ?? 0),
       feedbackItems: Number(counts.rows[0]?.feedback_count ?? 0),
       totalPoints: Number(counts.rows[0]?.total_points ?? 0),
       exampleItems: Number(counts.rows[0]?.example_count ?? 0),
       explainers: Number(counts.rows[0]?.explainer_count ?? 0),
     },
+    sessionActivity: {
+      sessionsLast7d,
+      sessionsLast30d: Number(sessionActivity.rows[0]?.sessions_last_30d ?? 0),
+      completedLast7d,
+      activeStudents7d: Number(sessionActivity.rows[0]?.active_students_7d ?? 0),
+      completionRate7d: sessionsLast7d > 0 ? Math.round((completedLast7d / sessionsLast7d) * 100) : 0,
+    },
+    dailyActivity: dailyActivity.rows.map((row) => ({
+      day: (row.day as string).slice(0, 10),
+      sessions: Number(row.sessions ?? 0),
+      completed: Number(row.completed ?? 0),
+    })),
     byBand: byBand.rows.map((row) => ({
       code: row.code as string,
       displayName: row.display_name as string,
