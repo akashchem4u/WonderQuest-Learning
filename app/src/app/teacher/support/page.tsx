@@ -1,832 +1,860 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { ShellCard } from "@/components/ui";
-import { hasTeacherAccess, isTeacherAccessConfigured } from "@/lib/teacher-access";
-import TeacherGate from "@/app/teacher/teacher-gate";
 
-export const dynamic = "force-dynamic";
-
-// ── Palette ──────────────────────────────────────────────────────────────────
+// ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
-  base: "#100b2e",
+  bg: "#0f172a",
+  surface: "#1e2a3a",
+  surfaceAlt: "#162032",
+  border: "rgba(255,255,255,0.08)",
+  borderStrong: "rgba(255,255,255,0.14)",
+  text: "#f1f5f9",
+  muted: "rgba(148,163,184,0.85)",
+  subtle: "rgba(100,116,139,0.7)",
   mint: "#58e8c1",
   violet: "#9b72ff",
   gold: "#ffd166",
   coral: "#ff7b6b",
-  cardBg: "rgba(255,255,255,0.05)",
-  cardBorder: "rgba(255,255,255,0.1)",
-  text: "#ffffff",
-  muted: "rgba(216,240,234,0.6)",
   amber: "#f59e0b",
   amberBg: "rgba(245,158,11,0.12)",
-  amberBorder: "rgba(245,158,11,0.35)",
+  amberBorder: "rgba(245,158,11,0.30)",
   blue: "#3b82f6",
   blueBg: "rgba(59,130,246,0.12)",
-  blueBorder: "rgba(59,130,246,0.35)",
+  blueBorder: "rgba(59,130,246,0.30)",
 };
 
-// ── Shared style objects ──────────────────────────────────────────────────────
-const glassCard: React.CSSProperties = {
-  background: C.cardBg,
-  border: `1px solid ${C.cardBorder}`,
-  borderRadius: 16,
-  padding: "20px 24px",
-};
-
-const eyebrowStyle: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 800,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: C.mint,
-  marginBottom: 6,
-};
-
-const chipStyle: React.CSSProperties = {
-  display: "inline-block",
-  padding: "3px 10px",
-  borderRadius: 20,
-  fontSize: 11,
-  fontWeight: 700,
-  background: "rgba(255,255,255,0.08)",
-  border: `1px solid ${C.cardBorder}`,
-  color: C.muted,
-};
-
-// ── Stub data ─────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 type TriggerType = "confidence-floor" | "absence" | "hint-pattern" | "band-ceiling";
-type SupportTier = "needs-support" | "watch" | "on-track" | "strong";
+type StatusType = "new" | "acknowledged" | "resolved";
 
-type Student = {
+type SkillPattern = {
+  skill: string;
+  hits: string;
+  barPct: number;
+};
+
+type QueueItem = {
   id: string;
   name: string;
   band: string;
   bandLabel: string;
-  topStruggleSkill: string;
-  accuracy: number;
-  lastSession: string;
-  tier: SupportTier;
   trigger: TriggerType;
   triggerDetail: string;
   triggeredAt: string;
+  status: StatusType;
+  topSkill: string;
+  suggestedSupport: string;
+  skillPatterns: SkillPattern[];
 };
 
-const STUDENTS: Student[] = [
+// ── Stub data ─────────────────────────────────────────────────────────────────
+const QUEUE_ITEMS: QueueItem[] = [
   {
-    id: "student-jordan",
+    id: "jordan",
     name: "Jordan",
     band: "P2",
-    bandLabel: "G2–3",
-    topStruggleSkill: "Fractions: Division",
-    accuracy: 44,
-    lastSession: "2 days ago",
-    tier: "needs-support",
+    bandLabel: "G2-3",
     trigger: "confidence-floor",
-    triggerDetail: "Confidence floor hit 3× on Fractions: Division this week",
+    triggerDetail: "Confidence floor hit 3x on Fractions: Division this week",
     triggeredAt: "2 days ago",
+    status: "new",
+    topSkill: "Fractions: Division",
+    suggestedSupport:
+      "Jordan may benefit from revisiting the concept of equal parts before continuing with division of fractions. Consider pairing with a concrete model activity or one-on-one check-in. The system has slightly reduced difficulty while this flag is active.",
+    skillPatterns: [
+      { skill: "Fractions: Division (equal parts)", hits: "3x floor", barPct: 100 },
+      { skill: "Fractions: Basic (what is a fraction)", hits: "1x floor", barPct: 33 },
+    ],
   },
   {
-    id: "student-priya",
+    id: "priya",
     name: "Priya",
     band: "P1",
-    bandLabel: "K–1",
-    topStruggleSkill: "Counting: Skip Count",
-    accuracy: 51,
-    lastSession: "5 days ago",
-    tier: "needs-support",
+    bandLabel: "K-1",
     trigger: "absence",
     triggerDetail: "No sessions in 5 days — last active Thursday",
     triggeredAt: "5 days ago",
+    status: "new",
+    topSkill: "Counting: Skip Count",
+    suggestedSupport:
+      "Priya has been away for 5 days. Consider a brief welfare check or re-engagement message through the school system. The system will hold her position until she returns.",
+    skillPatterns: [
+      { skill: "Counting: Skip Count", hits: "Active skill", barPct: 60 },
+    ],
   },
   {
-    id: "student-sam",
+    id: "sam",
     name: "Sam",
     band: "P2",
-    bandLabel: "G2–3",
-    topStruggleSkill: "Place Value: Hundreds",
-    accuracy: 48,
-    lastSession: "Today",
-    tier: "needs-support",
+    bandLabel: "G2-3",
     trigger: "hint-pattern",
     triggerDetail: "5+ hint requests on Place Value: Hundreds this week",
     triggeredAt: "Today",
+    status: "new",
+    topSkill: "Place Value: Hundreds",
+    suggestedSupport:
+      "Sam is frequently requesting hints on place value. A short group activity focused on hundreds, tens, ones using manipulatives may help consolidate this concept before the system reintroduces it.",
+    skillPatterns: [
+      { skill: "Place Value: Hundreds", hits: "5x hints", barPct: 100 },
+      { skill: "Place Value: Tens", hits: "2x hints", barPct: 40 },
+    ],
   },
   {
-    id: "student-maya",
-    name: "Maya",
-    band: "P2",
-    bandLabel: "G2–3",
-    topStruggleSkill: "Addition: Regrouping",
-    accuracy: 57,
-    lastSession: "Yesterday",
-    tier: "watch",
-    trigger: "hint-pattern",
-    triggerDetail: "Repeated hints on Addition: Regrouping — 4 this week",
-    triggeredAt: "Yesterday",
-  },
-  {
-    id: "student-alex",
-    name: "Alex",
-    band: "P1",
-    bandLabel: "K–1",
-    topStruggleSkill: "Shapes: Attributes",
-    accuracy: 63,
-    lastSession: "Today",
-    tier: "watch",
-    trigger: "confidence-floor",
-    triggerDetail: "Confidence floor hit 2× on Shapes: Attributes",
-    triggeredAt: "3 days ago",
-  },
-  {
-    id: "student-marcus",
+    id: "marcus",
     name: "Marcus",
     band: "P2",
-    bandLabel: "G2–3",
-    topStruggleSkill: "Multiplication: Arrays",
-    accuracy: 88,
-    lastSession: "Today",
-    tier: "strong",
+    bandLabel: "G2-3",
     trigger: "band-ceiling",
     triggerDetail: "Consistently reaching P2 ceiling — ready to advance to P3",
     triggeredAt: "3 weeks ago",
-  },
-  {
-    id: "student-lily",
-    name: "Lily",
-    band: "P3",
-    bandLabel: "G4–5",
-    topStruggleSkill: "Division: Long Form",
-    accuracy: 79,
-    lastSession: "Yesterday",
-    tier: "on-track",
-    trigger: "absence",
-    triggerDetail: "Missed 2 sessions this week — usually active daily",
-    triggeredAt: "2 days ago",
-  },
-  {
-    id: "student-noah",
-    name: "Noah",
-    band: "P2",
-    bandLabel: "G2–3",
-    topStruggleSkill: "Subtraction: Borrowing",
-    accuracy: 70,
-    lastSession: "Today",
-    tier: "on-track",
-    trigger: "confidence-floor",
-    triggerDetail: "Confidence floor hit 1× on Subtraction: Borrowing",
-    triggeredAt: "Today",
-  },
-  {
-    id: "student-sofia",
-    name: "Sofia",
-    band: "P3",
-    bandLabel: "G4–5",
-    topStruggleSkill: "Fractions: Comparing",
-    accuracy: 91,
-    lastSession: "Today",
-    tier: "strong",
-    trigger: "band-ceiling",
-    triggerDetail: "Mastery signals strong across all P3 skills — candidate for P4",
-    triggeredAt: "1 week ago",
+    status: "acknowledged",
+    topSkill: "Multiplication: Arrays",
+    suggestedSupport:
+      "Marcus has been at the P2 ceiling for 3 weeks. Review band advancement with parent before approving the move to G4-5 content. The system will not auto-advance without teacher confirmation.",
+    skillPatterns: [
+      { skill: "Multiplication: Arrays", hits: "Ceiling", barPct: 100 },
+      { skill: "Addition: Regrouping", hits: "Ceiling", barPct: 95 },
+    ],
   },
 ];
 
-// ── Derived stats ─────────────────────────────────────────────────────────────
-const needsSupportCount = STUDENTS.filter((s) => s.tier === "needs-support").length;
-const watchCount = STUDENTS.filter((s) => s.tier === "watch").length;
-const strongCount = STUDENTS.filter((s) => s.tier === "strong").length;
+// ── Filter helpers ────────────────────────────────────────────────────────────
+type TriggerFilter = "all" | TriggerType;
+type BandFilter = "all" | "P1" | "P2" | "P3";
+type StatusFilter = "all" | StatusType;
 
-// ── Trigger helpers ───────────────────────────────────────────────────────────
-function getTriggerIcon(trigger: TriggerType) {
-  if (trigger === "confidence-floor") return "⚠️";
-  if (trigger === "absence") return "📅";
-  if (trigger === "hint-pattern") return "💡";
+function getTriggerIcon(t: TriggerType) {
+  if (t === "confidence-floor") return "⚠️";
+  if (t === "absence") return "📅";
+  if (t === "hint-pattern") return "💡";
   return "💙";
 }
 
-function getTriggerLabel(trigger: TriggerType) {
-  if (trigger === "confidence-floor") return "Confidence floor";
-  if (trigger === "absence") return "Absence";
-  if (trigger === "hint-pattern") return "Hint pattern";
+function getTriggerLabel(t: TriggerType) {
+  if (t === "confidence-floor") return "Confidence floor";
+  if (t === "absence") return "Absence";
+  if (t === "hint-pattern") return "Hint pattern";
   return "Band ceiling";
 }
 
-function getTierLabel(tier: SupportTier) {
-  if (tier === "needs-support") return "Needs Support";
-  if (tier === "watch") return "Watch Closely";
-  if (tier === "on-track") return "On Track";
-  return "Strong";
+function isCeiling(item: QueueItem) {
+  return item.trigger === "band-ceiling";
 }
 
-function getTierColor(tier: SupportTier) {
-  if (tier === "needs-support") return C.coral;
-  if (tier === "watch") return C.gold;
-  if (tier === "on-track") return C.mint;
-  return C.violet;
+function getAccentColor(item: QueueItem) {
+  return isCeiling(item) ? C.blue : C.amber;
 }
 
-function isBandCeiling(s: Student) {
-  return s.trigger === "band-ceiling";
+function getAccentBg(item: QueueItem) {
+  return isCeiling(item) ? C.blueBg : C.amberBg;
 }
 
-// ── Filter tabs ───────────────────────────────────────────────────────────────
-type FilterTab = "all" | "needs-support" | "watch" | "on-track" | "strong";
+function getAccentBorder(item: QueueItem) {
+  return isCeiling(item) ? C.blueBorder : C.amberBorder;
+}
 
-type SupportQueuePageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+// ── Reusable styles ───────────────────────────────────────────────────────────
+const card: React.CSSProperties = {
+  background: C.surface,
+  border: `1px solid ${C.border}`,
+  borderRadius: 14,
+  padding: "18px 20px",
 };
 
-function getSingleParam(value: string | string[] | undefined) {
-  return typeof value === "string" ? value : value?.[0];
-}
+const eyebrow: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: "0.10em",
+  textTransform: "uppercase",
+  color: C.mint,
+  marginBottom: 8,
+  display: "block",
+};
 
-export default async function TeacherSupportQueuePage({
-  searchParams,
-}: SupportQueuePageProps) {
-  const configured = isTeacherAccessConfigured();
-  const unlocked = await hasTeacherAccess();
+const chip: React.CSSProperties = {
+  display: "inline-block",
+  padding: "2px 9px",
+  borderRadius: 20,
+  fontSize: 10,
+  fontWeight: 700,
+  background: "rgba(255,255,255,0.07)",
+  border: `1px solid ${C.border}`,
+  color: C.muted,
+};
 
-  // ── Gate ───────────────────────────────────────────────────────────────────
-  if (!unlocked) {
-    return (
-      <AppFrame audience="teacher" currentPath="/teacher">
-        <main
-          style={{
-            minHeight: "100vh",
-            background: C.base,
-            padding: "32px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 24,
-          }}
-        >
-          <section style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 560 }}>
-            <span style={eyebrowStyle}>Teacher dashboard</span>
-            <h1 style={{ fontSize: 28, fontWeight: 900, color: C.text, lineHeight: 1.2 }}>
-              Access your support queue.
-            </h1>
-            <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.6 }}>
-              This view shows students who need your attention — separated from individual
-              family views.
-            </p>
-          </section>
+// ── Component ─────────────────────────────────────────────────────────────────
+export default function TeacherSupportQueuePage() {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
 
-          <div style={{ ...glassCard, maxWidth: 480 }}>
-            <ShellCard
-              className="shell-card-emphasis"
-              eyebrow="Teacher"
-              title="Unlock teacher dashboard"
-            >
-              <TeacherGate configured={configured} />
-            </ShellCard>
-          </div>
-        </main>
-      </AppFrame>
-    );
+  // Filters
+  const [triggerFilter, setTriggerFilter] = useState<TriggerFilter>("all");
+  const [bandFilter, setBandFilter] = useState<BandFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("new");
+
+  // Derived
+  const activeItems = QUEUE_ITEMS.filter(
+    (item) => !dismissedIds.has(item.id) && !resolvedIds.has(item.id)
+  );
+
+  const filteredItems = activeItems.filter((item) => {
+    if (triggerFilter !== "all" && item.trigger !== triggerFilter) return false;
+    if (bandFilter !== "all" && item.band !== bandFilter) return false;
+    if (statusFilter !== "all" && item.status !== statusFilter) return false;
+    return true;
+  });
+
+  const amberCount = activeItems.filter((i) => !isCeiling(i)).length;
+  const blueCount = activeItems.filter((i) => isCeiling(i)).length;
+  const totalCount = activeItems.length;
+
+  function dismiss(id: string) {
+    setDismissedIds((prev) => new Set([...prev, id]));
+    if (expandedId === id) setExpandedId(null);
   }
 
-  // ── Resolve filter param ──────────────────────────────────────────────────
-  const resolvedParams = searchParams ? await searchParams : {};
-  const rawFilter = getSingleParam(resolvedParams.filter);
-  const activeFilter: FilterTab =
-    rawFilter === "needs-support" ||
-    rawFilter === "watch" ||
-    rawFilter === "on-track" ||
-    rawFilter === "strong"
-      ? rawFilter
-      : "all";
+  function resolve(id: string) {
+    setResolvedIds((prev) => new Set([...prev, id]));
+    if (expandedId === id) setExpandedId(null);
+  }
 
-  const visibleStudents =
-    activeFilter === "all"
-      ? STUDENTS
-      : STUDENTS.filter((s) => s.tier === activeFilter);
+  function dismissAllAmber() {
+    const amberIds = activeItems.filter((i) => !isCeiling(i)).map((i) => i.id);
+    setDismissedIds((prev) => new Set([...prev, ...amberIds]));
+  }
 
-  // ── Page ──────────────────────────────────────────────────────────────────
+  // Filter count helpers
+  function countByTrigger(t: TriggerType) {
+    return activeItems.filter((i) => i.trigger === t).length;
+  }
+  function countByBand(b: string) {
+    return activeItems.filter((i) => i.band === b).length;
+  }
+  function countByStatus(s: StatusType) {
+    return QUEUE_ITEMS.filter((i) => i.status === s && !dismissedIds.has(i.id) && !resolvedIds.has(i.id)).length;
+  }
+
   return (
     <AppFrame audience="teacher" currentPath="/teacher">
       <main
         style={{
           minHeight: "100vh",
-          background: C.base,
-          padding: "28px 24px 48px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 28,
+          background: C.bg,
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          color: C.text,
+          padding: "28px 20px 60px",
         }}
       >
+        <div style={{ maxWidth: 1060, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
 
-        {/* ── Header ────────────────────────────────────────────────────── */}
-        <section style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <Link
-            href="/teacher"
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: C.muted,
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              marginBottom: 4,
-            }}
-          >
-            ← Classroom Board
-          </Link>
-          <span style={eyebrowStyle}>Support Queue</span>
-          <h1
-            style={{
-              fontSize: 28,
-              fontWeight: 900,
-              color: C.text,
-              lineHeight: 1.2,
-              margin: 0,
-            }}
-          >
-            Students who need your attention
-          </h1>
-          <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, marginTop: 4 }}>
-            Queue updates automatically as new triggers are detected. Skill-pattern data only — no specific answers surfaced.
-          </p>
-        </section>
-
-        {/* ── Stat tiles ────────────────────────────────────────────────── */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: 14,
-          }}
-        >
-          {/* Needs support */}
-          <div
-            style={{
-              ...glassCard,
-              borderLeft: `3px solid ${C.coral}`,
-              padding: "16px 20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 4,
-            }}
-          >
-            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.coral }}>
-              Needs Support
-            </span>
-            <span style={{ fontSize: 36, fontWeight: 900, color: C.text, lineHeight: 1 }}>
-              {needsSupportCount}
-            </span>
-            <span style={{ fontSize: 12, color: C.muted }}>students flagged</span>
-          </div>
-
-          {/* Watching */}
-          <div
-            style={{
-              ...glassCard,
-              borderLeft: `3px solid ${C.gold}`,
-              padding: "16px 20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 4,
-            }}
-          >
-            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.gold }}>
-              Watch Closely
-            </span>
-            <span style={{ fontSize: 36, fontWeight: 900, color: C.text, lineHeight: 1 }}>
-              {watchCount}
-            </span>
-            <span style={{ fontSize: 12, color: C.muted }}>monitor this week</span>
-          </div>
-
-          {/* Strong */}
-          <div
-            style={{
-              ...glassCard,
-              borderLeft: `3px solid ${C.violet}`,
-              padding: "16px 20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 4,
-            }}
-          >
-            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.violet }}>
-              Strong
-            </span>
-            <span style={{ fontSize: 36, fontWeight: 900, color: C.text, lineHeight: 1 }}>
-              {strongCount}
-            </span>
-            <span style={{ fontSize: 12, color: C.muted }}>at or above ceiling</span>
-          </div>
-        </div>
-
-        {/* ── Main layout: list + right rail ────────────────────────────── */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr minmax(0, 280px)",
-            gap: 20,
-            alignItems: "start",
-          }}
-        >
-
-          {/* ── Left: filter tabs + student cards ─────────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-            {/* Filter tabs */}
-            <div
-              role="tablist"
-              aria-label="Filter students by tier"
+          {/* ── Top nav ───────────────────────────────────────────────────── */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <Link
+              href="/teacher"
               style={{
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.muted,
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
               }}
             >
-              {(
-                [
-                  { id: "all", label: "All" },
-                  { id: "needs-support", label: "Needs Support" },
-                  { id: "watch", label: "Watch Closely" },
-                  { id: "on-track", label: "On Track" },
-                  { id: "strong", label: "Strong" },
-                ] as { id: FilterTab; label: string }[]
-              ).map((tab) => {
-                const isActive = activeFilter === tab.id;
-                return (
-                  <Link
-                    key={tab.id}
-                    href={tab.id === "all" ? "/teacher/support" : `/teacher/support?filter=${tab.id}`}
-                    role="tab"
-                    aria-selected={isActive}
-                    style={{
-                      padding: "7px 16px",
-                      borderRadius: 20,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      textDecoration: "none",
-                      border: `1.5px solid ${isActive ? C.mint : C.cardBorder}`,
-                      background: isActive ? "rgba(88,232,193,0.15)" : C.cardBg,
-                      color: isActive ? C.mint : C.muted,
-                      transition: "all 0.15s",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {tab.label}
-                  </Link>
-                );
-              })}
-            </div>
+              ← Dashboard
+            </Link>
+            <span style={{ color: C.border, fontSize: 12 }}>|</span>
+            <Link
+              href="/teacher/command"
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.muted,
+                textDecoration: "none",
+              }}
+            >
+              Command Center
+            </Link>
+          </div>
 
-            {/* Student cards list */}
-            {visibleStudents.length === 0 ? (
-              <div
+          {/* ── Header ────────────────────────────────────────────────────── */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            <div>
+              <h1
                 style={{
-                  ...glassCard,
-                  textAlign: "center",
-                  padding: "48px 24px",
+                  fontSize: 22,
+                  fontWeight: 800,
+                  color: C.text,
+                  margin: "0 0 4px",
                   display: "flex",
-                  flexDirection: "column",
                   alignItems: "center",
-                  gap: 10,
+                  gap: 8,
                 }}
               >
-                <span style={{ fontSize: 40 }}>🎉</span>
-                <h2 style={{ fontSize: 18, fontWeight: 900, color: C.text, margin: 0 }}>
-                  All clear!
-                </h2>
-                <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, maxWidth: 320 }}>
-                  No students in this tier right now. The queue updates automatically when new triggers are detected.
-                </p>
+                ⚠️ Support Queue
+                {totalCount > 0 && (
+                  <span
+                    style={{
+                      background: "#ef4444",
+                      color: "#fff",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      padding: "2px 8px",
+                      borderRadius: 10,
+                    }}
+                  >
+                    {totalCount}
+                  </span>
+                )}
+              </h1>
+              <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>
+                {totalCount} students — {amberCount} amber · {blueCount} blue (positive)
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={dismissAllAmber}
+                style={{
+                  padding: "8px 16px",
+                  background: "transparent",
+                  color: C.amber,
+                  border: `1.5px solid ${C.amberBorder}`,
+                  borderRadius: 10,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "system-ui",
+                }}
+              >
+                Dismiss all amber
+              </button>
+              <button
+                type="button"
+                style={{
+                  padding: "8px 16px",
+                  background: C.blue,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 10,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "system-ui",
+                }}
+              >
+                📤 Export
+              </button>
+            </div>
+          </div>
+
+          {/* ── Main layout ───────────────────────────────────────────────── */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "200px 1fr",
+              gap: 16,
+              alignItems: "start",
+            }}
+          >
+            {/* ── Filter sidebar ─────────────────────────────────────────── */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+              {/* Trigger type */}
+              <div style={{ ...card, padding: 14 }}>
+                <span style={{ ...eyebrow, marginBottom: 10 }}>Trigger type</span>
+                {(
+                  [
+                    { id: "all", label: "All triggers", count: activeItems.length },
+                    { id: "confidence-floor", label: "⚠️ Confidence floor", count: countByTrigger("confidence-floor") },
+                    { id: "absence", label: "📅 Absence", count: countByTrigger("absence") },
+                    { id: "hint-pattern", label: "💡 Hint pattern", count: countByTrigger("hint-pattern") },
+                    { id: "band-ceiling", label: "💙 Band ceiling", count: countByTrigger("band-ceiling") },
+                  ] as { id: TriggerFilter; label: string; count: number }[]
+                ).map((opt) => {
+                  const active = triggerFilter === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setTriggerFilter(opt.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "6px 0",
+                        cursor: "pointer",
+                        width: "100%",
+                        background: "transparent",
+                        border: "none",
+                        borderBottom: `1px solid ${C.border}`,
+                        textAlign: "left",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: 4,
+                          border: active ? "none" : `2px solid ${C.borderStrong}`,
+                          flexShrink: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: active ? C.blue : "transparent",
+                          color: "#fff",
+                          fontSize: 9,
+                          fontWeight: 900,
+                        }}
+                      >
+                        {active ? "✓" : ""}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: active ? C.text : C.muted, flex: 1 }}>
+                        {opt.label}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.subtle }}>
+                        {opt.count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {visibleStudents.map((student) => {
-                  const isCeiling = isBandCeiling(student);
-                  const accentColor = isCeiling ? C.blue : C.amber;
-                  const accentBg = isCeiling ? C.blueBg : C.amberBg;
-                  const accentBorder = isCeiling ? C.blueBorder : C.amberBorder;
-                  const tierColor = getTierColor(student.tier);
+
+              {/* Band */}
+              <div style={{ ...card, padding: 14 }}>
+                <span style={{ ...eyebrow, marginBottom: 10 }}>Band</span>
+                {(
+                  [
+                    { id: "all", label: "All bands", count: activeItems.length },
+                    { id: "P1", label: "P1 K-1", count: countByBand("P1") },
+                    { id: "P2", label: "P2 G2-3", count: countByBand("P2") },
+                    { id: "P3", label: "P3 G4-5", count: countByBand("P3") },
+                  ] as { id: BandFilter; label: string; count: number }[]
+                ).map((opt) => {
+                  const active = bandFilter === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setBandFilter(opt.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "6px 0",
+                        cursor: "pointer",
+                        width: "100%",
+                        background: "transparent",
+                        border: "none",
+                        borderBottom: `1px solid ${C.border}`,
+                        textAlign: "left",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: 4,
+                          border: active ? "none" : `2px solid ${C.borderStrong}`,
+                          flexShrink: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: active ? C.blue : "transparent",
+                          color: "#fff",
+                          fontSize: 9,
+                          fontWeight: 900,
+                        }}
+                      >
+                        {active ? "✓" : ""}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: active ? C.text : C.muted, flex: 1 }}>
+                        {opt.label}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.subtle }}>
+                        {opt.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Status */}
+              <div style={{ ...card, padding: 14 }}>
+                <span style={{ ...eyebrow, marginBottom: 10 }}>Status</span>
+                {(
+                  [
+                    { id: "all", label: "All", count: activeItems.length },
+                    { id: "new", label: "New", count: countByStatus("new") },
+                    { id: "acknowledged", label: "Acknowledged", count: countByStatus("acknowledged") },
+                    { id: "resolved", label: "Resolved", count: 0 },
+                  ] as { id: StatusFilter; label: string; count: number }[]
+                ).map((opt) => {
+                  const active = statusFilter === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setStatusFilter(opt.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "6px 0",
+                        cursor: "pointer",
+                        width: "100%",
+                        background: "transparent",
+                        border: "none",
+                        borderBottom: `1px solid ${C.border}`,
+                        textAlign: "left",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: 4,
+                          border: active ? "none" : `2px solid ${C.borderStrong}`,
+                          flexShrink: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: active ? C.blue : "transparent",
+                          color: "#fff",
+                          fontSize: 9,
+                          fontWeight: 900,
+                        }}
+                      >
+                        {active ? "✓" : ""}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: active ? C.text : C.muted, flex: 1 }}>
+                        {opt.label}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.subtle }}>
+                        {opt.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── Queue list ─────────────────────────────────────────────── */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+              {filteredItems.length === 0 ? (
+                <div
+                  style={{
+                    ...card,
+                    textAlign: "center",
+                    padding: "56px 24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <span style={{ fontSize: 42 }}>🎉</span>
+                  <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0 }}>
+                    All clear!
+                  </h2>
+                  <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, maxWidth: 320, margin: 0 }}>
+                    No students in the support queue right now. The queue updates automatically as new triggers are detected.
+                  </p>
+                </div>
+              ) : (
+                filteredItems.map((item) => {
+                  const accent = getAccentColor(item);
+                  const accentBg = getAccentBg(item);
+                  const accentBorder = getAccentBorder(item);
+                  const ceiling = isCeiling(item);
+                  const expanded = expandedId === item.id;
 
                   return (
                     <div
-                      key={student.id}
+                      key={item.id}
                       style={{
-                        background: C.cardBg,
-                        border: `1px solid ${C.cardBorder}`,
-                        borderLeft: `4px solid ${accentColor}`,
+                        background: C.surface,
+                        border: `1px solid ${C.border}`,
+                        borderLeft: `4px solid ${accent}`,
                         borderRadius: 14,
-                        padding: "18px 20px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 12,
+                        overflow: "hidden",
                       }}
                     >
-                      {/* Card header row */}
+                      {/* Card header */}
                       <div
                         style={{
                           display: "flex",
                           alignItems: "flex-start",
                           gap: 12,
+                          padding: "14px 16px",
+                          cursor: "pointer",
                         }}
+                        onClick={() => setExpandedId(expanded ? null : item.id)}
                       >
                         {/* Trigger icon */}
-                        <span
-                          style={{
-                            fontSize: 22,
-                            flexShrink: 0,
-                            marginTop: 1,
-                            lineHeight: 1,
-                          }}
-                          aria-hidden="true"
-                        >
-                          {getTriggerIcon(student.trigger)}
+                        <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1, lineHeight: 1 }}>
+                          {getTriggerIcon(item.trigger)}
                         </span>
 
-                        {/* Name + trigger detail + chips */}
+                        {/* Name + detail + chips */}
                         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                            <span
-                              style={{
-                                fontSize: 15,
-                                fontWeight: 800,
-                                color: C.text,
-                              }}
-                            >
-                              {student.name}
-                            </span>
-                            {/* Band chip */}
-                            <span
-                              style={{
-                                ...chipStyle,
-                                fontSize: 10,
-                                padding: "2px 9px",
-                              }}
-                            >
-                              {student.band} · {student.bandLabel}
-                            </span>
-                            {/* Tier chip */}
+                          <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>
+                            {item.name}
+                          </span>
+                          <span style={{ fontSize: 12, color: C.muted, lineHeight: 1.4 }}>
+                            {item.triggerDetail}
+                          </span>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                             <span
                               style={{
                                 display: "inline-block",
-                                padding: "2px 9px",
-                                borderRadius: 20,
-                                fontSize: 10,
-                                fontWeight: 700,
-                                background: `${tierColor}1a`,
-                                border: `1px solid ${tierColor}55`,
-                                color: tierColor,
-                              }}
-                            >
-                              {getTierLabel(student.tier)}
-                            </span>
-                          </div>
-
-                          <p
-                            style={{
-                              fontSize: 12,
-                              color: C.muted,
-                              margin: 0,
-                              lineHeight: 1.4,
-                            }}
-                          >
-                            {student.triggerDetail}
-                          </p>
-
-                          {/* Meta chips */}
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                            <span
-                              style={{
-                                display: "inline-block",
-                                padding: "2px 9px",
-                                borderRadius: 20,
+                                padding: "2px 8px",
+                                borderRadius: 6,
                                 fontSize: 10,
                                 fontWeight: 700,
                                 background: accentBg,
                                 border: `1px solid ${accentBorder}`,
-                                color: accentColor,
+                                color: accent,
                               }}
                             >
-                              {getTriggerLabel(student.trigger)}
+                              {getTriggerLabel(item.trigger)}
                             </span>
-                            <span style={{ ...chipStyle, fontSize: 10, padding: "2px 9px" }}>
-                              Top struggle: {student.topStruggleSkill}
+                            <span style={{ ...chip }}>
+                              {item.band} · {item.bandLabel}
                             </span>
-                            <span style={{ ...chipStyle, fontSize: 10, padding: "2px 9px" }}>
-                              Accuracy {student.accuracy}%
-                            </span>
-                            <span style={{ ...chipStyle, fontSize: 10, padding: "2px 9px" }}>
-                              Last session: {student.lastSession}
+                            <span style={{ ...chip }}>
+                              {item.topSkill}
                             </span>
                           </div>
                         </div>
 
-                        {/* Right: triggered time + action */}
+                        {/* Right side */}
                         <div
                           style={{
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "flex-end",
-                            gap: 8,
+                            gap: 6,
                             flexShrink: 0,
                           }}
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>
-                            {student.triggeredAt}
+                          <span style={{ fontSize: 11, color: C.subtle, whiteSpace: "nowrap" }}>
+                            {item.triggeredAt}
                           </span>
-                          <Link
-                            href={`/teacher/students/${student.id}`}
-                            style={{
-                              padding: "7px 14px",
-                              borderRadius: 10,
-                              fontSize: 12,
-                              fontWeight: 700,
-                              textDecoration: "none",
-                              background: isCeiling
-                                ? "rgba(59,130,246,0.2)"
-                                : "rgba(88,232,193,0.15)",
-                              border: `1px solid ${isCeiling ? C.blueBorder : "rgba(88,232,193,0.35)"}`,
-                              color: isCeiling ? C.blue : C.mint,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            View details
-                          </Link>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={() => dismiss(item.id)}
+                              style={{
+                                padding: "6px 12px",
+                                background: "transparent",
+                                color: C.subtle,
+                                border: `1.5px solid ${C.border}`,
+                                borderRadius: 8,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                fontFamily: "system-ui",
+                              }}
+                            >
+                              Dismiss
+                            </button>
+                            <button
+                              type="button"
+                              style={{
+                                padding: "6px 14px",
+                                background: ceiling ? C.blue : C.blue,
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: 8,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                fontFamily: "system-ui",
+                              }}
+                            >
+                              {ceiling ? "Review band" : "View student"}
+                            </button>
+                          </div>
                         </div>
                       </div>
+
+                      {/* Expanded detail */}
+                      {expanded && (
+                        <div
+                          style={{
+                            padding: "0 16px 16px",
+                            borderTop: `1px solid ${C.border}`,
+                          }}
+                        >
+                          {/* Skill patterns */}
+                          <div
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.06em",
+                              color: C.subtle,
+                              margin: "12px 0 8px",
+                            }}
+                          >
+                            Skill pattern (this week)
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                            {item.skillPatterns.map((sp) => (
+                              <div
+                                key={sp.skill}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  padding: "6px 0",
+                                  borderBottom: `1px solid ${C.border}`,
+                                  fontSize: 12,
+                                }}
+                              >
+                                <span style={{ fontWeight: 700, flex: 1, color: C.text }}>
+                                  {sp.skill}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    color: C.amber,
+                                    fontWeight: 700,
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {sp.hits}
+                                </span>
+                                <div
+                                  style={{
+                                    width: 60,
+                                    height: 4,
+                                    background: "rgba(255,255,255,0.08)",
+                                    borderRadius: 2,
+                                    overflow: "hidden",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: `${sp.barPct}%`,
+                                      height: "100%",
+                                      background: C.amber,
+                                      borderRadius: 2,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Suggested support */}
+                          <div
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.06em",
+                              color: C.subtle,
+                              margin: "12px 0 6px",
+                            }}
+                          >
+                            Suggested support
+                          </div>
+                          <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, margin: "0 0 12px" }}>
+                            {item.suggestedSupport}
+                          </p>
+
+                          {/* Privacy note */}
+                          <div
+                            style={{
+                              background: C.blueBg,
+                              border: `1px solid ${C.blueBorder}`,
+                              borderRadius: 10,
+                              padding: "10px 12px",
+                              fontSize: 12,
+                              color: "#93c5fd",
+                              lineHeight: 1.5,
+                              marginBottom: 12,
+                            }}
+                          >
+                            Privacy note: This card shows skill-category patterns and floor-hit counts only. Specific questions, exact answers, and accuracy percentages are never surfaced here.
+                          </div>
+
+                          {/* Action row */}
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button
+                              type="button"
+                              style={{
+                                padding: "8px 14px",
+                                background: C.blue,
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: 8,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                fontFamily: "system-ui",
+                              }}
+                            >
+                              View {item.name}&apos;s profile
+                            </button>
+                            <button
+                              type="button"
+                              style={{
+                                padding: "8px 14px",
+                                background: "transparent",
+                                color: C.muted,
+                                border: `1.5px solid ${C.borderStrong}`,
+                                borderRadius: 8,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                fontFamily: "system-ui",
+                              }}
+                            >
+                              Log a note
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => resolve(item.id)}
+                              style={{
+                                padding: "8px 14px",
+                                background: "transparent",
+                                color: C.subtle,
+                                border: `1.5px solid ${C.border}`,
+                                borderRadius: 8,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                fontFamily: "system-ui",
+                              }}
+                            >
+                              Mark resolved
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* ── Right rail ────────────────────────────────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-            {/* Quick actions */}
-            <div style={{ ...glassCard, display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: C.mint,
-                    display: "block",
-                    marginBottom: 8,
-                  }}
-                >
-                  Quick Actions
-                </span>
-              </div>
-
-              <button
-                type="button"
-                style={{
-                  width: "100%",
-                  padding: "10px 16px",
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  border: `1.5px solid rgba(88,232,193,0.35)`,
-                  background: "rgba(88,232,193,0.1)",
-                  color: C.mint,
-                  cursor: "pointer",
-                  textAlign: "left",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <span aria-hidden="true">👥</span>
-                Assign group session
-              </button>
-
-              <button
-                type="button"
-                style={{
-                  width: "100%",
-                  padding: "10px 16px",
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  border: `1.5px solid rgba(255,209,102,0.35)`,
-                  background: "rgba(255,209,102,0.1)",
-                  color: C.gold,
-                  cursor: "pointer",
-                  textAlign: "left",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <span aria-hidden="true">📝</span>
-                Send parent note
-              </button>
+                })
+              )}
             </div>
-
-            {/* Class health summary */}
-            <div style={{ ...glassCard, display: "flex", flexDirection: "column", gap: 14 }}>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: C.mint,
-                }}
-              >
-                Class Health
-              </span>
-
-              {(
-                [
-                  {
-                    label: "Needs Support",
-                    count: needsSupportCount,
-                    total: STUDENTS.length,
-                    color: C.coral,
-                  },
-                  {
-                    label: "Watch Closely",
-                    count: watchCount,
-                    total: STUDENTS.length,
-                    color: C.gold,
-                  },
-                  {
-                    label: "On Track",
-                    count: STUDENTS.filter((s) => s.tier === "on-track").length,
-                    total: STUDENTS.length,
-                    color: C.mint,
-                  },
-                  {
-                    label: "Strong",
-                    count: strongCount,
-                    total: STUDENTS.length,
-                    color: C.violet,
-                  },
-                ] as { label: string; count: number; total: number; color: string }[]
-              ).map(({ label, count, total, color }) => {
-                const pct = Math.round((count / total) * 100);
-                return (
-                  <div key={label} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>
-                        {label}
-                      </span>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: C.text }}>
-                        {count}
-                        <span style={{ fontSize: 10, fontWeight: 400, color: C.muted }}>
-                          {" "}/ {total}
-                        </span>
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        width: "100%",
-                        height: 5,
-                        borderRadius: 3,
-                        background: "rgba(255,255,255,0.08)",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${pct}%`,
-                          height: "100%",
-                          borderRadius: 3,
-                          background: color,
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-
-              <Link
-                href="/teacher"
-                style={{
-                  display: "block",
-                  textAlign: "center",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: C.muted,
-                  textDecoration: "none",
-                  padding: "8px 0",
-                  borderTop: `1px solid ${C.cardBorder}`,
-                  marginTop: 2,
-                }}
-              >
-                View full classroom board →
-              </Link>
-            </div>
-
           </div>
         </div>
       </main>
