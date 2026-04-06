@@ -221,13 +221,6 @@ const worlds: World[] = [
   },
 ];
 
-const recentWins = [
-  { icon: "⭐", text: "Earned 3 stars \u00b7 Word Builders", meta: "today" },
-  { icon: "🏅", text: "Crystal Explorer badge", meta: "today" },
-  { icon: "🔥", text: "5-day streak!", meta: "today" },
-  { icon: "🌊", text: "Ocean Kingdom complete", meta: "4d ago" },
-];
-
 const worldProgress = [
   { emoji: "🌲", name: "Enchanted Forest", pct: 100, color: green },
   { emoji: "🌊", name: "Ocean Kingdom", pct: 100, color: green },
@@ -355,22 +348,124 @@ function NodePath({ nodes, connectors, opacity }: { nodes: PathNode[]; connector
   );
 }
 
+// ── Band Journey Map ──────────────────────────────────────────────────────────
+
+function BandJourneyMap({ currentBandId }: { currentBandId: BandId }) {
+  const currentIdx = BANDS.findIndex((b) => b.id === currentBandId);
+  return (
+    <div style={{ background: "#0d0a28", border: `1px solid ${panelBorder}`, borderRadius: 20, padding: "20px 24px", marginBottom: 28 }}>
+      <div style={{ fontSize: 12, fontWeight: 900, color: violet, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16, fontFamily: font }}>
+        Band Journey
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 0, overflowX: "auto", paddingBottom: 8 }}>
+        {BANDS.map((band, idx) => {
+          const isCurrent = idx === currentIdx;
+          const isDone = idx < currentIdx;
+          const isLocked = idx > currentIdx;
+          return (
+            <div key={band.id} style={{ display: "contents" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 72, flexShrink: 0 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, border: `3px solid ${isCurrent ? band.color : isDone ? green : "#2a2060"}`, background: isDone ? "#0a2a20" : isCurrent ? "#1e1470" : "#12102a", opacity: isLocked ? 0.35 : 1, position: "relative", boxShadow: isCurrent ? `0 0 18px ${band.color}55` : "none" }}>
+                  {isLocked ? "🔒" : band.emoji}
+                  {isDone && (
+                    <div style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, background: green, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#0a2a15", fontWeight: 900 }}>✓</div>
+                  )}
+                  {isCurrent && (
+                    <div style={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)", background: band.color, borderRadius: 4, padding: "1px 6px", fontSize: 8, fontWeight: 900, color: "#100b2e", whiteSpace: "nowrap", fontFamily: font }}>HERE</div>
+                  )}
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: isCurrent ? band.color : isDone ? green : "#4a3880", textAlign: "center", maxWidth: 68, lineHeight: 1.2, fontFamily: font }}>{band.id}</div>
+              </div>
+              {idx < BANDS.length - 1 && (
+                <div style={{ width: 28, height: 3, background: isDone ? green : isCurrent ? `linear-gradient(90deg, ${band.color}, #2a2060)` : "#2a2060", flexShrink: 0, marginBottom: 22 }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Current Band Card ──────────────────────────────────────────────────────────
+
+function CurrentBandCard({ band, currentLevel, totalPoints: pts, masteredCount }: { band: BandConfig; currentLevel: number; totalPoints: number; masteredCount: number }) {
+  const levelInBand = Math.max(1, currentLevel % (band.maxLevel + 1) || currentLevel);
+  const levelPct = Math.min(100, Math.round((levelInBand / band.maxLevel) * 100));
+  const nextMilestone = Math.ceil((pts + 1) / 100) * 100;
+  const ptsToNext = nextMilestone - pts;
+  const skillPills = buildSkillPills(band, masteredCount, currentLevel);
+  return (
+    <div style={{ background: `linear-gradient(135deg, ${band.bandBg} 0%, #100b2e 100%)`, border: `2px solid ${band.color}44`, borderRadius: 24, padding: "24px 24px 20px", marginBottom: 24, boxShadow: `0 8px 32px ${band.color}22`, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: 18, right: 18, background: band.color, borderRadius: 20, padding: "4px 12px", fontSize: 11, fontWeight: 900, color: "#100b2e", fontFamily: font }}>You&apos;re here!</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+        <span style={{ fontSize: 44, lineHeight: 1 }}>{band.emoji}</span>
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: band.color, fontFamily: font }}>{band.name}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: textMuted, fontFamily: font }}>{band.range}</div>
+        </div>
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: textMuted, fontFamily: font }}>Level progress within band</span>
+          <span style={{ fontSize: 12, fontWeight: 900, color: band.color, fontFamily: font }}>Level {levelInBand} / {band.maxLevel}</span>
+        </div>
+        <div style={{ height: 10, background: "#1a1060", borderRadius: 6, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${levelPct}%`, background: `linear-gradient(90deg, ${band.color}99, ${band.color})`, borderRadius: 6, transition: "width 0.8s ease" }} />
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: textMuted, marginTop: 5, fontFamily: font }}>{ptsToNext} pts to next milestone ✨</div>
+      </div>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 900, color: "#7a6090", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, fontFamily: font }}>Skills in this band</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {skillPills.map(({ label, mastered }) => (
+            <span key={label} style={{ padding: "5px 12px", borderRadius: 20, border: `2px solid ${mastered ? violet : "#3a2a80"}`, background: mastered ? "#2a1880" : "transparent", color: mastered ? "#d4b8ff" : "#5a4090", fontSize: 12, fontWeight: 700, fontFamily: font, display: "flex", alignItems: "center", gap: 5 }}>
+              {mastered && <span style={{ fontSize: 10 }}>✓</span>}
+              {label}
+            </span>
+          ))}
+        </div>
+      </div>
+      <Link href="/play?sessionMode=guided-quest&entry=progress" style={{ display: "block", textAlign: "center", background: `linear-gradient(135deg, ${violet}, #7248e8)`, borderRadius: 14, padding: "14px 0", fontSize: 16, fontWeight: 900, color: "#fff", textDecoration: "none", fontFamily: font, boxShadow: "0 6px 20px rgba(155,114,255,0.4)" }}>
+        Keep playing! 🎮
+      </Link>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
 export default function ChildProgressPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("map");
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<Tab>("band");
   const [session, setSession] = useState<SessionData | null>(null);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/child/session")
-      .then((r) => r.json())
-      .then((data: SessionData) => setSession(data))
+    Promise.all([
+      fetch("/api/child/session").then((r) => {
+        if (r.status === 401) { router.replace("/child"); return null; }
+        return r.json() as Promise<SessionData>;
+      }),
+      fetch("/api/child/stats").then((r) => r.json() as Promise<StatsData>),
+    ])
+      .then(([sessionData, statsData]) => {
+        if (sessionData) setSession(sessionData);
+        setStats(statsData);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [router]);
 
   const displayName = session?.student.displayName ?? "Explorer";
-  const totalPoints = session?.progression.totalPoints ?? 42;
-  const badgeCount = session?.progression.badgeCount ?? 3;
+  const launchBandCode = session?.student.launchBandCode ?? "k1";
+  const currentLevel = stats?.currentLevel ?? session?.progression.currentLevel ?? 1;
+  const totalPoints = stats?.totalPoints ?? session?.progression.totalPoints ?? 0;
+  const badgeCount = stats?.badgeCount ?? session?.progression.badgeCount ?? 0;
+  const masteredCount = stats?.masteredSkillsCount ?? 0;
+  const streakDays = stats?.streakDays ?? 0;
+  const currentBand = resolveBand(launchBandCode);
 
   if (loading) {
     return (
@@ -415,8 +510,8 @@ export default function ChildProgressPage() {
             ← Home
           </Link>
           <div style={{ width: 1, height: 24, background: "#2e2a50" }} />
-          {(["map", "stats"] as Tab[]).map((t) => {
-            const labels: Record<string, string> = { band: "Band", map: "Progress Map", stats: "Stats Overview" };
+          {(["band", "map", "stats"] as Tab[]).map((t) => {
+            const labels: Record<Tab, string> = { band: "My Band", map: "Progress Map", stats: "Stats" };
             return (
               <button
                 key={t}
@@ -438,6 +533,16 @@ export default function ChildProgressPage() {
             );
           })}
         </div>
+
+        {/* ── MY BAND TAB ── */}
+        {activeTab === "band" && (
+          <div style={{ maxWidth: 780, margin: "0 auto", padding: "28px 16px 60px" }}>
+            <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", marginBottom: 4, fontFamily: font }}>{displayName}&apos;s Band 🌟</div>
+            <div style={{ fontSize: 13, color: "#b8a0e8", fontWeight: 700, marginBottom: 24, fontFamily: font }}>Track your level, skills, and path through every band</div>
+            <CurrentBandCard band={currentBand} currentLevel={currentLevel} totalPoints={totalPoints} masteredCount={masteredCount} />
+            <BandJourneyMap currentBandId={currentBand.id} />
+          </div>
+        )}
 
         {/* ── PROGRESS MAP ── */}
         {activeTab === "map" && (
@@ -529,6 +634,13 @@ export default function ChildProgressPage() {
                 <div style={{ height: 1, background: "#1a1060", margin: "12px 0 24px" }} />
               </div>
             ))}
+
+            {/* Play CTA */}
+            <div style={{ textAlign: "center", marginTop: 8 }}>
+              <Link href="/play?sessionMode=guided-quest&entry=progress" style={{ display: "inline-block", padding: "14px 36px", background: `linear-gradient(135deg, ${violet}, #7248e8)`, borderRadius: 16, fontSize: 16, fontWeight: 900, color: "#fff", textDecoration: "none", fontFamily: font, boxShadow: "0 6px 20px rgba(155,114,255,0.4)" }}>
+                Keep playing! 🎮
+              </Link>
+            </div>
           </div>
         )}
 
@@ -546,9 +658,9 @@ export default function ChildProgressPage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
               {[
                 { val: `⭐ ${totalPoints}`, label: "Stars collected" },
-                { val: "31", label: "Nodes explored" },
+                { val: String(masteredCount), label: "Skills mastered" },
                 { val: String(badgeCount), label: "Badges earned" },
-                { val: "🔥 —", label: "Day streak" },
+                { val: streakDays > 0 ? `🔥 ${streakDays}` : "🔥 —", label: "Day streak" },
               ].map((s) => (
                 <div
                   key={s.label}
@@ -593,30 +705,29 @@ export default function ChildProgressPage() {
                 </div>
               </div>
 
-              {/* Recent wins */}
-              <div style={{ background: "#1a1060", border: `1px solid ${panelBorder}`, borderRadius: 16, padding: 18 }}>
-                <div style={{ fontSize: 12, fontWeight: 900, color: violet, textTransform: "uppercase", letterSpacing: 1, marginBottom: 14, fontFamily: font }}>
-                  Recent Wins
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {recentWins.map((w, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: "#c4a0ff",
-                        fontFamily: font,
-                      }}
-                    >
-                      <span style={{ fontSize: 18 }}>{w.icon}</span>
-                      {w.text}
-                      <span style={{ marginLeft: "auto", fontSize: 10, color: "#5a4080" }}>{w.meta}</span>
-                    </div>
-                  ))}
+              {/* Last session + play CTA */}
+              <div style={{ background: "#1a1060", border: `1px solid ${panelBorder}`, borderRadius: 16, padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 900, color: violet, textTransform: "uppercase", letterSpacing: 1, fontFamily: font }}>Last Session</div>
+                {stats?.lastSession ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {[
+                      { label: "Correct answers", val: String(stats.lastSession.correctAnswers) },
+                      { label: "Questions answered", val: String(stats.lastSession.totalQuestions) },
+                      { label: "Points earned", val: `⭐ ${stats.lastSession.pointsEarned}` },
+                    ].map((row) => (
+                      <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, color: "#c4a0ff", fontFamily: font }}>
+                        <span style={{ color: textMuted }}>{row.label}</span>
+                        <span>{row.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 13, fontWeight: 700, color: textMuted, fontFamily: font }}>No sessions yet — start playing!</div>
+                )}
+                <div style={{ marginTop: "auto" }}>
+                  <Link href="/play?sessionMode=guided-quest&entry=progress" style={{ display: "block", textAlign: "center", background: `linear-gradient(135deg, ${violet}, #7248e8)`, borderRadius: 12, padding: "12px 0", fontSize: 14, fontWeight: 900, color: "#fff", textDecoration: "none", fontFamily: font }}>
+                    Keep playing! 🎮
+                  </Link>
                 </div>
               </div>
             </div>

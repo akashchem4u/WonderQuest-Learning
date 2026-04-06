@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type TrophyTier = "gold" | "silver" | "bronze" | "locked";
-type FilterTab = "all" | "earned" | "gold" | "bronze";
+type FilterTab = "all" | "earned" | "gold" | "silver" | "bronze";
 
 type Trophy = {
   id: string;
@@ -86,61 +87,148 @@ function apiTrophiesToTrophyList(apiTrophies: ApiTrophy[]): Trophy[] {
 // ─── Trophy catalog (fallback/placeholder) ───────────────────────────────────
 
 const TROPHY_CATALOG: Omit<Trophy, "earned" | "earnedDate" | "isNew">[] = [
-  { id: "forest-champion", emoji: "🏆", name: "Forest Champion", world: "Enchanted Forest", worldEmoji: "🌲", description: "You explored every single node in the Enchanted Forest! That takes skill, bravery, and a love of adventure!", earnCondition: "Complete the Enchanted Forest world", tier: "gold", stars: 30 },
-  { id: "ocean-hero", emoji: "🌊", name: "Ocean Hero", world: "Ocean Kingdom", worldEmoji: "🌊", description: "You dove deep and conquered the Ocean Kingdom — every wave, every challenge!", earnCondition: "Complete the Ocean Kingdom world", tier: "gold", stars: 28 },
-  { id: "boss-slayer", emoji: "🥉", name: "Boss Slayer", world: "Any World", worldEmoji: "⚔️", description: "You defeated your very first legendary boss node!", earnCondition: "Defeat a boss node", tier: "bronze" },
+  {
+    id: "first-sessions",
+    emoji: "🥉",
+    name: "First Steps",
+    world: "Any World",
+    worldEmoji: "🌍",
+    description: "Complete your very first 5 sessions!",
+    earnCondition: "Complete 5 sessions",
+    tier: "bronze",
+  },
+  {
+    id: "first-skill",
+    emoji: "🥉",
+    name: "Skill Seeker",
+    world: "Any World",
+    worldEmoji: "🌍",
+    description: "You mastered your first skill!",
+    earnCondition: "Master 1 skill",
+    tier: "bronze",
+  },
+  {
+    id: "boss-slayer",
+    emoji: "🥉",
+    name: "Boss Slayer",
+    world: "Any World",
+    worldEmoji: "⚔️",
+    description: "You defeated your very first legendary boss node!",
+    earnCondition: "Defeat a boss node",
+    tier: "bronze",
+  },
+  {
+    id: "five-sessions",
+    emoji: "🥈",
+    name: "Quester",
+    world: "Any World",
+    worldEmoji: "🌍",
+    description: "You have played 5 or more sessions — you are on a roll!",
+    earnCondition: "Complete 5+ sessions",
+    tier: "silver",
+  },
+  {
+    id: "first-skill-mastery",
+    emoji: "🥈",
+    name: "Skill Master",
+    world: "Any World",
+    worldEmoji: "🌍",
+    description: "You mastered your first skill completely!",
+    earnCondition: "Master first skill (score 80+)",
+    tier: "silver",
+  },
+  {
+    id: "10-day-streak",
+    emoji: "🏆",
+    name: "Streak Legend",
+    world: "Any World",
+    worldEmoji: "🔥",
+    description: "An incredible 10-day learning streak! You are unstoppable!",
+    earnCondition: "Reach a 10-day streak",
+    tier: "gold",
+  },
+  {
+    id: "10-skills",
+    emoji: "👑",
+    name: "Knowledge Crown",
+    world: "Any World",
+    worldEmoji: "👑",
+    description: "You mastered 10 different skills! You are a true scholar!",
+    earnCondition: "Master 10 skills",
+    tier: "gold",
+  },
+  {
+    id: "1000-stars",
+    emoji: "💎",
+    name: "Star Diamond",
+    world: "Any World",
+    worldEmoji: "⭐",
+    description: "You collected 1,000 stars! An absolutely legendary achievement!",
+    earnCondition: "Collect 1,000 stars",
+    tier: "gold",
+  },
 ];
 
 const MYSTERY_TROPHIES: Omit<Trophy, "earned" | "earnedDate" | "isNew">[] = [
   { id: "mystery-trophy-1", emoji: "❓", name: "???", world: "???", worldEmoji: "🌍", description: "Keep playing to unlock this trophy", earnCondition: "Keep playing to unlock", tier: "locked" },
   { id: "mystery-trophy-2", emoji: "❓", name: "???", world: "???", worldEmoji: "🌍", description: "Keep playing to unlock this trophy", earnCondition: "Keep playing to unlock", tier: "locked" },
   { id: "mystery-trophy-3", emoji: "❓", name: "???", world: "???", worldEmoji: "🌍", description: "Keep playing to unlock this trophy", earnCondition: "Keep playing to unlock", tier: "locked" },
+  { id: "mystery-trophy-4", emoji: "❓", name: "???", world: "???", worldEmoji: "🌍", description: "Keep playing to unlock this trophy", earnCondition: "Keep playing to unlock", tier: "locked" },
+  { id: "mystery-trophy-5", emoji: "❓", name: "???", world: "???", worldEmoji: "🌍", description: "Keep playing to unlock this trophy", earnCondition: "Keep playing to unlock", tier: "locked" },
+  { id: "mystery-trophy-6", emoji: "❓", name: "???", world: "???", worldEmoji: "🌍", description: "Keep playing to unlock this trophy", earnCondition: "Keep playing to unlock", tier: "locked" },
 ];
-
-function buildPlaceholderTrophyList(trophyCount: number): Trophy[] {
-  return TROPHY_CATALOG.map((t, i) => {
-    if (i < trophyCount) {
-      return { ...t, earned: true, earnedDate: i === trophyCount - 1 ? "Today" : "Recently", isNew: i === trophyCount - 1 };
-    }
-    return { ...t, earned: false };
-  });
-}
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: "all", label: "All" },
   { key: "earned", label: "Earned" },
-  { key: "gold", label: "Gold" },
-  { key: "bronze", label: "Bronze" },
+  { key: "gold", label: "🏆 Gold" },
+  { key: "silver", label: "🥈 Silver" },
+  { key: "bronze", label: "🥉 Bronze" },
 ];
 
-// ─── Tier colors ──────────────────────────────────────────────────────────────
+// ─── Tier config ──────────────────────────────────────────────────────────────
 
-function tierBorder(tier: TrophyTier) {
-  if (tier === "gold") return "#ffd166";
-  if (tier === "silver") return "#aaaaaa";
-  if (tier === "bronze") return "#c07040";
-  return "#2a2060";
-}
-
-function tierNameColor(tier: TrophyTier) {
-  if (tier === "gold") return "#ffd166";
-  if (tier === "silver") return "#aaa";
-  if (tier === "bronze") return "#c07040";
-  return "#5a4080";
-}
-
-function tierBg(tier: TrophyTier) {
-  if (tier === "gold") return "linear-gradient(135deg, #3a2a10, #2a2010)";
-  if (tier === "silver") return "linear-gradient(135deg, #2a2a2a, #1a1a1a)";
-  if (tier === "bronze") return "linear-gradient(135deg, #2a1a08, #1a1060)";
-  return "#1a1060";
-}
+const TIER_CONFIG: Record<TrophyTier, { border: string; name: string; bg: string; glow: string; label: string; labelColor: string }> = {
+  gold: {
+    border: "#ffd166",
+    name: "#ffd166",
+    bg: "linear-gradient(135deg, #3a2a10, #2a2010)",
+    glow: "0 0 20px rgba(255,209,102,0.3)",
+    label: "GOLD",
+    labelColor: "#ffd166",
+  },
+  silver: {
+    border: "#aaaaaa",
+    name: "#aaa",
+    bg: "linear-gradient(135deg, #2a2a2a, #1a1a1a)",
+    glow: "0 0 16px rgba(170,170,170,0.2)",
+    label: "SILVER",
+    labelColor: "#aaa",
+  },
+  bronze: {
+    border: "#c07040",
+    name: "#c07040",
+    bg: "linear-gradient(135deg, #2a1a08, #1a1060)",
+    glow: "0 0 16px rgba(192,112,64,0.2)",
+    label: "BRONZE",
+    labelColor: "#c07040",
+  },
+  locked: {
+    border: "#2a2060",
+    name: "#5a4080",
+    bg: "#1a1060",
+    glow: "none",
+    label: "LOCKED",
+    labelColor: "#3a2a60",
+  },
+};
 
 // ─── Trophy Card ──────────────────────────────────────────────────────────────
 
 function TrophyCard({ trophy, animDelay, onSelect }: { trophy: Trophy; animDelay?: number; onSelect: (t: Trophy) => void }) {
   const [hovered, setHovered] = useState(false);
   const locked = !trophy.earned;
+  const cfg = TIER_CONFIG[trophy.tier];
 
   return (
     <div
@@ -152,32 +240,69 @@ function TrophyCard({ trophy, animDelay, onSelect }: { trophy: Trophy; animDelay
       onMouseLeave={() => setHovered(false)}
       title={locked ? "Keep playing to unlock" : undefined}
       style={{
-        background: locked ? "#1a1060" : tierBg(trophy.tier),
-        border: `2px ${locked ? "dashed" : "solid"} ${tierBorder(trophy.tier)}`,
-        borderRadius: 18,
-        padding: "18px 14px",
+        background: locked ? "#1a1060" : cfg.bg,
+        border: `2px ${locked ? "dashed" : "solid"} ${cfg.border}`,
+        borderRadius: 20,
+        padding: "22px 16px 18px",
         textAlign: "center",
         cursor: locked ? "default" : "pointer",
-        opacity: locked ? 0.32 : 1,
-        transform: hovered && !locked ? "translateY(-4px)" : "none",
-        transition: "transform 0.2s, opacity 0.2s",
+        opacity: locked ? 0.35 : 1,
+        transform: hovered && !locked ? "translateY(-5px)" : "none",
+        boxShadow: !locked && trophy.earned ? cfg.glow : "none",
+        transition: "transform 0.2s, box-shadow 0.2s, opacity 0.2s",
         position: "relative",
         fontFamily: "'Nunito', system-ui, sans-serif",
       }}
     >
+      {/* Tier label badge */}
+      {!locked && (
+        <div style={{
+          position: "absolute",
+          top: 8,
+          left: 8,
+          background: "rgba(0,0,0,0.5)",
+          color: cfg.labelColor,
+          fontSize: 8,
+          fontWeight: 900,
+          borderRadius: 6,
+          padding: "2px 6px",
+          letterSpacing: 0.8,
+          textTransform: "uppercase",
+        }}>
+          {cfg.label}
+        </div>
+      )}
+
       {trophy.isNew && !locked && (
         <div style={{ position: "absolute", top: 8, right: 8, background: "#ff7b6b", color: "#fff", fontSize: 9, fontWeight: 900, borderRadius: 6, padding: "2px 6px", letterSpacing: 0.5 }}>
           NEW
         </div>
       )}
-      <div style={{ fontSize: 40, marginBottom: 8, display: "block", animation: locked ? "none" : `trophy-bob 3s ${animDelay ?? 0}s ease-in-out infinite` }}>
+
+      {/* Big emoji */}
+      <div style={{
+        fontSize: 52,
+        marginBottom: 10,
+        display: "block",
+        animation: locked ? "none" : `trophy-bob 3s ${animDelay ?? 0}s ease-in-out infinite`,
+        filter: locked ? "grayscale(1) brightness(0.5)" : "none",
+      }}>
         {locked ? "🔒" : trophy.emoji}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 900, color: locked ? "#5a4080" : tierNameColor(trophy.tier), marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+
+      {/* Name */}
+      <div style={{ fontSize: 13, fontWeight: 900, color: locked ? "#5a4080" : cfg.name, marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
         {trophy.name}
       </div>
+
+      {/* Description (brief) */}
+      <div style={{ fontSize: 10, color: locked ? "#3a2060" : "#9b8ec4", fontWeight: 700, lineHeight: 1.35, marginBottom: 6, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+        {locked ? trophy.earnCondition : trophy.description.length > 50 ? trophy.description.slice(0, 50) + "…" : trophy.description}
+      </div>
+
+      {/* Earned date */}
       <div style={{ fontSize: 10, color: locked ? "#3a2a60" : "#50e890", fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-        {trophy.earned ? (trophy.earnedDate ? `Earned ${trophy.earnedDate}` : "Earned!") : trophy.earnCondition}
+        {trophy.earned ? (trophy.earnedDate ? `Earned ${trophy.earnedDate}` : "Earned!") : ""}
       </div>
     </div>
   );
@@ -186,6 +311,7 @@ function TrophyCard({ trophy, animDelay, onSelect }: { trophy: Trophy; animDelay
 // ─── Trophy Detail Modal ──────────────────────────────────────────────────────
 
 function TrophyDetailModal({ trophy, onClose }: { trophy: Trophy; onClose: () => void }) {
+  const cfg = TIER_CONFIG[trophy.tier];
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "rgba(10, 8, 32, 0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24 }}
@@ -194,22 +320,35 @@ function TrophyDetailModal({ trophy, onClose }: { trophy: Trophy; onClose: () =>
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: tierBg(trophy.tier),
-          border: `2px solid ${tierBorder(trophy.tier)}`,
+          background: cfg.bg,
+          border: `2px solid ${cfg.border}`,
           borderRadius: 28,
           padding: "32px 28px",
           textAlign: "center",
           maxWidth: 380,
           width: "100%",
           fontFamily: "'Nunito', system-ui, sans-serif",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.7)",
+          boxShadow: `0 24px 64px rgba(0,0,0,0.7), ${cfg.glow}`,
+          animation: "modal-pop 0.25s cubic-bezier(0.34,1.56,0.64,1) both",
         }}
       >
-        <div style={{ fontSize: 80, display: "block", marginBottom: 12, animation: "trophy-bob 2.5s ease-in-out infinite" }}>
+        <div style={{ fontSize: 84, display: "block", marginBottom: 12, animation: "trophy-bob 2.5s ease-in-out infinite" }}>
           {trophy.emoji}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 900, color: tierNameColor(trophy.tier), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
-          {trophy.worldEmoji} {trophy.world}
+        <div style={{
+          display: "inline-block",
+          background: "rgba(0,0,0,0.4)",
+          border: `1px solid ${cfg.border}`,
+          borderRadius: 20,
+          padding: "4px 14px",
+          fontSize: 11,
+          fontWeight: 900,
+          color: cfg.labelColor,
+          letterSpacing: 1,
+          textTransform: "uppercase",
+          marginBottom: 10,
+        }}>
+          {cfg.label} TROPHY
         </div>
         <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", marginBottom: 10, fontFamily: "'Nunito', system-ui, sans-serif" }}>
           {trophy.name}
@@ -219,7 +358,7 @@ function TrophyDetailModal({ trophy, onClose }: { trophy: Trophy; onClose: () =>
         </div>
         {trophy.stars !== undefined && (
           <div style={{ fontSize: 15, fontWeight: 700, color: "#ffd166", marginBottom: 8 }}>
-            {"⭐".repeat(Math.min(trophy.stars, 9))} {trophy.stars} stars collected
+            ⭐ {trophy.stars} stars collected
           </div>
         )}
         {trophy.earnedDate && (
@@ -241,52 +380,47 @@ function TrophyDetailModal({ trophy, onClose }: { trophy: Trophy; onClose: () =>
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ChildTrophiesPage() {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
   const [selectedTrophy, setSelectedTrophy] = useState<Trophy | null>(null);
   const [loading, setLoading] = useState(true);
   const [trophies, setTrophies] = useState<Trophy[]>([]);
   const [trophiesComingSoon, setTrophiesComingSoon] = useState(false);
-  const [noSession, setNoSession] = useState(false);
 
   useEffect(() => {
-    // Fetch from the trophies API endpoint
-    fetch("/api/child/trophies")
+    // Auth check first
+    fetch("/api/child/session")
       .then((r) => {
-        if (r.status === 401) {
-          setNoSession(true);
-          return null;
-        }
-        return r.json();
+        if (!r.ok) { router.replace("/child"); return null; }
+        return true;
       })
-      .then((data: { trophies: ApiTrophy[] } | null) => {
-        if (!data) return;
-        if (data.trophies.length === 0) {
-          // No trophy_definitions table or no trophies defined — show placeholder
-          setTrophiesComingSoon(true);
-          setTrophies(MYSTERY_TROPHIES.map((t) => ({ ...t, earned: false })));
-        } else {
-          setTrophies(apiTrophiesToTrophyList(data.trophies));
-        }
-      })
-      .catch(() => {
-        // Fallback: try session for trophy count
-        fetch("/api/child/session")
+      .catch(() => { router.replace("/child"); return null; })
+      .then((authed) => {
+        if (!authed) return;
+        // Fetch trophies
+        return fetch("/api/child/trophies")
           .then((r) => {
-            if (r.status === 401) {
-              setNoSession(true);
-              return null;
-            }
+            if (!r.ok) return null;
             return r.json();
           })
-          .then((data: { progression?: { trophyCount?: number } } | null) => {
-            if (!data) return;
-            const trophyCount = data.progression?.trophyCount ?? 0;
-            setTrophies(buildPlaceholderTrophyList(trophyCount));
+          .then((data: { trophies: ApiTrophy[] } | null) => {
+            if (!data || data.trophies.length === 0) {
+              setTrophiesComingSoon(!data);
+              setTrophies(
+                TROPHY_CATALOG.map((t) => ({ ...t, earned: false })).concat(
+                  MYSTERY_TROPHIES.map((t) => ({ ...t, earned: false }))
+                )
+              );
+            } else {
+              setTrophies(apiTrophiesToTrophyList(data.trophies));
+            }
           })
-          .catch(() => {});
+          .catch(() => {
+            setTrophies(TROPHY_CATALOG.map((t) => ({ ...t, earned: false })));
+          });
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [router]);
 
   const earnedCount = trophies.filter((t) => t.earned).length;
   const totalCount = trophies.length;
@@ -295,12 +429,27 @@ export default function ChildTrophiesPage() {
     if (activeFilter === "all") return true;
     if (activeFilter === "earned") return t.earned;
     if (activeFilter === "gold") return t.tier === "gold";
+    if (activeFilter === "silver") return t.tier === "silver";
     if (activeFilter === "bronze") return t.tier === "bronze";
     return true;
   });
 
-  const shelfTrophies = trophies.filter((t) => t.earned && (t.tier === "gold" || t.tier === "silver"));
-  const lockedShelf = trophies.filter((t) => !t.earned && (t.tier === "gold" || t.tier === "silver" || t.tier === "locked")).slice(0, Math.max(0, 4 - shelfTrophies.length));
+  // Sort: earned first, then by tier (gold > silver > bronze > locked)
+  const TIER_ORDER: Record<TrophyTier, number> = { gold: 0, silver: 1, bronze: 2, locked: 3 };
+  const sorted = [...filtered].sort((a, b) => {
+    if (a.earned !== b.earned) return a.earned ? -1 : 1;
+    return TIER_ORDER[a.tier] - TIER_ORDER[b.tier];
+  });
+
+  if (loading) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={{ minHeight: "100vh", background: "#0a0820", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito', system-ui, sans-serif", color: "#9b8ec4", fontSize: 18, fontWeight: 700 }}>
+          Loading your trophies...
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="kid" currentPath="/child">
@@ -314,176 +463,123 @@ export default function ChildTrophiesPage() {
 
         {/* Page header */}
         <div style={{ padding: "20px 24px 0" }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-            Trophy Wall 🏆
+          <div style={{ fontSize: 30, fontWeight: 900, color: "#fff", marginBottom: 6, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+            🏆 Your Trophies
           </div>
-          <div style={{ fontSize: 14, color: "#b8a0e8", fontWeight: 700, marginBottom: 20, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-            {loading ? "Loading..." : noSession ? "Sign in to see your trophies!" : `${earnedCount} earned · ${totalCount - earnedCount} more waiting for you!`}
+          <div style={{ fontSize: 14, color: "#b8a0e8", fontWeight: 700, marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+            Earn trophies by reaching big milestones!
+          </div>
+
+          {/* Stats pill */}
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            background: "#1a1060",
+            border: "2px solid #9b72ff",
+            borderRadius: 12,
+            padding: "8px 16px",
+            marginTop: 8,
+            marginBottom: 20,
+          }}>
+            <span style={{ fontSize: 18 }}>🏆</span>
+            <span style={{ fontSize: 14, fontWeight: 900, color: "#9b72ff", fontFamily: "'Nunito', system-ui, sans-serif" }}>
+              {earnedCount} of {totalCount} trophies unlocked
+            </span>
           </div>
         </div>
 
-        {noSession ? (
-          <div style={{ textAlign: "center", padding: "80px 0" }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", marginBottom: 8, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-              Sign in to see your trophies
+        {trophiesComingSoon && (
+          <div style={{
+            margin: "0 16px 20px",
+            background: "linear-gradient(135deg, #1a1060, #2a1880)",
+            border: "2px solid #9b72ff",
+            borderRadius: 16,
+            padding: "16px 24px",
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "#9b72ff", marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+              🎉 Trophies Coming Soon!
             </div>
-            <div style={{ fontSize: 14, color: "#9b8ec4", marginBottom: 24, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-              You need to be signed in to view your trophy wall.
+            <div style={{ fontSize: 13, color: "#9b8ec4", fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+              Complete worlds and challenges — trophies will appear here as you earn them!
             </div>
-            <Link
-              href="/child"
-              style={{ background: "#9b72ff", color: "#fff", borderRadius: 12, padding: "12px 28px", fontWeight: 900, fontSize: 15, textDecoration: "none", fontFamily: "'Nunito', system-ui, sans-serif" }}
-            >
-              Sign In
-            </Link>
           </div>
-        ) : loading ? (
-          <div style={{ textAlign: "center", padding: "80px 0", color: "#9b8ec4", fontSize: 18, fontWeight: 700 }}>
-            Loading your trophies...
-          </div>
-        ) : (
-          <>
-            {trophiesComingSoon && (
-              <div style={{
-                margin: "0 16px 20px",
-                background: "linear-gradient(135deg, #1a1060, #2a1880)",
-                border: "2px solid #9b72ff",
-                borderRadius: 16,
-                padding: "16px 24px",
-                textAlign: "center",
-              }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: "#9b72ff", marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-                  🎉 Trophies Coming Soon!
-                </div>
-                <div style={{ fontSize: 13, color: "#9b8ec4", fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-                  Complete worlds and challenges — trophies will appear here as you earn them!
-                </div>
-              </div>
-            )}
-
-            {/* Trophy Shelf */}
-            <div style={{ padding: "0 16px", marginBottom: 28 }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  gap: 16,
-                  flexWrap: "wrap",
-                  padding: "20px 16px 28px",
-                  background: "linear-gradient(180deg, #1a1060 0%, #0d0924 100%)",
-                  borderRadius: 24,
-                  border: "2px solid #2a2060",
-                  position: "relative",
-                }}
-              >
-                {/* Shelf bar */}
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 8, background: "linear-gradient(90deg, #2a2060, #3a3080, #2a2060)", borderRadius: "0 0 22px 22px" }} />
-
-                {/* Earned shelf items */}
-                {shelfTrophies.map((trophy, i) => (
-                  <div
-                    key={trophy.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedTrophy(trophy)}
-                    onKeyDown={(e) => e.key === "Enter" && setSelectedTrophy(trophy)}
-                    style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}
-                  >
-                    <div
-                      style={{
-                        width: 96,
-                        height: 106,
-                        borderRadius: 20,
-                        background: tierBg(trophy.tier),
-                        border: `2px solid ${tierBorder(trophy.tier)}`,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        position: "relative",
-                        transition: "transform 0.2s",
-                      }}
-                    >
-                      <div style={{ position: "absolute", top: 10, left: 12, width: 18, height: 8, background: "rgba(255,255,255,0.15)", borderRadius: "50%", transform: "rotate(-30deg)" }} />
-                      <span style={{ fontSize: 44, display: "block", animation: `trophy-bob 3s ${i * 0.6}s ease-in-out infinite` }}>
-                        {trophy.emoji}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 12, fontWeight: 900, color: "#c4a0ff", marginTop: 8, textAlign: "center", maxWidth: 96, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-                      {trophy.name}
-                    </div>
-                    <div style={{ fontSize: 10, color: "#5a4080", fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-                      {trophy.worldEmoji} {trophy.world}
-                    </div>
-                    <div style={{ fontSize: 10, color: "#50e890", fontWeight: 900, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-                      {trophy.earnedDate}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Locked shelf slots */}
-                {lockedShelf.map((trophy) => (
-                  <div key={trophy.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", opacity: 0.35 }}>
-                    <div style={{ width: 96, height: 106, background: "#1a1060", border: "2px dashed #2a2060", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44, filter: "grayscale(1) brightness(0.5)" }}>
-                      🏆
-                    </div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#3a2a60", marginTop: 8, textAlign: "center", maxWidth: 96, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-                      {trophy.name}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Show placeholder if shelf is empty */}
-                {shelfTrophies.length === 0 && lockedShelf.length === 0 && (
-                  <div style={{ color: "#3a2a60", fontWeight: 700, fontSize: 14, fontFamily: "'Nunito', system-ui, sans-serif", padding: "20px 0" }}>
-                    Earn trophies to display them here!
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Filter tabs */}
-            <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 16, flexWrap: "wrap" }}>
-              {FILTER_TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveFilter(tab.key)}
-                  style={{
-                    padding: "8px 18px",
-                    borderRadius: 20,
-                    border: `2px solid ${activeFilter === tab.key ? "#9b72ff" : "#2a2060"}`,
-                    background: activeFilter === tab.key ? "#9b72ff" : "#1a1060",
-                    color: activeFilter === tab.key ? "#fff" : "#7a5ea0",
-                    fontWeight: 900,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    fontFamily: "'Nunito', system-ui, sans-serif",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Trophy grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 14, padding: "0 16px" }}>
-              {filtered.map((trophy, i) => (
-                <TrophyCard key={trophy.id} trophy={trophy} animDelay={(i % 4) * 0.5} onSelect={setSelectedTrophy} />
-              ))}
-            </div>
-          </>
         )}
 
-        {/* Keyframe styles */}
-        <style>{`
-          @keyframes trophy-bob {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
-          }
-        `}</style>
+        {/* Tier legend */}
+        <div style={{ display: "flex", gap: 10, padding: "0 16px", marginBottom: 16, flexWrap: "wrap" }}>
+          {(["bronze", "silver", "gold"] as const).map((tier) => {
+            const cfg = TIER_CONFIG[tier];
+            const count = trophies.filter((t) => t.tier === tier && t.earned).length;
+            return (
+              <div key={tier} style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "#1a1060",
+                border: `1px solid ${cfg.border}`,
+                borderRadius: 10,
+                padding: "6px 12px",
+              }}>
+                <span style={{ fontSize: 14 }}>{tier === "gold" ? "🏆" : tier === "silver" ? "🥈" : "🥉"}</span>
+                <span style={{ fontSize: 11, fontWeight: 900, color: cfg.labelColor, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                  {cfg.label} · {count} earned
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Filter tabs */}
+        <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 16, flexWrap: "wrap" }}>
+          {FILTER_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveFilter(tab.key)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 20,
+                border: `2px solid ${activeFilter === tab.key ? "#9b72ff" : "#2a2060"}`,
+                background: activeFilter === tab.key ? "#9b72ff" : "#1a1060",
+                color: activeFilter === tab.key ? "#fff" : "#7a5ea0",
+                fontWeight: 900,
+                fontSize: 12,
+                cursor: "pointer",
+                fontFamily: "'Nunito', system-ui, sans-serif",
+                transition: "all 0.2s",
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Trophy grid — 3 columns, larger than badges */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, padding: "0 16px" }}>
+          {sorted.map((trophy, i) => (
+            <TrophyCard key={trophy.id} trophy={trophy} animDelay={(i % 3) * 0.6} onSelect={setSelectedTrophy} />
+          ))}
+        </div>
+
+        {sorted.length === 0 && (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#7a6090", fontSize: 15, fontWeight: 700 }}>
+            No trophies match this filter.
+          </div>
+        )}
       </div>
+
+      {/* Keyframe styles */}
+      <style>{`
+        @keyframes trophy-bob {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+        @keyframes modal-pop {
+          from { transform: scale(0.85); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
 
       {/* Detail modal */}
       {selectedTrophy && (
