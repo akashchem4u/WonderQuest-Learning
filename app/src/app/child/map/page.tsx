@@ -422,7 +422,7 @@ function WorldRow({ world }: { world: World }) {
 
 // ─── Stats tab ────────────────────────────────────────────────────────────────
 
-function StatsView({ liveStats }: { liveStats: typeof STATS }) {
+function StatsView({ liveStats }: { liveStats: typeof STATS_FALLBACK }) {
   return (
     <div>
       {/* Stats bar */}
