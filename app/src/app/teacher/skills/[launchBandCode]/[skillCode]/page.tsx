@@ -109,20 +109,47 @@ export default function TeacherSkillDrilldownPage() {
   const [activeTab, setActiveTab] = useState<"drilldown" | "compare">("drilldown");
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [rosterLoaded, setRosterLoaded] = useState(false);
+  const [skillStudents, setSkillStudents] = useState<StudentRow[]>([]);
 
   useEffect(() => {
     if (!authed) return;
     const teacherId = getTeacherId();
-    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
+    // Fetch real per-student skill data from the skill-detail API
+    fetch(`/api/teacher/skill-detail/${encodeURIComponent(skillCode)}?teacherId=${encodeURIComponent(teacherId)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
+        if (data?.studentBreakdown && Array.isArray(data.studentBreakdown)) {
+          setSkillStudents(
+            (data.studentBreakdown as Array<{
+              studentId: string;
+              name: string;
+              mastery: number;
+              status: string;
+              sessions: number;
+              stars?: number;
+              lastActive: string;
+            }>).map((s) => ({
+              id: s.studentId,
+              name: s.name,
+              mastery: Math.round(s.mastery),
+              status: (s.status?.toLowerCase() === "strong"
+                ? "strong"
+                : s.status?.toLowerCase() === "building"
+                  ? "building"
+                  : "started") as MasteryStatus,
+              sessions: s.sessions,
+              stars: s.stars ?? 0,
+              lastActive: s.lastActive,
+            }))
+          );
+        }
         if (data?.roster && Array.isArray(data.roster)) {
           setRoster(data.roster as RosterStudent[]);
         }
       })
       .catch(() => {/* silently ignore */})
       .finally(() => setRosterLoaded(true));
-  }, [authed]);
+  }, [authed, skillCode]);
 
   if (!authed) {
     return (
@@ -137,7 +164,7 @@ export default function TeacherSkillDrilldownPage() {
   const bandStudents = roster.filter(
     (s) => s.launchBandCode?.toLowerCase() === launchBandCode?.toLowerCase(),
   );
-  const studentsOnSkillCount = bandStudents.length > 0 ? bandStudents.length : STUDENTS.length;
+  const studentsOnSkillCount = skillStudents.length > 0 ? skillStudents.length : bandStudents.length;
 
   const glassCard: React.CSSProperties = {
     background: C.surface,
@@ -440,7 +467,14 @@ export default function TeacherSkillDrilldownPage() {
           <div style={glassCard}>
             <div style={cardTitle}>Students on This Skill</div>
 
-            <div style={{ overflowX: "auto" }}>
+            {!rosterLoaded && (
+              <div style={{ color: "#6b7280", fontSize: 13, padding: "12px 0" }}>Loading student data…</div>
+            )}
+            {rosterLoaded && skillStudents.length === 0 && (
+              <div style={{ color: "#6b7280", fontSize: 13, padding: "12px 0" }}>No students have practiced this skill yet.</div>
+            )}
+
+            <div style={{ overflowX: "auto", display: skillStudents.length === 0 ? "none" : undefined }}>
               <table
                 style={{
                   width: "100%",
@@ -474,7 +508,7 @@ export default function TeacherSkillDrilldownPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {STUDENTS.map((s) => (
+                  {(skillStudents.length > 0 ? skillStudents : []).map((s) => (
                     <tr key={s.id}>
                       <td
                         style={{
