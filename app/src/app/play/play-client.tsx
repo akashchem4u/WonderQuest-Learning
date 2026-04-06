@@ -1810,12 +1810,32 @@ function PlayClientInner() {
                       setSelectedAnswer(null);
                       setRewardOverlay(null);
                       setAttempt(1);
+                      setCorrectCount(0);
+                      setTotalAnswered(0);
+                      setSessionPointsEarned(0);
                       setCoachMode("listen");
                       setSessionKey((k) => k + 1);
                     }}
-                    style={{ height: 50, borderRadius: 25, background: `linear-gradient(135deg, ${C.violet}, #7248e8)`, color: "#fff", fontSize: 15, fontWeight: 900, padding: "0 24px", display: "flex", alignItems: "center", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+                    style={{ height: 50, borderRadius: 25, background: `linear-gradient(135deg, ${C.mintGreen}, #22c98a)`, color: "#0a1f15", fontSize: 15, fontWeight: 900, padding: "0 24px", display: "flex", alignItems: "center", gap: 8, border: "none", cursor: "pointer", fontFamily: "inherit" }}
                   >
-                    Play Again →
+                    <span>🚀</span> Next Quest →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentIndex(0);
+                      setAnswerState(null);
+                      setSelectedAnswer(null);
+                      setRewardOverlay(null);
+                      setAttempt(1);
+                      setCorrectCount(0);
+                      setTotalAnswered(0);
+                      setSessionPointsEarned(0);
+                      setCoachMode("listen");
+                    }}
+                    style={{ height: 50, borderRadius: 25, background: `linear-gradient(135deg, ${C.violet}, #7248e8)`, color: "#fff", fontSize: 14, fontWeight: 900, padding: "0 20px", display: "flex", alignItems: "center", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    Play Again
                   </button>
                   <Link
                     href="/child/hub"
