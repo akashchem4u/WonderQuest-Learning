@@ -81,7 +81,7 @@ export function AppFrame({
             <Link className="adult-brand-mark" href="/">
               Wonder<span>Quest</span>
             </Link>
-            <p>{meta.label}</p>
+            <p>{meta.shortLabel}</p>
           </div>
 
           {/* Nav */}
