@@ -67,6 +67,16 @@ type NoteRow = {
   student_name: string;
 };
 
+type SentMessage = {
+  id: string;
+  student_id: string;
+  student_name: string;
+  title: string;
+  body: string;
+  created_at: string;
+  read: boolean;
+};
+
 // ── Seed conversations ────────────────────────────────────────────────────────
 const CONVS: Conv[] = [
   {
@@ -247,15 +257,28 @@ export default function TeacherMessagesPage() {
   const [pageTab, setPageTab] = useState<"notes" | "parent-messages">("notes");
 
   // ── Inbox / Compose / Announce tabs (parent messages panel)
-  const [activeConvId, setActiveConvId] = useState(CONVS[0].id);
   const [msgTab, setMsgTab] = useState<"inbox" | "compose" | "announce">("inbox");
-  const [replyText, setReplyText] = useState("");
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [composeBody, setComposeBody] = useState("Hi — I wanted to reach out about your child's progress this week…");
   const [announceSubject, setAnnounceSubject] = useState("Great week in Class 4B!");
   const [announceBody, setAnnounceBody] = useState(
     "Hi Class 4B families,\n\nJust wanted to share that your students have had a wonderful week on WonderQuest! The class collectively earned over 1,800 stars — the best weekly total this term.\n\nKeep encouraging those daily sessions at home. Streaks are building and skills are clicking!\n\nThanks,\nMs. Sharma"
   );
+
+  // ── Compose-message form state ───────────────────────────────────────────
+  const [composeStudent, setComposeStudent] = useState("");
+  const [composeTitle, setComposeTitle] = useState("");
+  const [composeMsgBody, setComposeMsgBody] = useState("");
+  const [composeSending, setComposeSending] = useState(false);
+  const [composeError, setComposeError] = useState("");
+  const [composeSuccess, setComposeSuccess] = useState("");
+
+  // ── Announce form state ──────────────────────────────────────────────────
+  const [announceSending, setAnnounceSending] = useState(false);
+  const [announceError, setAnnounceError] = useState("");
+  const [announceSuccess, setAnnounceSuccess] = useState("");
+
+  // ── Sent messages (inbox) ────────────────────────────────────────────────
+  const [sentMessages, setSentMessages] = useState<SentMessage[]>([]);
+  const [sentLoading, setSentLoading] = useState(false);
 
   // ── Real student roster ──────────────────────────────────────────────────
   const [roster, setRoster] = useState<RosterStudent[]>([]);
@@ -275,6 +298,88 @@ export default function TeacherMessagesPage() {
     }
     void load();
   }, [authed]);
+
+  const loadSentMessages = useCallback(async () => {
+    setSentLoading(true);
+    try {
+      const teacherId = getTeacherId();
+      const res = await fetch(`/api/teacher/messages?teacherId=${encodeURIComponent(teacherId)}`);
+      if (!res.ok) return;
+      const data = await res.json() as { messages: SentMessage[] };
+      setSentMessages(data.messages ?? []);
+    } catch {
+      // silently fail
+    } finally {
+      setSentLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authed) return;
+    void loadSentMessages();
+  }, [authed, loadSentMessages]);
+
+  async function handleSendMessage() {
+    setComposeError("");
+    setComposeSuccess("");
+    if (!composeStudent) { setComposeError("Please select a student."); return; }
+    if (!composeTitle.trim()) { setComposeError("Please enter a subject."); return; }
+    if (!composeMsgBody.trim()) { setComposeError("Please enter a message."); return; }
+    setComposeSending(true);
+    try {
+      const teacherId = getTeacherId();
+      const res = await fetch("/api/teacher/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teacherId, studentId: composeStudent, title: composeTitle, messageBody: composeMsgBody }),
+      });
+      const data = await res.json() as { success?: boolean; error?: string };
+      if (!res.ok || !data.success) {
+        setComposeError(data.error ?? "Failed to send message.");
+      } else {
+        const studentName = roster.find((s) => s.studentId === composeStudent)?.displayName ?? "student";
+        setComposeSuccess(`Message sent to ${studentName}'s parent!`);
+        setComposeStudent("");
+        setComposeTitle("");
+        setComposeMsgBody("");
+        setTimeout(() => setComposeSuccess(""), 4000);
+        void loadSentMessages();
+      }
+    } catch {
+      setComposeError("Failed to send message.");
+    } finally {
+      setComposeSending(false);
+    }
+  }
+
+  async function handleSendAnnouncement() {
+    setAnnounceError("");
+    setAnnounceSuccess("");
+    if (roster.length === 0) { setAnnounceError("No students in your class roster."); return; }
+    if (!announceSubject.trim()) { setAnnounceError("Please enter a subject."); return; }
+    if (!announceBody.trim()) { setAnnounceError("Please enter a message."); return; }
+    setAnnounceSending(true);
+    try {
+      const teacherId = getTeacherId();
+      const sends = roster.map((s) =>
+        fetch("/api/teacher/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ teacherId, studentId: s.studentId, title: announceSubject, messageBody: announceBody }),
+        })
+      );
+      await Promise.all(sends);
+      setAnnounceSuccess(`Announcement sent to ${roster.length} student${roster.length === 1 ? "" : "s"}'s parents!`);
+      setAnnounceSubject("");
+      setAnnounceBody("");
+      setTimeout(() => setAnnounceSuccess(""), 4000);
+      void loadSentMessages();
+    } catch {
+      setAnnounceError("Failed to send announcement.");
+    } finally {
+      setAnnounceSending(false);
+    }
+  }
 
   // ── Notes state ──────────────────────────────────────────────────────────
   const [notes, setNotes] = useState<NoteRow[]>([]);
@@ -341,12 +446,6 @@ export default function TeacherMessagesPage() {
       // silently fail
     }
   }
-
-  // Build sidebar items: seed CONVS + real students that don't have a seeded conv
-  const stubStudentNames = new Set(CONVS.filter((c) => !c.isAnnouncement).map((c) => c.studentName.toLowerCase()));
-  const extraStudents = roster.filter((s) => !stubStudentNames.has(s.displayName.toLowerCase()));
-
-  const activeConv = CONVS.find((c) => c.id === activeConvId) ?? CONVS[0];
 
   // ── Shared styles ─────────────────────────────────────────────────────────
   const navStyle: React.CSSProperties = {
@@ -776,54 +875,18 @@ export default function TeacherMessagesPage() {
         {/* ══════ PAGE TAB: PARENT MESSAGES ══════ */}
         {pageTab === "parent-messages" && (
           <div style={{ padding: "28px 32px" }}>
-            {/* Coming-soon card */}
-            <div
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: `1px dashed rgba(255,255,255,0.14)`,
-                borderRadius: 16,
-                padding: "36px 32px",
-                maxWidth: 560,
-                textAlign: "center",
-                opacity: 0.72,
-              }}
-            >
-              <div style={{ fontSize: 36, marginBottom: 14 }}>&#128236;</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 8 }}>
-                Parent messaging coming soon
-              </div>
-              <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.65, maxWidth: 400, margin: "0 auto" }}>
-                You&apos;ll be able to send progress updates directly to parents — all in-platform, with no contact details exchanged.
-              </div>
-              <div
-                style={{
-                  marginTop: 20,
-                  display: "inline-block",
-                  background: "rgba(155,114,255,0.1)",
-                  border: "1px solid rgba(155,114,255,0.25)",
-                  borderRadius: 20,
-                  padding: "5px 16px",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: C.violet,
-                  letterSpacing: "0.05em",
-                  textTransform: "uppercase",
-                }}
-              >
-                Coming soon
-              </div>
-            </div>
 
-            {/* Inbox tab bar (kept for context / future wiring) */}
+            {/* Inbox tab bar */}
             <div
               style={{
-                marginTop: 32,
-                paddingTop: 20,
-                borderTop: `1px solid ${C.border}`,
+                paddingTop: 4,
+                paddingBottom: 0,
                 display: "flex",
                 alignItems: "center",
                 gap: 24,
                 flexWrap: "wrap",
+                borderBottom: `1px solid ${C.border}`,
+                marginBottom: 0,
               }}
             >
               {(["inbox", "compose", "announce"] as const).map((t) => (
@@ -836,444 +899,82 @@ export default function TeacherMessagesPage() {
                     borderBottom: msgTab === t ? `2px solid ${C.violet}` : "2px solid transparent",
                   }}
                 >
-                  {t === "inbox" ? "Inbox (preview)" : t === "compose" ? "Compose (preview)" : "Announcement (preview)"}
+                  {t === "inbox" ? "Sent messages" : t === "compose" ? "New message" : "Announcement"}
                 </button>
               ))}
             </div>
 
             {/* ══ TAB: INBOX ══ */}
             {msgTab === "inbox" && (
-              <div
-                style={{
-                  display: "flex",
-                  height: "calc(100vh - 440px)",
-                  minHeight: 400,
-                  marginTop: 16,
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 14,
-                  overflow: "hidden",
-                }}
-              >
-                {/* Left: conversation list */}
-                <div
-                  style={{
-                    width: 280,
-                    flexShrink: 0,
-                    borderRight: `1px solid ${C.border}`,
-                    display: "flex",
-                    flexDirection: "column",
-                    background: C.sideBg,
-                  }}
-                >
+              <div style={{ marginTop: 20 }}>
+                {sentLoading && (
+                  <div style={{ color: C.muted, fontSize: 13, padding: "12px 0" }}>Loading sent messages…</div>
+                )}
+
+                {!sentLoading && sentMessages.length === 0 && (
                   <div
                     style={{
-                      padding: "14px 16px",
-                      borderBottom: `1px solid ${C.border}`,
+                      background: C.cardBg,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 12,
+                      padding: "28px 24px",
+                      fontSize: 13,
+                      color: C.muted,
+                      textAlign: "center",
+                      maxWidth: 520,
                     }}
                   >
-                    <input
-                      type="text"
-                      placeholder="Search messages…"
-                      readOnly
-                      style={{
-                        width: "100%",
-                        background: C.inputBg,
-                        border: `1.5px solid ${C.inputBorder}`,
-                        borderRadius: 10,
-                        padding: "8px 12px",
-                        fontSize: 12,
-                        color: C.muted,
-                        outline: "none",
-                        fontFamily: "inherit",
-                        boxSizing: "border-box",
-                      }}
-                    />
+                    No messages sent yet — use &ldquo;New message&rdquo; to reach a parent.
                   </div>
+                )}
 
-                  <div style={{ flex: 1, overflowY: "auto" }}>
-                    {CONVS.map((conv) => {
-                      const isActive = conv.id === activeConvId;
-                      return (
-                        <button
-                          key={conv.id}
-                          onClick={() => setActiveConvId(conv.id)}
-                          style={{
-                            width: "100%",
-                            textAlign: "left",
-                            padding: "13px 16px",
-                            cursor: "pointer",
-                            background: isActive ? C.cardBgActive : "transparent",
-                            borderLeft: isActive ? `3px solid ${C.violet}` : "3px solid transparent",
-                            borderRight: "none",
-                            borderTop: "none",
-                            borderBottom: `1px solid rgba(255,255,255,0.04)`,
-                            display: "block",
-                            fontFamily: "inherit",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 800,
-                              color: conv.isAnnouncement ? C.gold : C.violet,
-                              marginBottom: 3,
-                              letterSpacing: "0.04em",
-                            }}
-                          >
-                            {conv.isAnnouncement ? "📢 " : "re: "}
-                            {conv.studentName}
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              marginBottom: 4,
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 700,
-                                color: conv.isAnnouncement ? C.gold : C.text,
-                              }}
-                            >
-                              {conv.parentName}
-                            </span>
-                            <span style={{ fontSize: 10, color: C.muted, flexShrink: 0, marginLeft: 6 }}>
-                              {conv.lastTime}
-                            </span>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span
-                              style={{
-                                fontSize: 11,
-                                color: C.muted,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                flex: 1,
-                                minWidth: 0,
-                              }}
-                            >
-                              {conv.lastMessage}
-                            </span>
-                            {conv.unreadCount > 0 && (
-                              <span
-                                style={{
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: "50%",
-                                  background: C.coral,
-                                  flexShrink: 0,
-                                }}
-                              />
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-
-                    {/* Real students without existing stub convs */}
-                    {extraStudents.map((s) => (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 720 }}>
+                  {sentMessages.map((msg) => {
+                    const d = new Date(msg.created_at);
+                    const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                    const timeStr = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+                    return (
                       <div
-                        key={s.studentId}
+                        key={msg.id}
                         style={{
-                          padding: "13px 16px",
-                          borderBottom: `1px solid rgba(255,255,255,0.04)`,
-                          borderLeft: "3px solid transparent",
-                        }}
-                      >
-                        <div style={{ fontSize: 10, fontWeight: 800, color: C.violet, marginBottom: 3, letterSpacing: "0.04em" }}>
-                          re: {s.displayName}
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>
-                          {s.displayName}&apos;s parent
-                        </div>
-                        <div style={{ fontSize: 11, color: C.muted }}>No messages yet</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Right: message thread */}
-                <div
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    minWidth: 0,
-                  }}
-                >
-                  {/* Thread header */}
-                  <div
-                    style={{
-                      padding: "14px 20px",
-                      borderBottom: `1px solid ${C.border}`,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      background: "rgba(0,0,0,0.14)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "50%",
-                        background: activeConv.parentColor,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 13,
-                        fontWeight: 900,
-                        color: "#fff",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {activeConv.parentInitial}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>
-                        {activeConv.parentName}
-                      </div>
-                      <div style={{ fontSize: 11, color: C.muted }}>
-                        {activeConv.isAnnouncement ? "Class-wide announcement" : `Parent of ${activeConv.studentName}`}
-                      </div>
-                    </div>
-                    <button
-                      style={{
-                        padding: "5px 14px",
-                        borderRadius: 8,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        background: "transparent",
-                        color: C.muted,
-                        border: `1.5px solid ${C.border}`,
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      Archive
-                    </button>
-                  </div>
-
-                  {/* Messages */}
-                  <div
-                    style={{
-                      flex: 1,
-                      overflowY: "auto",
-                      padding: "20px 24px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 12,
-                      background: "rgba(0,0,0,0.07)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        alignSelf: "center",
-                        fontSize: 11,
-                        color: C.muted,
-                        background: "rgba(255,255,255,0.05)",
-                        padding: "4px 14px",
-                        borderRadius: 10,
-                      }}
-                    >
-                      March 21, 2026
-                    </div>
-
-                    {activeConv.messages.map((msg) => {
-                      const isOut = msg.from === "teacher";
-                      return (
-                        <div
-                          key={msg.id}
-                          style={{ alignSelf: isOut ? "flex-end" : "flex-start", maxWidth: "72%" }}
-                        >
-                          <div
-                            style={{
-                              padding: "11px 16px",
-                              borderRadius: isOut ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
-                              fontSize: 13,
-                              lineHeight: 1.55,
-                              color: isOut ? "#fff" : C.text,
-                              background: isOut ? C.bubbleOut : C.bubbleIn,
-                              border: isOut ? "none" : `1px solid ${C.bubbleInBorder}`,
-                              boxShadow: isOut
-                                ? "0 2px 12px rgba(155,114,255,0.28)"
-                                : "0 1px 6px rgba(0,0,0,0.18)",
-                              outline: msg.unread ? `2px solid ${C.coral}` : "none",
-                              outlineOffset: msg.unread ? 2 : 0,
-                            }}
-                          >
-                            {msg.body}
-                            <div
-                              style={{
-                                fontSize: 10,
-                                marginTop: 6,
-                                color: isOut ? "rgba(255,255,255,0.6)" : C.muted,
-                                textAlign: isOut ? "right" : "left",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: isOut ? "flex-end" : "flex-start",
-                                gap: 6,
-                              }}
-                            >
-                              {msg.time}
-                              {msg.unread && (
-                                <span
-                                  style={{
-                                    background: C.coral,
-                                    color: "#fff",
-                                    borderRadius: 5,
-                                    padding: "1px 6px",
-                                    fontSize: 9,
-                                    fontWeight: 800,
-                                    letterSpacing: "0.05em",
-                                    textTransform: "uppercase",
-                                  }}
-                                >
-                                  Unread
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Compose bar */}
-                  <div
-                    style={{
-                      padding: "12px 20px",
-                      borderTop: `1px solid ${C.border}`,
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "flex-end",
-                      background: C.composeBg,
-                      flexShrink: 0,
-                      position: "relative",
-                    }}
-                  >
-                    {showTemplates && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          bottom: "100%",
-                          left: 20,
                           background: C.surface,
                           border: `1px solid ${C.border}`,
                           borderRadius: 12,
-                          padding: 12,
-                          width: 300,
-                          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-                          zIndex: 10,
+                          padding: "14px 18px",
                         }}
                       >
-                        <div
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 800,
-                            color: C.muted,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.08em",
-                            marginBottom: 10,
-                          }}
-                        >
-                          Message Templates
-                        </div>
-                        {TEMPLATES.map((t, i) => (
-                          <button
-                            key={i}
-                            onClick={() => {
-                              setReplyText(t.body);
-                              setShowTemplates(false);
-                            }}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: C.violet, letterSpacing: "0.04em" }}>
+                            re: {msg.student_name}
+                          </span>
+                          <span style={{ fontSize: 11, color: C.muted }}>
+                            {dateStr} · {timeStr}
+                          </span>
+                          <span
                             style={{
-                              display: "block",
-                              width: "100%",
-                              textAlign: "left",
-                              padding: "10px 12px",
-                              borderRadius: 8,
-                              border: `1px solid ${C.border}`,
-                              background: "transparent",
-                              color: C.text,
-                              cursor: "pointer",
-                              fontFamily: "inherit",
-                              marginBottom: 6,
+                              marginLeft: "auto",
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: msg.read ? C.mint : C.amber,
+                              background: msg.read ? "rgba(34,197,94,0.08)" : "rgba(245,158,11,0.08)",
+                              border: `1px solid ${msg.read ? "rgba(34,197,94,0.2)" : "rgba(245,158,11,0.2)"}`,
+                              borderRadius: 6,
+                              padding: "2px 8px",
+                              letterSpacing: "0.04em",
                             }}
                           >
-                            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
-                              {t.icon} {t.title}
-                            </div>
-                            <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.4 }}>{t.body}</div>
-                          </button>
-                        ))}
+                            {msg.read ? "Read" : "Unread"}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>
+                          {msg.title}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
+                          {msg.body}
+                        </div>
                       </div>
-                    )}
-
-                    <button
-                      onClick={() => setShowTemplates((v) => !v)}
-                      style={{
-                        padding: "8px 14px",
-                        borderRadius: 9,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        background: showTemplates ? "rgba(155,114,255,0.15)" : "transparent",
-                        color: showTemplates ? C.violet : C.muted,
-                        border: `1.5px solid ${showTemplates ? C.violet : C.border}`,
-                        fontFamily: "inherit",
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                      }}
-                    >
-                      Templates
-                    </button>
-
-                    <textarea
-                      placeholder="Write a message…"
-                      rows={1}
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      style={{
-                        flex: 1,
-                        padding: "9px 14px",
-                        borderRadius: 10,
-                        border: `1.5px solid ${C.inputBorder}`,
-                        background: C.inputBg,
-                        color: C.text,
-                        fontSize: 13,
-                        fontFamily: "inherit",
-                        outline: "none",
-                        resize: "none",
-                        minHeight: 40,
-                        maxHeight: 110,
-                        lineHeight: 1.4,
-                      }}
-                    />
-
-                    <button
-                      style={{
-                        padding: "9px 22px",
-                        background: C.violet,
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 10,
-                        fontSize: 13,
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                        boxShadow: "0 2px 10px rgba(155,114,255,0.32)",
-                      }}
-                    >
-                      Send
-                    </button>
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1295,6 +996,7 @@ export default function TeacherMessagesPage() {
                     New Message
                   </div>
 
+                  {/* Student selector */}
                   <div style={{ marginBottom: 14 }}>
                     <div
                       style={{
@@ -1306,11 +1008,55 @@ export default function TeacherMessagesPage() {
                         marginBottom: 5,
                       }}
                     >
-                      To (parent)
+                      Student
+                    </div>
+                    <select
+                      value={composeStudent}
+                      onChange={(e) => setComposeStudent(e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: C.inputBg,
+                        border: `1.5px solid ${C.inputBorder}`,
+                        borderRadius: 10,
+                        padding: "9px 12px",
+                        fontSize: 13,
+                        color: composeStudent ? C.text : C.muted,
+                        fontFamily: "inherit",
+                        outline: "none",
+                        boxSizing: "border-box",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <option value="">Select a student…</option>
+                      {roster.map((s) => (
+                        <option key={s.studentId} value={s.studentId}>
+                          {s.displayName}
+                        </option>
+                      ))}
+                    </select>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+                      Messages are delivered in-platform to the student&apos;s parent. No email addresses shared.
+                    </div>
+                  </div>
+
+                  {/* Subject */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: C.muted,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        marginBottom: 5,
+                      }}
+                    >
+                      Subject
                     </div>
                     <input
-                      readOnly
-                      value="Alex T. (parent of Jordan)"
+                      value={composeTitle}
+                      onChange={(e) => setComposeTitle(e.target.value.slice(0, 120))}
+                      placeholder="e.g. Progress update for this week"
                       style={{
                         width: "100%",
                         background: C.inputBg,
@@ -1324,11 +1070,12 @@ export default function TeacherMessagesPage() {
                         boxSizing: "border-box",
                       }}
                     />
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
-                      Messages are delivered in-platform. No email addresses shared.
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 3, textAlign: "right" }}>
+                      {composeTitle.length}/120
                     </div>
                   </div>
 
+                  {/* Message body */}
                   <div style={{ marginBottom: 16 }}>
                     <div
                       style={{
@@ -1343,8 +1090,9 @@ export default function TeacherMessagesPage() {
                       Message
                     </div>
                     <textarea
-                      value={composeBody}
-                      onChange={(e) => setComposeBody(e.target.value)}
+                      value={composeMsgBody}
+                      onChange={(e) => setComposeMsgBody(e.target.value.slice(0, 1000))}
+                      placeholder="Write your message to the parent…"
                       rows={5}
                       style={{
                         width: "100%",
@@ -1359,9 +1107,45 @@ export default function TeacherMessagesPage() {
                         resize: "vertical",
                         boxSizing: "border-box",
                         lineHeight: 1.55,
+                        minHeight: 120,
                       }}
                     />
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 3, textAlign: "right" }}>
+                      {composeMsgBody.length}/1000
+                    </div>
                   </div>
+
+                  {composeError && (
+                    <div
+                      style={{
+                        background: "rgba(248,113,113,0.1)",
+                        border: "1px solid rgba(248,113,113,0.3)",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontSize: 12,
+                        color: C.coral,
+                        marginBottom: 12,
+                      }}
+                    >
+                      {composeError}
+                    </div>
+                  )}
+
+                  {composeSuccess && (
+                    <div
+                      style={{
+                        background: "rgba(34,197,94,0.08)",
+                        border: "1px solid rgba(34,197,94,0.2)",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontSize: 12,
+                        color: C.mint,
+                        marginBottom: 12,
+                      }}
+                    >
+                      &#10003; {composeSuccess}
+                    </div>
+                  )}
 
                   <div
                     style={{
@@ -1375,11 +1159,13 @@ export default function TeacherMessagesPage() {
                       marginBottom: 16,
                     }}
                   >
-                    &#128274; This message will be delivered to Alex T.&apos;s WonderQuest parent account. Student data is not included unless you write it in your message.
+                    &#128274; Messages appear in the parent&apos;s WonderQuest notification feed. Student data is not included unless you write it.
                   </div>
 
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
+                      onClick={() => { void handleSendMessage(); }}
+                      disabled={composeSending}
                       style={{
                         flex: 1,
                         padding: "10px",
@@ -1389,12 +1175,13 @@ export default function TeacherMessagesPage() {
                         borderRadius: 10,
                         fontSize: 13,
                         fontWeight: 700,
-                        cursor: "pointer",
+                        cursor: composeSending ? "not-allowed" : "pointer",
                         fontFamily: "inherit",
                         boxShadow: "0 2px 10px rgba(155,114,255,0.3)",
+                        opacity: composeSending ? 0.6 : 1,
                       }}
                     >
-                      Send
+                      {composeSending ? "Sending…" : "Send message"}
                     </button>
                     <button
                       onClick={() => setMsgTab("inbox")}
@@ -1433,7 +1220,7 @@ export default function TeacherMessagesPage() {
                     {TEMPLATES.map((t, i) => (
                       <button
                         key={i}
-                        onClick={() => setComposeBody(t.body)}
+                        onClick={() => { setComposeTitle(t.title); setComposeMsgBody(t.body); }}
                         style={{
                           background: C.surface,
                           border: `1px solid ${C.border}`,
@@ -1483,7 +1270,7 @@ export default function TeacherMessagesPage() {
                     </div>
                   </div>
                   <div style={{ fontSize: 12, color: C.muted, marginBottom: 18, lineHeight: 1.5 }}>
-                    Send a message to all parents in Class 4B (28 families). Announcements must not contain individual student names or data — use class-level language only.
+                    Send a message to all {roster.length > 0 ? roster.length : ""} student{roster.length === 1 ? "" : "s"}&apos; parents in your class. Announcements must not contain individual student names or data — use class-level language only.
                   </div>
 
                   <div style={{ marginBottom: 14 }}>
@@ -1566,8 +1353,42 @@ export default function TeacherMessagesPage() {
                     &#9888;&#65039; Class announcements must not include individual student names or data. If you need to reference a specific student, send an individual message instead.
                   </div>
 
+                  {announceError && (
+                    <div
+                      style={{
+                        background: "rgba(248,113,113,0.1)",
+                        border: "1px solid rgba(248,113,113,0.3)",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontSize: 12,
+                        color: C.coral,
+                        marginBottom: 12,
+                      }}
+                    >
+                      {announceError}
+                    </div>
+                  )}
+
+                  {announceSuccess && (
+                    <div
+                      style={{
+                        background: "rgba(34,197,94,0.08)",
+                        border: "1px solid rgba(34,197,94,0.2)",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontSize: 12,
+                        color: C.mint,
+                        marginBottom: 12,
+                      }}
+                    >
+                      &#10003; {announceSuccess}
+                    </div>
+                  )}
+
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
+                      onClick={() => { void handleSendAnnouncement(); }}
+                      disabled={announceSending}
                       style={{
                         flex: 1,
                         padding: "10px",
@@ -1577,13 +1398,15 @@ export default function TeacherMessagesPage() {
                         borderRadius: 10,
                         fontSize: 13,
                         fontWeight: 800,
-                        cursor: "pointer",
+                        cursor: announceSending ? "not-allowed" : "pointer",
                         fontFamily: "inherit",
+                        opacity: announceSending ? 0.6 : 1,
                       }}
                     >
-                      Send to 28 families
+                      {announceSending ? "Sending…" : `Send to ${roster.length} student${roster.length === 1 ? "" : "s"}'s parents`}
                     </button>
                     <button
+                      onClick={() => setMsgTab("inbox")}
                       style={{
                         padding: "10px 16px",
                         background: "transparent",
@@ -1596,7 +1419,7 @@ export default function TeacherMessagesPage() {
                         fontFamily: "inherit",
                       }}
                     >
-                      Preview
+                      Cancel
                     </button>
                   </div>
                 </div>
