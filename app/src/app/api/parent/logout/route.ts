@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PARENT_SESSION_COOKIE_NAME } from "@/lib/parent-access";
+import { CHILD_SESSION_COOKIE_NAME } from "@/lib/child-access";
 
 /** Build an absolute redirect URL using Host header so 0.0.0.0 dev binds work. */
 function buildRedirectUrl(request: NextRequest, path: string): string {
@@ -19,6 +20,7 @@ function buildRedirectUrl(request: NextRequest, path: string): string {
 export async function GET(request: NextRequest) {
   const loginUrl = buildRedirectUrl(request, "/parent");
   const response = NextResponse.redirect(loginUrl);
+
   response.cookies.set({
     name: PARENT_SESSION_COOKIE_NAME,
     value: "",
@@ -28,5 +30,15 @@ export async function GET(request: NextRequest) {
     path: "/",
     maxAge: 0,
   });
+  response.cookies.set({
+    name: CHILD_SESSION_COOKIE_NAME,
+    value: "",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+
   return response;
 }
