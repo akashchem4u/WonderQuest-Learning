@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getActiveChildId } from "@/lib/active-child";
 
 // ── Palette ────────────────────────────────────────────────────────────────
 const C = {
@@ -124,7 +125,7 @@ export default function PracticePlannerPage() {
           getChildId() ??
           (typeof window !== "undefined"
             ? new URLSearchParams(window.location.search).get("studentId") ??
-              localStorage.getItem("wq_active_student_id")
+              (getActiveChildId() || localStorage.getItem("wq_active_student_id"))
             : null);
         if (!childId) {
           setError("No child profile linked. Please sign in again.");

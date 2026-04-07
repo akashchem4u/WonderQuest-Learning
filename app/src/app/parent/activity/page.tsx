@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getActiveChildId } from "@/lib/active-child";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
@@ -308,7 +309,9 @@ export default function ParentActivityPage() {
 
   useEffect(() => {
     const studentId =
-      typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null;
+      typeof window !== "undefined"
+        ? getActiveChildId() || localStorage.getItem("wq_active_student_id")
+        : null;
     if (!studentId) {
       setLoading(false);
       return;

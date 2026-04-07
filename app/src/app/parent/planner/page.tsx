@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getActiveChildId } from "@/lib/active-child";
 
 // ── Palette ────────────────────────────────────────────────────────────────
 const C = {
@@ -184,7 +185,7 @@ export default function ParentPlannerPage() {
   }, []);
 
   useEffect(() => {
-    const studentId = getStudentIdFromCookie();
+    const studentId = getStudentIdFromCookie() ?? (getActiveChildId() || null);
     if (!studentId) {
       setError("No child selected. Please select a child from your dashboard.");
       setLoading(false);

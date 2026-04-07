@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getActiveChildId } from "@/lib/active-child";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -263,7 +264,7 @@ export default function ParentMilestonesPage() {
     const studentId =
       typeof window !== "undefined"
         ? (new URLSearchParams(window.location.search).get("studentId") ??
-            localStorage.getItem("wq_active_student_id"))
+            (getActiveChildId() || localStorage.getItem("wq_active_student_id")))
         : null;
 
     if (!studentId) {

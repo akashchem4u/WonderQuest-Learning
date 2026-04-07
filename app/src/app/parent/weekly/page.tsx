@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getActiveChildId, setActiveChildId } from "@/lib/active-child";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
@@ -241,7 +242,7 @@ export default function ParentWeeklyPage() {
   const [loading, setLoading] = useState(true);
   const [authed, setAuthed] = useState<boolean | null>(null); // null = unknown
   const [children, setChildren] = useState<LinkedChild[]>([]);
-  const [activeChildId, setActiveChildId] = useState<string | null>(null);
+  const [activeCid, setActiveCid] = useState<string | null>(null);
 
   // Step 1: Restore parent session to get children list
   useEffect(() => {
@@ -254,9 +255,10 @@ export default function ParentWeeklyPage() {
         if (!data) return;
         const list = data.linkedChildren ?? [];
         setChildren(list);
-        const stored = typeof localStorage !== "undefined" ? localStorage.getItem("wq_active_student_id") : null;
-        const chosen = stored && list.some((c) => c.id === stored) ? stored : (list[0]?.id ?? null);
-        setActiveChildId(chosen);
+        const persisted = getActiveChildId();
+        const chosen = (persisted && list.some((c) => c.id === persisted)) ? persisted : (list[0]?.id ?? null);
+        setActiveCid(chosen);
+        if (chosen) setActiveChildId(chosen);
         setAuthed(true);
       })
       .catch(() => { setAuthed(false); setLoading(false); });
@@ -264,26 +266,26 @@ export default function ParentWeeklyPage() {
 
   // Step 2: Fetch report whenever childId or weekOffset changes
   useEffect(() => {
-    if (!activeChildId || authed !== true) return;
+    if (!activeCid || authed !== true) return;
     setLoading(true);
-    fetch(`/api/parent/report?childId=${encodeURIComponent(activeChildId)}&weekOffset=${weekOffset}`)
+    fetch(`/api/parent/report?childId=${encodeURIComponent(activeCid)}&weekOffset=${weekOffset}`)
       .then((r) => r.json())
       .then((data) => { setReport(data.report ?? null); })
       .catch(() => { setReport(null); })
       .finally(() => setLoading(false));
-  }, [activeChildId, weekOffset, authed]);
+  }, [activeCid, weekOffset, authed]);
 
   // Fetch previous week stats for comparison (only when viewing current week)
   useEffect(() => {
-    if (!activeChildId || authed !== true || weekOffset !== 0) {
+    if (!activeCid || authed !== true || weekOffset !== 0) {
       setPrevStats(null);
       return;
     }
-    fetch(`/api/parent/report?childId=${encodeURIComponent(activeChildId)}&weekOffset=1`)
+    fetch(`/api/parent/report?childId=${encodeURIComponent(activeCid)}&weekOffset=1`)
       .then((r) => r.json())
       .then((data) => { setPrevStats(data.report?.stats ?? null); })
       .catch(() => setPrevStats(null));
-  }, [activeChildId, authed, weekOffset]);
+  }, [activeCid, authed, weekOffset]);
 
   const stats = report?.stats;
   const skillRows = report?.skills ?? [];
@@ -333,8 +335,8 @@ export default function ParentWeeklyPage() {
           {/* Child selector */}
           {children.length > 1 && (
             <select
-              value={activeChildId ?? ""}
-              onChange={(e) => { setActiveChildId(e.target.value); if (e.target.value) localStorage.setItem("wq_active_student_id", e.target.value); }}
+              value={activeCid ?? ""}
+              onChange={(e) => { setActiveCid(e.target.value); setActiveChildId(e.target.value); }}
               style={{ background: SURFACE, border: `1px solid ${VBORDER}`, borderRadius: 8, color: TEXT, fontSize: "0.8rem", padding: "5px 10px", cursor: "pointer" }}
             >
               {children.map((c) => (
