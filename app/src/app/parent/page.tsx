@@ -1482,6 +1482,76 @@ export default function ParentAccessPage() {
             </div>
           )}
 
+          {/* ── Learning Plan CTA ──────────────────────────────────────────── */}
+          {activeChild && (
+            <Link
+              href="/parent/suggestions"
+              style={{ textDecoration: "none", display: "block", marginBottom: "24px" }}
+            >
+              <div
+                style={{
+                  background: "linear-gradient(135deg, rgba(155,114,255,0.18), rgba(88,232,193,0.10))",
+                  border: "1px solid rgba(155,114,255,0.3)",
+                  borderRadius: "18px",
+                  padding: "22px 26px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "18px",
+                  transition: "box-shadow 0.2s",
+                  boxShadow: "0 4px 24px rgba(100,60,200,0.1)",
+                }}
+              >
+                <div
+                  style={{
+                    width: "52px",
+                    height: "52px",
+                    borderRadius: "14px",
+                    background: "linear-gradient(135deg, #9b72ff, #58e8c1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "1.6rem",
+                    flexShrink: 0,
+                  }}
+                >
+                  🎯
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      font: "700 1.05rem system-ui",
+                      color: "#f0f6ff",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Learning Plan
+                  </div>
+                  <div
+                    style={{
+                      font: "400 0.82rem system-ui",
+                      color: "rgba(255,255,255,0.55)",
+                    }}
+                  >
+                    See recommended activities and push sessions to {activeChild.displayName}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    font: "600 0.85rem system-ui",
+                    color: "#9b72ff",
+                    padding: "8px 16px",
+                    background: "rgba(155,114,255,0.15)",
+                    borderRadius: "10px",
+                    border: "1px solid rgba(155,114,255,0.25)",
+                    flexShrink: 0,
+                  }}
+                >
+                  View Plan →
+                </div>
+              </div>
+            </Link>
+          )}
+
           {/* ── 2-col: skills + activity ───────────────────────────────────── */}
           {activeChildDashboard && (
             <div

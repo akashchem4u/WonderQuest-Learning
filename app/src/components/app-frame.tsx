@@ -10,6 +10,7 @@ const sectionNav = {
     { href: "/parent/family",         label: "Children",       icon: "👧" },
     { href: "/parent/skills",         label: "Skills",         icon: "🧠" },
     { href: "/parent/report",         label: "Reports",        icon: "📊" },
+    { href: "/parent/suggestions",      label: "Learning Plan",  icon: "🎯" },
     { href: "/parent/practice-planner", label: "Planner",      icon: "📅" },
     { href: "/parent/notifications",  label: "Notifications",  icon: "🔔" },
     { href: "/parent/account",        label: "Account",        icon: "⚙️" },
