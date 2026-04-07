@@ -90,6 +90,23 @@ type QuestionVisualScene = {
   tokens?: string[];
 };
 
+// ── Concept explainer ─────────────────────────────────────────────────────────
+// Shown after a student exhausts retries on a question. The AI generates a
+// grade-appropriate explanation + worked example + a check question, so the
+// teacher can verify understanding before moving on.
+type ConceptExplanation = {
+  heading: string;
+  explanation: string;
+  workedExample: string;
+  tip: string;
+  checkQuestion: {
+    text: string;
+    options: string[];
+    correctAnswer: string;
+  };
+};
+type ExplainerPhase = "loading" | "reading" | "checking" | "understood" | "needs-help";
+
 type RewardOverlay = {
   tone: "mint" | "gold" | "violet";
   emoji: string;
@@ -1318,6 +1335,12 @@ function PlayClientInner() {
   const [totalAnswered, setTotalAnswered] = useState(0);
   const [sessionPointsEarned, setSessionPointsEarned] = useState(0);
   const [sessionKey, setSessionKey] = useState(0);
+
+  // Concept explainer state
+  const [conceptExplanation, setConceptExplanation] = useState<ConceptExplanation | null>(null);
+  const [explainerPhase, setExplainerPhase] = useState<ExplainerPhase | null>(null);
+  const [checkAnswer, setCheckAnswer] = useState<string | null>(null);
+
   const voiceSupportRef = useRef(false);
   const assistModeRef = useRef<AssistMode>("voice");
   assistModeRef.current = assistMode;
@@ -1533,6 +1556,9 @@ function PlayClientInner() {
       } else if (!payload.needsRetry) {
         // Only increment totalAnswered on final wrong answer (not retry state)
         setTotalAnswered((prev) => prev + 1);
+        // Trigger concept explanation — the AI teacher will explain the concept
+        // and serve a check question before moving to the next (easier) question.
+        void fetchConceptExplanation(currentQuestion, answer, payload.correctAnswer);
       }
 
       // If the server inserted an adaptive follow-up question, append it to
@@ -1586,6 +1612,55 @@ function PlayClientInner() {
     setCoachMode("listen");
     setSelectedAnswer(null);
     setQuestionStartedAt(Date.now());
+    // Clear any concept explainer state
+    setConceptExplanation(null);
+    setExplainerPhase(null);
+    setCheckAnswer(null);
+  }
+
+  // ── Concept explainer helpers ──────────────────────────────────────────────
+
+  async function fetchConceptExplanation(
+    question: SessionQuestion,
+    studentAnswer: string,
+    correctAnswer: string,
+  ) {
+    if (!session) return;
+    setExplainerPhase("loading");
+    try {
+      const res = await fetch("/api/play/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skillCode: question.skill,
+          subject: question.subject,
+          bandCode: session.student.launchBandCode,
+          questionText: question.prompt,
+          studentAnswer,
+          correctAnswer,
+          studentFirstName: session.student.displayName.split(" ")[0],
+        }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { explanation?: ConceptExplanation | null };
+        if (data.explanation) {
+          setConceptExplanation(data.explanation);
+          setExplainerPhase("reading");
+          return;
+        }
+      }
+    } catch { /* ignore — fall through */ }
+    // Explanation unavailable — clear loading and let student continue normally
+    setExplainerPhase(null);
+  }
+
+  function handleCheckAnswer(chosen: string) {
+    if (!conceptExplanation || explainerPhase !== "checking") return;
+    setCheckAnswer(chosen);
+    const isCorrect = chosen === conceptExplanation.checkQuestion.correctAnswer;
+    setExplainerPhase(isCorrect ? "understood" : "needs-help");
+    // Auto-advance to next question after a moment
+    setTimeout(() => { moveToNextQuestion(); }, isCorrect ? 2200 : 2800);
   }
 
   function replayQuestion(mode: Exclude<AssistMode, "visual">) {
@@ -2044,35 +2119,202 @@ function PlayClientInner() {
                 </div>
               ) : null}
 
-              {/* Answer grid */}
-              <div style={s.answerGrid}>
-                {currentQuestion.answers.map((answer) => {
-                  const isThisSelected = selectedAnswer === answer;
-                  const isThisCorrect = isAnsweredCorrect && answer === answerState?.correctAnswer;
-                  const isThisWrong = isThisSelected && isRetrying;
+              {/* Answer grid — hidden while concept explainer is active */}
+              {!explainerPhase && (
+                <div style={s.answerGrid}>
+                  {currentQuestion.answers.map((answer) => {
+                    const isThisSelected = selectedAnswer === answer;
+                    const isThisCorrect = isAnsweredCorrect && answer === answerState?.correctAnswer;
+                    const isThisWrong = isThisSelected && isRetrying;
 
-                  return (
-                    <button
-                      key={answer}
-                      type="button"
-                      disabled={submitting || isAnsweredCorrect}
-                      onClick={() => void submitAnswer(answer)}
-                      style={{
-                        ...s.answerCard(isThisSelected, isThisCorrect ? true : null, isThisWrong),
-                      }}
-                    >
-                      {renderAnswerContent(currentQuestion, answer, true)}
-                    </button>
-                  );
-                })}
-              </div>
+                    return (
+                      <button
+                        key={answer}
+                        type="button"
+                        disabled={submitting || isAnsweredCorrect}
+                        onClick={() => void submitAnswer(answer)}
+                        style={{
+                          ...s.answerCard(isThisSelected, isThisCorrect ? true : null, isThisWrong),
+                        }}
+                      >
+                        {renderAnswerContent(currentQuestion, answer, true)}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Wrong hint */}
-              {isRetrying ? (
+              {isRetrying && !explainerPhase ? (
                 <div style={s.wrongHint}>
                   That wasn&apos;t it — try again! You&apos;re getting closer 🌟
                 </div>
               ) : null}
+
+              {/* ── Concept Explainer Panel ────────────────────────────────── */}
+              {explainerPhase === "loading" && (
+                <div style={{
+                  marginTop: 16, padding: "24px 20px", borderRadius: 16,
+                  background: "rgba(155,114,255,0.06)", border: "1px solid rgba(155,114,255,0.18)",
+                  textAlign: "center",
+                }}>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>🎓</div>
+                  <div style={{ fontSize: 14, color: "#c4b0ff", fontWeight: 600 }}>
+                    Coach Leo is preparing an explanation…
+                  </div>
+                </div>
+              )}
+
+              {(explainerPhase === "reading" || explainerPhase === "checking" || explainerPhase === "understood" || explainerPhase === "needs-help") && conceptExplanation && (
+                <div style={{
+                  marginTop: 16, borderRadius: 16, overflow: "hidden",
+                  border: "1px solid rgba(155,114,255,0.22)",
+                  background: "linear-gradient(160deg, rgba(155,114,255,0.07) 0%, rgba(22,27,34,0.98) 100%)",
+                }}>
+                  {/* Header */}
+                  <div style={{
+                    padding: "14px 18px 10px",
+                    borderBottom: "1px solid rgba(155,114,255,0.12)",
+                    display: "flex", alignItems: "center", gap: 10,
+                  }}>
+                    <span style={{ fontSize: 22 }}>🦁</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#c4b0ff" }}>
+                        Coach Leo says
+                      </div>
+                      <div style={{ fontSize: 12, color: "#8b949e", marginTop: 1 }}>
+                        {conceptExplanation.heading}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ padding: "14px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+                    {/* Explanation */}
+                    <div style={{ fontSize: 13, color: "#dde1e7", lineHeight: 1.65 }}>
+                      {conceptExplanation.explanation}
+                    </div>
+
+                    {/* Worked example */}
+                    <div style={{
+                      padding: "12px 14px", borderRadius: 10,
+                      background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.15)",
+                    }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#38bdf8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        ✍️ Let&apos;s work through it
+                      </div>
+                      {conceptExplanation.workedExample.split("\n").map((step, i) => (
+                        <div key={i} style={{ fontSize: 13, color: "#c9d1d9", lineHeight: 1.6, marginBottom: i < conceptExplanation.workedExample.split("\n").length - 1 ? 4 : 0 }}>
+                          {step}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Tip */}
+                    <div style={{
+                      padding: "8px 12px", borderRadius: 8,
+                      background: "rgba(255,209,102,0.07)", border: "1px solid rgba(255,209,102,0.18)",
+                      fontSize: 12, color: "#ffd166", fontWeight: 600,
+                    }}>
+                      💡 {conceptExplanation.tip}
+                    </div>
+
+                    {/* Check question — shown when phase is "checking" or after */}
+                    {(explainerPhase === "checking" || explainerPhase === "understood" || explainerPhase === "needs-help") && (
+                      <div style={{
+                        padding: "12px 14px", borderRadius: 10,
+                        background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+                      }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#8b949e", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          🔍 Quick check — can you try this?
+                        </div>
+                        <div style={{ fontSize: 14, color: "#f0f6ff", fontWeight: 600, marginBottom: 10, lineHeight: 1.5 }}>
+                          {conceptExplanation.checkQuestion.text}
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                          {conceptExplanation.checkQuestion.options.map((opt) => {
+                            const isChosen = checkAnswer === opt;
+                            const isCorrectOpt = opt === conceptExplanation.checkQuestion.correctAnswer;
+                            const revealed = explainerPhase === "understood" || explainerPhase === "needs-help";
+                            const bg = revealed && isCorrectOpt
+                              ? "rgba(80,232,144,0.15)"
+                              : revealed && isChosen && !isCorrectOpt
+                              ? "rgba(239,68,68,0.12)"
+                              : isChosen
+                              ? "rgba(155,114,255,0.12)"
+                              : "rgba(255,255,255,0.04)";
+                            const border = revealed && isCorrectOpt
+                              ? "1px solid rgba(80,232,144,0.4)"
+                              : revealed && isChosen && !isCorrectOpt
+                              ? "1px solid rgba(239,68,68,0.3)"
+                              : isChosen
+                              ? "1px solid rgba(155,114,255,0.35)"
+                              : "1px solid rgba(255,255,255,0.08)";
+                            const color = revealed && isCorrectOpt ? "#50e890"
+                              : revealed && isChosen && !isCorrectOpt ? "#ff7b6b"
+                              : "#dde1e7";
+
+                            return (
+                              <button
+                                key={opt}
+                                type="button"
+                                disabled={explainerPhase !== "checking"}
+                                onClick={() => handleCheckAnswer(opt)}
+                                style={{
+                                  padding: "10px 14px", borderRadius: 8, textAlign: "left",
+                                  background: bg, border, color, fontSize: 13, fontWeight: 600,
+                                  cursor: explainerPhase === "checking" ? "pointer" : "default",
+                                  fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8,
+                                  transition: "background 0.2s",
+                                }}
+                              >
+                                {revealed && isCorrectOpt && <span>✓</span>}
+                                {revealed && isChosen && !isCorrectOpt && <span>✗</span>}
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Phase CTAs */}
+                    {explainerPhase === "reading" && (
+                      <button
+                        type="button"
+                        onClick={() => setExplainerPhase("checking")}
+                        style={{
+                          padding: "10px 20px", borderRadius: 10, border: "none",
+                          background: "#9b72ff", color: "#fff", fontSize: 13, fontWeight: 700,
+                          cursor: "pointer", alignSelf: "center",
+                        }}
+                      >
+                        Got it — try the check question! →
+                      </button>
+                    )}
+
+                    {explainerPhase === "understood" && (
+                      <div style={{
+                        padding: "10px 14px", borderRadius: 10, textAlign: "center",
+                        background: "rgba(80,232,144,0.1)", border: "1px solid rgba(80,232,144,0.25)",
+                        fontSize: 13, fontWeight: 700, color: "#50e890",
+                      }}>
+                        🎉 You&apos;ve got it! Great work — moving to the next question…
+                      </div>
+                    )}
+
+                    {explainerPhase === "needs-help" && (
+                      <div style={{
+                        padding: "10px 14px", borderRadius: 10, textAlign: "center",
+                        background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)",
+                        fontSize: 13, color: "#fbbf24", lineHeight: 1.55,
+                      }}>
+                        <span style={{ fontWeight: 700 }}>That&apos;s okay!</span> This one&apos;s tricky — your teacher will help you practise more.
+                        Moving on…
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Correct CTA */}
               {isAnsweredCorrect && !finished ? (
