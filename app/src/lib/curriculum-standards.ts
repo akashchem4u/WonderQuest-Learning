@@ -3,6 +3,11 @@
 // Skill codes match what is stored in the DB (student_skill_mastery.skill_code).
 
 export type SkillSubject = "math" | "reading" | "science" | "logic";
+// Priority maps to the learning tier shown in the parent UI:
+//   "must-have"    → 🎯 Essential   — core standards, grade-level requirements
+//   "should-have"  → 📗 On Track    — grade benchmarks, expected competency
+//   "nice-to-have" → ⭐ Enrichment  — beyond grade level, well-rounded
+//   "could-have"   → 🚀 Challenge   — advanced / next-grade exploration
 export type SkillPriority = "must-have" | "should-have" | "nice-to-have" | "could-have";
 export type SkillComplexity = 1 | 2 | 3;
 export type SkillActivityType = "drill" | "story" | "explore" | "puzzle";
@@ -20,7 +25,7 @@ export interface CurriculumSkill {
 }
 
 export const CURRICULUM: CurriculumSkill[] = [
-  // ─── PREK — Must Have ────────────────────────────────────────────────────────
+  // ─── PREK — Essential (🎯) ────────────────────────────────────────────────────────
   {
     code: "color-recognition",
     name: "Color Recognition",
@@ -62,7 +67,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "PREK",
   },
 
-  // ─── PREK — Should Have ──────────────────────────────────────────────────────
+  // ─── PREK — On Track (📗) ──────────────────────────────────────────────────────
   {
     code: "letter-a-recognition",
     name: "Letter A Recognition",
@@ -104,7 +109,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "PREK",
   },
 
-  // ─── PREK — Nice to Have ─────────────────────────────────────────────────────
+  // ─── PREK — Enrichment (⭐) ─────────────────────────────────────────────────────
   {
     code: "animal-sounds",
     name: "Animal Sounds",
@@ -136,7 +141,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "PREK",
   },
 
-  // ─── PREK — Could Have ───────────────────────────────────────────────────────
+  // ─── PREK — Challenge (🚀) ───────────────────────────────────────────────────────
   {
     code: "season-basic",
     name: "Basic Seasons",
@@ -158,7 +163,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "PREK",
   },
 
-  // ─── K1 — Must Have ──────────────────────────────────────────────────────────
+  // ─── K1 — Essential (🎯) ──────────────────────────────────────────────────────────
   {
     code: "add-to-10",
     name: "Add to 10",
@@ -200,7 +205,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "K1",
   },
 
-  // ─── K1 — Should Have ────────────────────────────────────────────────────────
+  // ─── K1 — On Track (📗) ────────────────────────────────────────────────────────
   {
     code: "short-e-sound",
     name: "Short E Sound",
@@ -242,7 +247,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "K1",
   },
 
-  // ─── K1 — Nice to Have ───────────────────────────────────────────────────────
+  // ─── K1 — Enrichment (⭐) ───────────────────────────────────────────────────────
   {
     code: "sentence-building",
     name: "Sentence Building",
@@ -284,7 +289,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "K1",
   },
 
-  // ─── K1 — Could Have ─────────────────────────────────────────────────────────
+  // ─── K1 — Challenge (🚀) ─────────────────────────────────────────────────────────
   {
     code: "life-cycle-basics",
     name: "Life Cycle Basics",
@@ -316,7 +321,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "K1",
   },
 
-  // ─── G23 — Must Have ─────────────────────────────────────────────────────────
+  // ─── G23 — Essential (🎯) ─────────────────────────────────────────────────────────
   {
     code: "add-3-digit",
     name: "Add 3-Digit Numbers",
@@ -358,7 +363,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "G23",
   },
 
-  // ─── G23 — Should Have ───────────────────────────────────────────────────────
+  // ─── G23 — On Track (📗) ───────────────────────────────────────────────────────
   {
     code: "skip-count-by-5",
     name: "Skip Count by 5s",
@@ -400,7 +405,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "G23",
   },
 
-  // ─── G23 — Nice to Have ──────────────────────────────────────────────────────
+  // ─── G23 — Enrichment (⭐) ──────────────────────────────────────────────────────
   {
     code: "life-cycle-basics",
     name: "Life Cycle Basics",
@@ -442,7 +447,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "G23",
   },
 
-  // ─── G23 — Could Have ────────────────────────────────────────────────────────
+  // ─── G23 — Challenge (🚀) ────────────────────────────────────────────────────────
   {
     code: "earth-layers",
     name: "Earth's Layers",
@@ -474,7 +479,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "G23",
   },
 
-  // ─── G45 — Must Have ─────────────────────────────────────────────────────────
+  // ─── G45 — Essential (🎯) ─────────────────────────────────────────────────────────
   {
     code: "multiply-3x4",
     name: "Multiply Within 3s and 4s",
@@ -516,7 +521,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "G45",
   },
 
-  // ─── G45 — Should Have ───────────────────────────────────────────────────────
+  // ─── G45 — On Track (📗) ───────────────────────────────────────────────────────
   {
     code: "long-division",
     name: "Long Division",
@@ -558,7 +563,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "G45",
   },
 
-  // ─── G45 — Nice to Have ──────────────────────────────────────────────────────
+  // ─── G45 — Enrichment (⭐) ──────────────────────────────────────────────────────
   {
     code: "earth-layers",
     name: "Earth's Layers",
@@ -600,7 +605,7 @@ export const CURRICULUM: CurriculumSkill[] = [
     bandCode: "G45",
   },
 
-  // ─── G45 — Could Have ────────────────────────────────────────────────────────
+  // ─── G45 — Challenge (🚀) ────────────────────────────────────────────────────────
   {
     code: "energy-forms",
     name: "Forms of Energy",

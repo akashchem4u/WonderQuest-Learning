@@ -117,36 +117,36 @@ function formatTimeAgo(iso: string) {
 
 const PRIORITY_CONFIG = {
   "must-have": {
-    label: "Must Have",
-    emoji: "🔴",
-    color: C.red,
-    description: "Core standards for this grade",
-    bg: "rgba(239,68,68,0.08)",
-    border: "rgba(239,68,68,0.2)",
+    label: "Essential",
+    emoji: "🎯",
+    color: C.coral,
+    description: "Core standards — the grade-level skills every child must have before moving on",
+    bg: "rgba(255,123,107,0.08)",
+    border: "rgba(255,123,107,0.2)",
   },
   "should-have": {
-    label: "Should Have",
-    emoji: "🟡",
+    label: "On Track",
+    emoji: "📗",
+    color: "#4ade80",
+    description: "Grade-level benchmarks — what a child on track for their grade should be practicing",
+    bg: "rgba(74,222,128,0.08)",
+    border: "rgba(74,222,128,0.2)",
+  },
+  "nice-to-have": {
+    label: "Enrichment",
+    emoji: "⭐",
     color: C.gold,
-    description: "Important for grade success",
+    description: "Beyond grade level — well-rounded skills that build curiosity and deeper understanding",
     bg: "rgba(255,209,102,0.08)",
     border: "rgba(255,209,102,0.2)",
   },
-  "nice-to-have": {
-    label: "Nice to Have",
-    emoji: "🟢",
-    color: C.green,
-    description: "Enrichment skills",
-    bg: "rgba(34,197,94,0.08)",
-    border: "rgba(34,197,94,0.2)",
-  },
   "could-have": {
-    label: "Could Have",
-    emoji: "⚪",
-    color: C.muted,
-    description: "Extension challenges",
-    bg: "rgba(255,255,255,0.04)",
-    border: "rgba(255,255,255,0.1)",
+    label: "Challenge",
+    emoji: "🚀",
+    color: C.violet,
+    description: "Advanced exploration — next-grade preview and gifted-track extensions",
+    bg: "rgba(155,114,255,0.08)",
+    border: "rgba(155,114,255,0.2)",
   },
 } as const;
 
@@ -725,7 +725,7 @@ export default function SuggestionsPage() {
               <span style={{ fontSize: "1.3rem" }}>⚠️</span>
               <div>
                 <div style={{ font: "700 0.95rem system-ui", color: C.gold }}>
-                  {mustHaveUnstarted.length} must-have skill{mustHaveUnstarted.length !== 1 ? "s" : ""} need attention
+                  {mustHaveUnstarted.length} Essential skill{mustHaveUnstarted.length !== 1 ? "s" : ""} need attention
                 </div>
                 <div style={{ font: "400 0.78rem system-ui", color: C.muted }}>
                   These core standards haven&apos;t been started yet
@@ -760,7 +760,7 @@ export default function SuggestionsPage() {
                     <div style={{ font: "400 0.68rem system-ui", color: C.muted }}>{activityLabel(rec.activityType)}</div>
                   </div>
                   <button
-                    onClick={() => void pushSession(rec.skillCode, studentId, "Assigned from must-have list")}
+                    onClick={() => void pushSession(rec.skillCode, studentId, "Assigned from Essential skills list")}
                     disabled={pushing.has(rec.skillCode)}
                     style={{
                       padding: "6px 12px",
