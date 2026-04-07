@@ -1228,12 +1228,52 @@ export async function createPlaySession(input: PlaySessionInput) {
 
   await ensureProgressionState(studentRow.id as string);
 
+  // ── Guardian-pushed activity: claim the oldest unconsumed pushed skill ──────
+  // If the guardian has queued a focus skill, fetch it and prepend a question
+  // for that skill to the front of this session.
+  const pushedActivityResult = await db.query(
+    `
+      select id, skill_code
+      from public.guardian_pushed_activities
+      where student_id = $1
+        and consumed_at is null
+      order by pushed_at asc
+      limit 1
+    `,
+    [input.studentId],
+  );
+
+  const pushedActivity =
+    pushedActivityResult.rowCount
+      ? (pushedActivityResult.rows[0] as { id: string; skill_code: string })
+      : null;
+
   const selectedQuestions = await selectSessionQuestions(
     input.studentId,
     studentRow.launch_band_code as string,
     sessionMode,
     (studentRow.preferred_theme_code as string | undefined) ?? null,
   );
+
+  // If a pushed activity was found, prepend a question for that skill
+  if (pushedActivity) {
+    const pushedQuestion = await pickQuestion(
+      studentRow.launch_band_code as string,
+      pushedActivity.skill_code,
+      new Set<string>(),
+      new Set<string>(),
+    );
+
+    if (pushedQuestion) {
+      // Remove any existing question for the same skill from the tail to avoid
+      // duplication, then put the pushed one first.
+      const deduped = selectedQuestions.filter(
+        (q) => q.question_key !== pushedQuestion.question_key,
+      );
+      selectedQuestions.length = 0;
+      selectedQuestions.push(pushedQuestion, ...deduped);
+    }
+  }
 
   if (!selectedQuestions.length) {
     throw new Error(
@@ -1265,6 +1305,20 @@ export async function createPlaySession(input: PlaySessionInput) {
       questions.length,
     ],
   );
+
+  // Mark the pushed activity as consumed now that we have a session ID
+  if (pushedActivity) {
+    await db.query(
+      `
+        update public.guardian_pushed_activities
+        set consumed_at = now(), session_id = $2
+        where id = $1
+      `,
+      [pushedActivity.id, session.rows[0].id as string],
+    ).catch(() => {
+      // Non-fatal: do not fail the session creation if the update fails
+    });
+  }
 
   const progression = await db.query(
     `
