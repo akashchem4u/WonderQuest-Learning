@@ -243,6 +243,13 @@ function isTimeSkill(question: SessionQuestion) {
   return question.skill === "time-to-hour";
 }
 
+function isCauseEffectSkill(question: SessionQuestion) {
+  return (
+    question.skill === "cause-effect" ||
+    question.skill === "historical-cause-effect"
+  );
+}
+
 function getCountSceneToken(question: SessionQuestion) {
   const prompt = question.prompt.toLowerCase();
   if (prompt.includes("duck")) return "🦆";
@@ -350,6 +357,16 @@ function buildQuestionVisualScene(question: SessionQuestion) {
     } satisfies QuestionVisualScene;
   }
 
+  if (isCauseEffectSkill(question)) {
+    const isCausePrompt = /most likely cause|what caused|why did/i.test(question.prompt);
+    return {
+      title: isCausePrompt ? "Find the cause" : "Find the effect",
+      helper: isCausePrompt
+        ? "Ask what happened first, then choose what made it happen."
+        : "Ask what happened because of the clue, then pick the result.",
+    } satisfies QuestionVisualScene;
+  }
+
   return null;
 }
 
@@ -363,6 +380,7 @@ function buildSceneClass(question: SessionQuestion) {
   if (isBiggerSmallerSkill(question)) return "scene-count";
   if (isRhymeSkill(question)) return "scene-phonics";
   if (isColorSkill(question)) return "scene-shape";
+  if (isCauseEffectSkill(question)) return "scene-reading";
   if (question.subject === "early-literacy") return "scene-letter";
   return "";
 }
@@ -392,6 +410,7 @@ function buildReadAloudText(question: SessionQuestion, scene: QuestionVisualScen
 
 function buildPromptCue(question: SessionQuestion, scene: QuestionVisualScene | null) {
   if (scene) return scene.helper;
+  if (isCauseEffectSkill(question)) return "Look for what happened first and what happened because of it.";
   if (isShortASkill(question)) return "Say cat, then tap the word that sounds the same.";
   if (isAddToTenSkill(question)) return "Count up from six, then tap the total.";
   if (isReadSimpleWordSkill(question)) return `Read each card, then tap ${question.correctAnswer}.`;
@@ -433,6 +452,9 @@ function buildCoachSteps(question: SessionQuestion) {
   }
   if (isReadSimpleWordSkill(question)) {
     return ["Look at the word cards.", `Find the word ${question.correctAnswer}.`, "Tap the matching card."];
+  }
+  if (isCauseEffectSkill(question)) {
+    return ["Read the clue carefully.", "Decide what happened first.", "Tap the cause or effect that fits best."];
   }
   return ["Listen first.", "Look for the clue.", "Tap your best answer."];
 }
@@ -635,6 +657,11 @@ function buildAnswerTapCue(question: SessionQuestion) {
   if (isBiggerSmallerSkill(question)) return "Tap the bigger group.";
   if (isRhymeSkill(question)) return "Tap the word that rhymes.";
   if (isColorSkill(question)) return `Tap ${question.correctAnswer.toLowerCase()}.`;
+  if (isCauseEffectSkill(question)) {
+    return /most likely cause|what caused|why did/i.test(question.prompt)
+      ? "Tap the answer that explains why it happened."
+      : "Tap the answer that shows what happened because of it.";
+  }
   if (isSkipCountSkill(question)) return "Tap the next number in the pattern.";
   if (isComparisonSkill(question)) return "Tap the correct comparison.";
   if (isTimeSkill(question)) return "Tap the clock that shows the right time.";
@@ -656,6 +683,7 @@ function buildQuestNodeLabel(question: SessionQuestion) {
   if (isSkipCountSkill(question)) return "Count";
   if (isComparisonSkill(question)) return "Compare";
   if (isTimeSkill(question)) return "Time";
+  if (isCauseEffectSkill(question)) return "Cause";
   if (question.subject === "math") return "Math";
   if (question.subject === "early-literacy") return "Word";
   if (question.subject === "reading") return "Read";
@@ -675,6 +703,7 @@ function buildQuestNodeIcon(question: SessionQuestion) {
   if (isSkipCountSkill(question)) return "5️⃣";
   if (isComparisonSkill(question)) return "⚖️";
   if (isTimeSkill(question)) return "🕐";
+  if (isCauseEffectSkill(question)) return "↪️";
   if (question.subject === "math") return "🔢";
   if (question.subject === "early-literacy") return "📚";
   if (question.subject === "reading") return "🪐";
@@ -743,6 +772,11 @@ function buildCompletionMoment(answerState: AnswerPayload | null, earlyLearnerMo
 function buildQuestionStageLabel(question: SessionQuestion, scene: QuestionVisualScene | null) {
   if (scene?.title) return scene.title;
   if (isReadSimpleWordSkill(question)) return "Which word matches the picture?";
+  if (isCauseEffectSkill(question)) {
+    return /most likely cause|what caused|why did/i.test(question.prompt)
+      ? "Choose what caused it"
+      : "Choose what happened next";
+  }
   if (isShortASkill(question)) return "Which word has the matching sound?";
   if (isAddToTenSkill(question)) {
     if (question.skill === "subtract-from-10") return "Subtract and tap the answer";
@@ -839,6 +873,20 @@ function renderQuestionStageVisual(
         <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 6 }}>
           <span style={{ fontSize: 52 }} aria-hidden="true">{preview.icon}</span>
           <small style={{ fontSize: 12, color: C.text, fontWeight: 800 }}>{preview.helper}</small>
+        </div>
+      </div>
+    );
+  }
+
+  if (isCauseEffectSkill(question)) {
+    const isCausePrompt = /most likely cause|what caused|why did/i.test(question.prompt);
+    return (
+      <div style={frameStyle}>
+        <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 44, lineHeight: 1 }} aria-hidden="true">{isCausePrompt ? "↩️" : "➡️"}</span>
+          <small style={{ fontSize: 12, color: C.text, fontWeight: 800 }}>
+            {isCausePrompt ? "find the cause" : "find the effect"}
+          </small>
         </div>
       </div>
     );

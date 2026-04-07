@@ -77,6 +77,60 @@ const AMBIGUOUS_EARLY_WORD_DISTRACTORS: Record<
   },
 };
 
+const PROMPT_META_SUFFIX_PATTERNS = [
+  /\bUse the clue words\.$/i,
+  /\bCheck the pattern\.$/i,
+  /\bThink step by step\.$/i,
+  /\bChoose the strongest answer\.$/i,
+  /\bLook at every detail\.$/i,
+  /\bUse what you know\.$/i,
+  /\bRead the choices twice\.$/i,
+  /\bSolve it carefully\.$/i,
+  /\bChoose carefully\.$/i,
+  /\bGo one step at a time\.$/i,
+  /\bPick the best answer\.$/i,
+];
+
+function collapseWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function capitalizeSentence(value: string) {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+}
+
+function sanitizePromptMetaSuffixes(value: string) {
+  let prompt = collapseWhitespace(value);
+
+  for (const pattern of PROMPT_META_SUFFIX_PATTERNS) {
+    prompt = prompt.replace(pattern, "").trim();
+  }
+
+  return collapseWhitespace(prompt);
+}
+
+function sanitizeCauseEffectPrompt(skill: string, prompt: string) {
+  if (skill !== "cause-effect" && skill !== "historical-cause-effect") {
+    return prompt;
+  }
+
+  let nextPrompt = sanitizePromptMetaSuffixes(prompt);
+  nextPrompt = nextPrompt.replace(/\s+(What (?:was|is|happened|happens))/i, ". $1");
+  nextPrompt = nextPrompt.replace(/\.\s+\./g, ". ");
+  nextPrompt = collapseWhitespace(nextPrompt);
+
+  if (!nextPrompt) {
+    return prompt;
+  }
+
+  return capitalizeSentence(nextPrompt);
+}
+
+function sanitizeQuestionPrompt(skill: string, prompt: string) {
+  const trimmed = sanitizePromptMetaSuffixes(prompt);
+  return sanitizeCauseEffectPrompt(skill, trimmed);
+}
+
 function questionModuleFromSubject(subject: string) {
   return MODULE_BY_SUBJECT[subject] ?? "general";
 }
@@ -175,7 +229,7 @@ function mapQuestionRow(row: Record<string, unknown>): ContentQuestion {
     subject,
     skill,
     theme: String(row.theme ?? ""),
-    prompt: String(row.prompt ?? ""),
+    prompt: sanitizeQuestionPrompt(skill, String(row.prompt ?? "")),
     correct_answer: correctAnswer,
     distractors: sanitizeEarlyLearnerWordQuestion({
       skill,
