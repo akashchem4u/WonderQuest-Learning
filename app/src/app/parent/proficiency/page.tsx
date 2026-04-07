@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { ChildPicker } from "@/components/child-picker";
+import { getActiveChildId, setActiveChildId } from "@/lib/active-child";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -352,7 +353,7 @@ export default function ProficiencyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<ParentSession | null>(null);
-  const [activeChildId, setActiveChildId] = useState<string>("");
+  const [activeCid, setActiveCid] = useState<string>("");
 
   function fetchProficiency(childId: string) {
     setLoading(true);
@@ -376,8 +377,11 @@ export default function ProficiencyPage() {
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Not authenticated"))))
       .then((s: ParentSession) => {
         setSession(s);
-        const firstId = s.linkedChildren[0]?.id ?? "";
+        const persisted = getActiveChildId();
+        const defaultChild = s.linkedChildren.find(c => c.id === persisted) ?? s.linkedChildren[0];
+        const firstId = defaultChild?.id ?? "";
         if (firstId) {
+          setActiveCid(firstId);
           setActiveChildId(firstId);
           fetchProficiency(firstId);
         } else {
@@ -545,8 +549,9 @@ export default function ProficiencyPage() {
         <div style={{ padding: "16px 24px 0" }}>
           <ChildPicker
             children={session.linkedChildren}
-            activeChildId={activeChildId}
+            activeChildId={activeCid}
             onSelect={(id) => {
+              setActiveCid(id);
               setActiveChildId(id);
               fetchProficiency(id);
             }}

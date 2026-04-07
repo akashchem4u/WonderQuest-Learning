@@ -269,6 +269,7 @@ function InterventionCard({
       <div style={{ flexShrink: 0, display: "flex", flexDirection: "column" as const, alignItems: "flex-end", gap: 6, minWidth: 110 }}>
         <a
           href={`/teacher/intervention-detail/${intervention.id}`}
+          onClick={() => setActiveStudentId(intervention.studentId)}
           style={{
             display: "inline-block",
             padding: "5px 10px",

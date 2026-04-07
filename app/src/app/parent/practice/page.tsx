@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { ChildPicker } from "@/components/child-picker";
+import { getActiveChildId, setActiveChildId } from "@/lib/active-child";
 
 // ── Palette ────────────────────────────────────────────────────────────────
 const C = {
@@ -288,7 +289,7 @@ function StrengthChip({ skill }: { skill: NormSkill }) {
 
 export default function ParentPracticePage() {
   const [linkedChildren, setLinkedChildren] = useState<LinkedChild[]>([]);
-  const [activeChildId, setActiveChildId] = useState<string>("");
+  const [activeCid, setActiveCid] = useState<string>("");
   const [skills, setSkills] = useState<NormSkill[]>([]);
   const [childName, setChildName] = useState<string>("your child");
   const [bandCode, setBandCode] = useState<string>("");
@@ -328,7 +329,10 @@ export default function ParentPracticePage() {
         const children: LinkedChild[] = data.linkedChildren ?? (data.linkedChild ? [data.linkedChild] : []);
         setLinkedChildren(children);
         if (children.length === 0) { setError("No children are currently linked to this account."); setLoading(false); return; }
-        const firstId = children[0].id;
+        const persisted = getActiveChildId();
+        const defaultChild = children.find(c => c.id === persisted) ?? children[0];
+        const firstId = defaultChild.id;
+        setActiveCid(firstId);
         setActiveChildId(firstId);
         fetchSkills(firstId, children);
       })
@@ -336,6 +340,7 @@ export default function ParentPracticePage() {
   }, [fetchSkills]);
 
   const handleChildSwitch = (childId: string) => {
+    setActiveCid(childId);
     setActiveChildId(childId);
     setSkills([]);
     fetchSkills(childId, linkedChildren);
@@ -376,7 +381,7 @@ export default function ParentPracticePage() {
         {/* Child picker — reloads all content on switch */}
         {linkedChildren.length > 1 && (
           <div style={{ marginBottom: 20 }}>
-            <ChildPicker children={linkedChildren} activeChildId={activeChildId} onSelect={handleChildSwitch} />
+            <ChildPicker children={linkedChildren} activeChildId={activeCid} onSelect={handleChildSwitch} />
           </div>
         )}
 

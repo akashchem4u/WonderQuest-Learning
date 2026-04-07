@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getActiveChildId, setActiveChildId } from "@/lib/active-child";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
@@ -321,7 +322,7 @@ function DomainSection({
 export default function ParentBenchmarkPage() {
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [children, setChildren] = useState<LinkedChild[]>([]);
-  const [activeChildId, setActiveChildId] = useState<string | null>(null);
+  const [activeCid, setActiveCid] = useState<string | null>(null);
   const [activeChild, setActiveChild] = useState<LinkedChild | null>(null);
   const [skills, setSkills] = useState<SkillProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -337,10 +338,11 @@ export default function ParentBenchmarkPage() {
         if (!data) return;
         const list = data.linkedChildren ?? [];
         setChildren(list);
-        const stored = typeof localStorage !== "undefined" ? localStorage.getItem("wq_active_student_id") : null;
-        const chosen = stored && list.some((c) => c.id === stored) ? stored : (list[0]?.id ?? null);
-        setActiveChildId(chosen);
+        const persisted = getActiveChildId();
+        const chosen = (persisted && list.some((c) => c.id === persisted)) ? persisted : (list[0]?.id ?? null);
+        setActiveCid(chosen);
         setActiveChild(list.find((c) => c.id === chosen) ?? list[0] ?? null);
+        if (chosen) setActiveChildId(chosen);
         setAuthed(true);
       })
       .catch(() => { setAuthed(false); setLoading(false); });
@@ -348,19 +350,19 @@ export default function ParentBenchmarkPage() {
 
   // Step 2: skills
   useEffect(() => {
-    if (!activeChildId || authed !== true) return;
+    if (!activeCid || authed !== true) return;
     setLoading(true);
-    fetch(`/api/parent/skills?childId=${encodeURIComponent(activeChildId)}`)
+    fetch(`/api/parent/skills?childId=${encodeURIComponent(activeCid)}`)
       .then((r) => r.json())
       .then((data) => { setSkills(data.skills ?? []); })
       .catch(() => setSkills([]))
       .finally(() => setLoading(false));
-  }, [activeChildId, authed]);
+  }, [activeCid, authed]);
 
   // Sync activeChild when selection changes
   useEffect(() => {
-    setActiveChild(children.find((c) => c.id === activeChildId) ?? null);
-  }, [activeChildId, children]);
+    setActiveChild(children.find((c) => c.id === activeCid) ?? null);
+  }, [activeCid, children]);
 
   const bandCode = activeChild?.launchBandCode ?? "K1";
   const bandDef = BANDS.find((b) => b.code === bandCode) ?? BANDS[1];
@@ -384,10 +386,10 @@ export default function ParentBenchmarkPage() {
           <div style={{ fontSize: "0.85rem", fontWeight: 700, color: TEXT }}>Skill Benchmarks</div>
           {children.length > 1 && (
             <select
-              value={activeChildId ?? ""}
+              value={activeCid ?? ""}
               onChange={(e) => {
+                setActiveCid(e.target.value);
                 setActiveChildId(e.target.value);
-                if (e.target.value) localStorage.setItem("wq_active_student_id", e.target.value);
               }}
               style={{ background: SURFACE, border: `1px solid ${VBORDER}`, borderRadius: 8, color: TEXT, fontSize: "0.8rem", padding: "5px 10px", cursor: "pointer" }}
             >

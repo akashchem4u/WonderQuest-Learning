@@ -527,7 +527,7 @@ export default function SuggestionsPage() {
         }
         const result = (await res.json()) as { activityId?: string };
         const childName =
-          session?.linkedChildren.find((c) => c.id === activeChildId)?.displayName ??
+          session?.linkedChildren.find((c) => c.id === activeCid)?.displayName ??
           session?.linkedChildren[0]?.displayName ??
           "your child";
         addToast(`Pushed! ${childName} will see this next session`, "success");
@@ -550,7 +550,7 @@ export default function SuggestionsPage() {
         });
       }
     },
-    [session, activeChildId, addToast]
+    [session, activeCid, addToast]
   );
 
   function toggleSection(key: string) {
@@ -567,7 +567,7 @@ export default function SuggestionsPage() {
   }
 
   const activeChild =
-    session?.linkedChildren.find((c) => c.id === activeChildId) ??
+    session?.linkedChildren.find((c) => c.id === activeCid) ??
     session?.linkedChildren[0] ??
     null;
   const childName = activeChild?.displayName ?? "your child";
@@ -656,8 +656,9 @@ export default function SuggestionsPage() {
         {session && session.linkedChildren.length > 1 && (
           <ChildPicker
             children={session.linkedChildren}
-            activeChildId={activeChildId}
+            activeChildId={activeCid}
             onSelect={(id) => {
+              setActiveCid(id);
               setActiveChildId(id);
               void fetchSuggestions(id);
             }}

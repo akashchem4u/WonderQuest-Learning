@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import { setActiveStudentId } from "@/lib/active-student";
 import TeacherGate from "../../teacher-gate";
 
 // ---------------------------------------------------------------------------
@@ -204,6 +205,8 @@ export default function TeacherStudentReportPage() {
   useEffect(() => {
     if (!authed) return;
     if (!studentId) return;
+    // Persist active student so teacher nav context stays consistent
+    setActiveStudentId(studentId);
     const teacherId = getTeacherId();
     setLoading(true);
     setError(null);

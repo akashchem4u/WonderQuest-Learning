@@ -5,6 +5,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { ChildPicker } from "@/components/child-picker";
+import { getActiveChildId, setActiveChildId } from "@/lib/active-child";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -524,7 +525,8 @@ function ParentWeeklyReportPageInner() {
 
   useEffect(() => {
     const studentId =
-      searchParams.get("studentId") ??
+      (searchParams.get("studentId") ??
+      getActiveChildId()) ||
       (typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null);
 
     if (!studentId) {
@@ -532,6 +534,7 @@ function ParentWeeklyReportPageInner() {
       setLoading(false);
       return;
     }
+    setActiveChildId(studentId);
 
     setLoading(true);
     setError(null);
@@ -626,8 +629,9 @@ function ParentWeeklyReportPageInner() {
           {session && session.linkedChildren.length > 1 && (
             <ChildPicker
               children={session.linkedChildren}
-              activeChildId={searchParams.get("studentId") ?? session.linkedChildren[0]?.id ?? ""}
+              activeChildId={searchParams.get("studentId") ?? getActiveChildId() ?? session.linkedChildren[0]?.id ?? ""}
               onSelect={(childId) => {
+                setActiveChildId(childId);
                 router.push(`/parent/report?studentId=${childId}`);
               }}
             />

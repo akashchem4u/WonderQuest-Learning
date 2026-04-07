@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { ChildPicker } from "@/components/child-picker";
+import { getActiveChildId, setActiveChildId } from "@/lib/active-child";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -270,7 +271,7 @@ export default function ParentSkillsPage() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("mastery-desc");
   const [session, setSession] = useState<ParentSession | null>(null);
-  const [activeChildId, setActiveChildId] = useState<string>("");
+  const [activeCid, setActiveCid] = useState<string>("");
 
   function fetchSkills(studentId: string) {
     setLoading(true);
@@ -315,17 +316,16 @@ export default function ParentSkillsPage() {
           typeof window !== "undefined"
             ? new URLSearchParams(window.location.search).get("studentId")
             : null;
-        const studentId =
-          urlStudentId ??
-          (typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null) ??
-          s.linkedChildren[0]?.id ??
-          null;
+        const persisted = getActiveChildId();
+        const defaultChild = s.linkedChildren.find(c => c.id === (urlStudentId ?? persisted)) ?? s.linkedChildren[0];
+        const studentId = ((urlStudentId ?? persisted) || defaultChild?.id) ?? null;
 
         if (!studentId) {
           setError("No child selected. Please go back to Family Hub and select a child.");
           setLoading(false);
           return;
         }
+        setActiveCid(studentId);
         setActiveChildId(studentId);
         fetchSkills(studentId);
       })
@@ -450,8 +450,9 @@ export default function ParentSkillsPage() {
           {session && session.linkedChildren.length > 1 && (
             <ChildPicker
               children={session.linkedChildren}
-              activeChildId={activeChildId}
+              activeChildId={activeCid}
               onSelect={(id) => {
+                setActiveCid(id);
                 setActiveChildId(id);
                 fetchSkills(id);
               }}
