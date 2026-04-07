@@ -309,17 +309,24 @@ export default function ParentQuietHoursPage() {
   const [s, setS] = useState<QuietHoursSettings>({ ...DEFAULT_SETTINGS });
   const [saved, setSaved] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount, then sync from server
   useEffect(() => {
+    // Load localStorage first as fast default
     try {
       const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<QuietHoursSettings>;
-        setS((prev) => ({ ...prev, ...parsed }));
-      }
-    } catch {
-      // ignore parse errors
-    }
+      if (raw) setS(JSON.parse(raw) as QuietHoursSettings);
+    } catch { /* ignore */ }
+
+    // Then sync from server
+    fetch("/api/parent/quiet-hours")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.settings) {
+          setS(data.settings as QuietHoursSettings);
+          localStorage.setItem(LS_KEY, JSON.stringify(data.settings));
+        }
+      })
+      .catch(() => { /* offline — use local */ });
   }, []);
 
   function update(patch: Partial<QuietHoursSettings>) {
@@ -335,13 +342,15 @@ export default function ParentQuietHoursPage() {
   }
 
   function handleSave() {
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify(s));
-    } catch {
-      // localStorage unavailable — silent fail
-    }
+    try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+    // Sync to server
+    fetch("/api/parent/quiet-hours", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ settings: s }),
+    }).catch(() => { /* offline — localStorage already saved */ });
     setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setTimeout(() => setSaved(false), 2000);
   }
 
   const notifBlocks = timelineBlock(s.notifQuietStart, s.notifQuietEnd);
@@ -711,7 +720,7 @@ export default function ParentQuietHoursPage() {
             )}
           </div>
           <div style={{ fontSize: 11, color: MUTED, marginTop: 10 }}>
-            Settings are saved to this device. Backend sync coming soon.
+            Settings sync across all your devices.
           </div>
         </div>
       </div>
