@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import { setActiveStudentId } from "@/lib/active-student";
 import TeacherGate from "./teacher-gate";
 
 // ── Design tokens ───────────────────────────────────────────────────────────
@@ -119,6 +121,7 @@ function CardHeader({ title, link, href }: { title: React.ReactNode; link?: stri
 // ── Page component ──────────────────────────────────────────────────────────
 export default function TeacherPage() {
   // Auth gate — resolved client-side to avoid hydration mismatch
+  const router = useRouter();
   const [authed, setAuthed] = useState(false);
   useEffect(() => { setAuthed(!!getTeacherId()); }, []);
 
@@ -720,8 +723,11 @@ export default function TeacherPage() {
                       C.muted,
                   }}>{status}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: C.text, minWidth: 60, textAlign: "right" }}>⭐ {s.totalPoints}</span>
-                  <Link
-                    href={`/teacher/students/${s.studentId}`}
+                  <button
+                    onClick={() => {
+                      setActiveStudentId(s.studentId);
+                      router.push(`/teacher/students/${s.studentId}`);
+                    }}
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -732,10 +738,13 @@ export default function TeacherPage() {
                       borderRadius: 8,
                       whiteSpace: "nowrap" as const,
                       flexShrink: 0,
+                      background: "transparent",
+                      cursor: "pointer",
+                      fontFamily: "system-ui,-apple-system,sans-serif",
                     }}
                   >
                     View report →
-                  </Link>
+                  </button>
                 </div>
               );
             })}

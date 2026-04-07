@@ -20,11 +20,15 @@ export async function POST(request: NextRequest) {
       childUsername?: string;
       notifyWeekly?: boolean;
       notifyMilestones?: boolean;
+      schoolName?: string;
+      isdName?: string;
     };
 
     const email = (body.email ?? "").trim();
     const password = body.password ?? "";
     const displayName = (body.displayName ?? "").trim();
+    const schoolName = (body.schoolName ?? "").trim() || null;
+    const isdName = (body.isdName ?? "").trim() || null;
 
     const result = await accessParent(
       {
@@ -35,6 +39,8 @@ export async function POST(request: NextRequest) {
         childUsername: body.childUsername,
         notifyWeekly: body.notifyWeekly,
         notifyMilestones: body.notifyMilestones,
+        schoolName: schoolName ?? undefined,
+        isdName: isdName ?? undefined,
       },
       { ipAddress, userAgent },
     );

@@ -221,6 +221,8 @@ export default function ParentAccessPage() {
   const [regChildNameAvailability, setRegChildNameAvailability] = useState<NameAvailability>("idle");
   const [regChildNameMessage, setRegChildNameMessage] = useState("");
   const [regChildNameDebounceRef, setRegChildNameDebounceRef] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [regSchoolName, setRegSchoolName] = useState("");
+  const [regIsdName, setRegIsdName] = useState("");
 
   // Forgot password fields
   const [forgotIdentifier, setForgotIdentifier] = useState("");
@@ -369,6 +371,8 @@ export default function ParentAccessPage() {
           childUsername: regChildName.trim() || undefined,
           notifyWeekly,
           notifyMilestones,
+          schoolName: regSchoolName.trim() || undefined,
+          isdName: regIsdName.trim() || undefined,
         }),
       });
       const payload = (await response.json()) as ParentAccessResponse & { error?: string };
@@ -919,6 +923,16 @@ export default function ParentAccessPage() {
                   <div>
                     <label style={labelStyle}>Your name</label>
                     <input onChange={(e) => setRegDisplayName(e.target.value)} placeholder="e.g. Sarah" style={inputStyle} type="text" value={regDisplayName} />
+                  </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={labelStyle}>School name <span style={{ font: "400 0.7rem system-ui", color: C.muted }}>(optional)</span></label>
+                      <input onChange={(e) => setRegSchoolName(e.target.value)} placeholder="e.g. Lincoln Elementary" style={inputStyle} type="text" value={regSchoolName} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={labelStyle}>ISD / District <span style={{ font: "400 0.7rem system-ui", color: C.muted }}>(optional)</span></label>
+                      <input onChange={(e) => setRegIsdName(e.target.value)} placeholder="e.g. Austin ISD" style={inputStyle} type="text" value={regIsdName} />
+                    </div>
                   </div>
                   <div>
                     <label style={labelStyle}>{"Child's quest name "}<span style={{ font: "400 0.7rem system-ui", color: C.muted }}>(optional \u2014 letters &amp; numbers only)</span></label>

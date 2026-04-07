@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { ChildPicker } from "@/components/child-picker";
+import { getActiveChildId, setActiveChildId } from "@/lib/active-child";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -446,7 +447,7 @@ function ToastNotification({ toasts, dismiss }: { toasts: Toast[]; dismiss: (id:
 
 export default function SuggestionsPage() {
   const [session, setSession] = useState<ParentSession | null>(null);
-  const [activeChildId, setActiveChildId] = useState<string>("");
+  const [activeCid, setActiveCid] = useState<string>("");
   const [data, setData] = useState<SuggestionsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -480,12 +481,15 @@ export default function SuggestionsPage() {
         if (!res.ok) throw new Error("Not authenticated");
         const s = (await res.json()) as ParentSession;
         setSession(s);
-        const childId = s.linkedChildren[0]?.id ?? s.linkedChild?.id;
+        const persisted = getActiveChildId();
+        const defaultChild = s.linkedChildren.find(c => c.id === persisted) ?? s.linkedChildren[0] ?? (s.linkedChild ?? null);
+        const childId = defaultChild?.id;
         if (!childId) {
           setError("No child linked yet. Add a child from the Family Hub.");
           setLoading(false);
           return;
         }
+        setActiveCid(childId);
         setActiveChildId(childId);
         await fetchSuggestions(childId);
       } catch (err) {

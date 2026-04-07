@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import { setActiveStudentId } from "@/lib/active-student";
 import TeacherGate from "../teacher-gate";
 
 const C = {
@@ -184,6 +186,7 @@ function buildTriage(roster: Student[], interventions: Intervention[]): { onTrac
 }
 
 export default function ClassHealthPage() {
+  const router = useRouter();
   const [authed, setAuthed] = useState(false);
   useEffect(() => { setAuthed(!!getTeacherId()); }, []);
 
@@ -311,7 +314,10 @@ export default function ClassHealthPage() {
                         <div key={s.studentId} style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
                             <span style={{ color: C.text, fontWeight: 600 }}>{s.name}</span>
-                            <a href={`/teacher/students/${s.studentId}`} style={{ color: C.violet, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>View →</a>
+                            <button
+                              onClick={() => { setActiveStudentId(s.studentId); router.push(`/teacher/students/${s.studentId}`); }}
+                              style={{ background: "transparent", border: "none", color: C.violet, fontSize: 12, fontWeight: 700, textDecoration: "none", cursor: "pointer", padding: 0, fontFamily: "system-ui,-apple-system,sans-serif" }}
+                            >View →</button>
                           </div>
                           {s.interventionReason ? (
                             <div style={{ fontSize: 12, color: C.coral, marginTop: 2 }}>{s.interventionReason}</div>

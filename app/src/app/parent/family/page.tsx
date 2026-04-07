@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
+import { setActiveChildId } from "@/lib/active-child";
 
 const C = {
   base: "#100b2e",
@@ -129,6 +131,7 @@ function sessionsThisWeek(dashboards: ChildDashboard[]): number {
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function FamilyHubPage() {
+  const router = useRouter();
   const [session, setSession] = useState<ParentSession | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -214,6 +217,7 @@ export default function FamilyHubPage() {
                 return (
                   <div
                     key={child.id}
+                    onClick={() => { setActiveChildId(child.id); router.push(`/parent/report?studentId=${child.id}`); }}
                     style={{
                       background: "rgba(255,255,255,0.04)",
                       borderRadius: "18px",
@@ -222,6 +226,7 @@ export default function FamilyHubPage() {
                       display: "flex",
                       flexDirection: "column",
                       gap: "0",
+                      cursor: "pointer",
                     }}
                   >
                     {/* Avatar + name */}
@@ -257,8 +262,9 @@ export default function FamilyHubPage() {
                     </div>
 
                     {/* CTA */}
-                    <Link
-                      href="/parent/report"
+                    <a
+                      href={`/parent/report?studentId=${child.id}`}
+                      onClick={(e) => { e.stopPropagation(); setActiveChildId(child.id); }}
                       style={{
                         display: "block",
                         padding: "10px 0",
@@ -272,7 +278,7 @@ export default function FamilyHubPage() {
                       }}
                     >
                       📊 See {child.displayName}&apos;s report →
-                    </Link>
+                    </a>
                   </div>
                 );
               })}

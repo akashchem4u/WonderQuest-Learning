@@ -30,6 +30,8 @@ type ParentAccessInput =
       childUsername?: string;
       notifyWeekly?: boolean;
       notifyMilestones?: boolean;
+      schoolName?: string;
+      isdName?: string;
     }
   | {
       mode: "login";
@@ -432,6 +434,9 @@ export async function accessParent(
 
     const passwordHash = hashPassword(input.password, email);
 
+    const schoolName = input.schoolName?.trim() || null;
+    const isdName = input.isdName?.trim() || null;
+
     const inserted = await db.query(
       `
         insert into public.guardian_profiles (
@@ -439,12 +444,14 @@ export async function accessParent(
           password_hash,
           display_name,
           relationship_label,
-          email_verified
+          email_verified,
+          school_name,
+          isd_name
         )
-        values ($1, $2, $3, 'parent', false)
+        values ($1, $2, $3, 'parent', false, $4, $5)
         returning id, username, display_name
       `,
-      [email, passwordHash, displayName],
+      [email, passwordHash, displayName, schoolName, isdName],
     );
 
     const guardianRow = inserted.rows[0];

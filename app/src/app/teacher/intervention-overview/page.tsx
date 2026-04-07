@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import { setActiveStudentId } from "@/lib/active-student";
 import TeacherGate from "../teacher-gate";
 
 const C = {
