@@ -64,6 +64,19 @@ function triggerToAction(triggerType: string): string {
 }
 
 // ── API types ────────────────────────────────────────────────────────────────
+interface AiSuggestion {
+  studentId: string;
+  displayName: string;
+  bandCode: string;
+  archetype: "advanced" | "on-track" | "developing" | "foundational";
+  focusSkill: string;
+  focusSkillName: string;
+  reason: string;
+  aiNote: string;
+  masteryScore: number;
+  priority: "urgent" | "normal";
+}
+
 interface RosterStudent {
   studentId: string;
   displayName: string;
@@ -135,6 +148,12 @@ export default function TeacherPage() {
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [teacherName, setTeacherName] = useState("");
+  const [demoBand, setDemoBand] = useState("G23");
+  const [creatingDemo, setCreatingDemo] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiPushed, setAiPushed] = useState<number | null>(null);
+  const [isVirtualClassroom, setIsVirtualClassroom] = useState(false);
 
   useEffect(() => {
     const teacherId = getTeacherId();
@@ -161,7 +180,16 @@ export default function TeacherPage() {
       fetch(`/api/teacher/interventions?teacherId=${teacherId}`).then((r) => r.ok ? r.json() : { interventions: [] }),
     ])
       .then(([classData, intData]) => {
-        setRoster(classData.roster ?? []);
+        const rosterData: RosterStudent[] = classData.roster ?? [];
+        setRoster(rosterData);
+        // Detect virtual classroom: if any student is from a virtual class
+        // We detect this via a separate lightweight check
+        if (rosterData.length > 0) {
+          fetch("/api/teacher/has-virtual-class")
+            .then((r) => r.ok ? r.json() : { isVirtual: false })
+            .then((d: { isVirtual?: boolean }) => setIsVirtualClassroom(d.isVirtual ?? false))
+            .catch(() => {/* ignore */});
+        }
         // Normalise API field names: interventionType → triggerType, skillCode → skillLabel
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rawInts: any[] = intData.interventions ?? [];
@@ -246,6 +274,49 @@ export default function TeacherPage() {
     { label: "Skip counting", count: 4 },
     { label: "CVC spelling", count: 3 },
   ];
+
+  async function handleCreateDemoClass() {
+    setCreatingDemo(true);
+    try {
+      const res = await fetch("/api/teacher/create-demo-class", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bandCode: demoBand }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      }
+    } finally {
+      setCreatingDemo(false);
+    }
+  }
+
+  async function handleLoadAiSuggestions() {
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/teacher/ai-suggestions");
+      if (res.ok) {
+        const data = await res.json() as { suggestions: AiSuggestion[] };
+        setAiSuggestions(data.suggestions ?? []);
+      }
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  async function handlePushAllSessions() {
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/teacher/ai-push-sessions", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json() as { pushed: number; suggestions: AiSuggestion[] };
+        setAiPushed(data.pushed);
+        setAiSuggestions(data.suggestions ?? []);
+      }
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();
@@ -476,38 +547,105 @@ export default function TeacherPage() {
           ))}
         </div>
 
-        {/* Empty roster onboarding */}
+        {/* Empty roster onboarding — with demo classroom option */}
         {!loading && roster.length === 0 && (
           <div style={{
             background: "rgba(155,114,255,0.07)",
-            border: `1px solid rgba(155,114,255,0.25)`,
-            borderRadius: 16,
-            padding: "28px 24px",
+            border: "1px solid rgba(155,114,255,0.2)",
+            borderRadius: 18,
+            padding: "32px 28px",
+            textAlign: "center",
             marginBottom: 24,
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
           }}>
-            <div style={{ fontSize: 22 }}>🎉</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>Your classroom is ready</div>
-            <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, maxWidth: 480 }}>
-              Share your teacher code with students to get started. Once they log in, their progress will appear here automatically.
+            <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>🎓</div>
+            <div style={{ fontSize: "1.1rem", fontWeight: 700, color: C.text, marginBottom: 8 }}>
+              Your classroom is ready
             </div>
-            <Link href="/teacher/class" style={{
-              display: "inline-flex",
-              alignSelf: "flex-start",
-              marginTop: 4,
-              padding: "9px 18px",
-              background: "rgba(155,114,255,0.18)",
-              border: "1px solid rgba(155,114,255,0.35)",
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 700,
-              color: "#c4a8ff",
-              textDecoration: "none",
+            <p style={{ fontSize: "0.88rem", color: C.muted, marginBottom: 24, maxWidth: 420, margin: "0 auto 24px" }}>
+              Share your teacher code with students to get started. Or explore with a demo classroom — 15 virtual students with realistic progress data and AI-driven curriculum suggestions.
+            </p>
+
+            {/* Grade band selector */}
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 16 }}>
+              {(["PREK","K1","G23","G45"] as const).map((band) => (
+                <button key={band} onClick={() => setDemoBand(band)} style={{
+                  padding: "8px 18px", borderRadius: 10,
+                  border: `2px solid ${demoBand === band ? C.violet : "rgba(155,114,255,0.2)"}`,
+                  background: demoBand === band ? "rgba(155,114,255,0.2)" : "transparent",
+                  color: demoBand === band ? C.violet : C.muted,
+                  font: "700 0.82rem system-ui",
+                  cursor: "pointer",
+                }}>
+                  {band === "PREK" ? "Pre-K" : band === "K1" ? "K–1" : band === "G23" ? "G2–3" : "G4–5"}
+                </button>
+              ))}
+            </div>
+
+            <button onClick={handleCreateDemoClass} disabled={creatingDemo} style={{
+              padding: "12px 28px", borderRadius: 12, background: C.violet, color: "#fff",
+              font: "700 0.9rem system-ui", border: "none",
+              cursor: creatingDemo ? "not-allowed" : "pointer",
+              opacity: creatingDemo ? 0.7 : 1,
+              marginBottom: 16,
             }}>
-              Go to Class →
-            </Link>
+              {creatingDemo ? "Creating demo classroom…" : "✨ Explore with Demo Classroom"}
+            </button>
+
+            <div style={{ marginTop: 8 }}>
+              <Link href="/teacher/class" style={{
+                display: "inline-flex",
+                padding: "9px 18px",
+                background: "rgba(155,114,255,0.18)",
+                border: "1px solid rgba(155,114,255,0.35)",
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 700,
+                color: "#c4a8ff",
+                textDecoration: "none",
+              }}>
+                Go to Class →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Demo mode banner when virtual classroom is active */}
+        {!loading && roster.length > 0 && isVirtualClassroom && (
+          <div style={{
+            background: "rgba(245,158,11,0.12)",
+            border: "1px solid rgba(245,158,11,0.35)",
+            borderRadius: 12,
+            padding: "12px 18px",
+            marginBottom: 18,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}>
+            <span style={{ fontSize: 13, color: C.amber, fontWeight: 700 }}>🎭 Demo Mode</span>
+            <span style={{ fontSize: 13, color: C.text, flex: 1 }}>
+              This is a virtual demo classroom. Real students can be added via your teacher code.
+            </span>
+            <button
+              onClick={async () => {
+                await fetch("/api/teacher/remove-demo-class", { method: "POST" });
+                window.location.reload();
+              }}
+              style={{
+                background: "transparent",
+                border: `1px solid ${C.amber}`,
+                borderRadius: 8,
+                color: C.amber,
+                fontSize: 12,
+                fontWeight: 700,
+                padding: "6px 14px",
+                cursor: "pointer",
+                fontFamily: "system-ui,-apple-system,sans-serif",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Remove Demo
+            </button>
           </div>
         )}
 
@@ -677,6 +815,104 @@ export default function TeacherPage() {
                 ))}
               </Card>
             </div>
+
+            {/* AI Coach section — shows when roster has students */}
+            {roster.length > 0 && (
+              <Card style={{ marginTop: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>
+                    🤖 AI Coach
+                    <span style={{
+                      marginLeft: 8, fontSize: 10, fontWeight: 700,
+                      background: C.violet + "22", color: C.violet,
+                      padding: "2px 8px", borderRadius: 20,
+                    }}>Adaptive</span>
+                  </span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Link href="/teacher/ai-coach" style={{
+                      fontSize: 12, color: C.blue, fontWeight: 600, textDecoration: "none",
+                    }}>
+                      Full view →
+                    </Link>
+                    <button
+                      onClick={handlePushAllSessions}
+                      disabled={aiLoading}
+                      style={{
+                        padding: "6px 14px", borderRadius: 8, background: C.violet,
+                        color: "#fff", fontSize: 12, fontWeight: 700, border: "none",
+                        cursor: aiLoading ? "not-allowed" : "pointer",
+                        opacity: aiLoading ? 0.7 : 1,
+                        fontFamily: "system-ui,-apple-system,sans-serif",
+                      }}
+                    >
+                      {aiLoading ? "Analyzing…" : "Push All Sessions →"}
+                    </button>
+                    <button
+                      onClick={handleLoadAiSuggestions}
+                      disabled={aiLoading}
+                      style={{
+                        padding: "6px 14px", borderRadius: 8,
+                        background: "rgba(155,114,255,0.15)", color: C.violet,
+                        fontSize: 12, fontWeight: 700,
+                        border: `1px solid rgba(155,114,255,0.3)`,
+                        cursor: aiLoading ? "not-allowed" : "pointer",
+                        fontFamily: "system-ui,-apple-system,sans-serif",
+                      }}
+                    >
+                      {aiLoading ? "…" : "Refresh Suggestions"}
+                    </button>
+                  </div>
+                </div>
+                {aiPushed !== null && (
+                  <div style={{
+                    background: C.mint + "15", border: `1px solid ${C.mint}44`,
+                    borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 700,
+                    color: C.mint, marginBottom: 12,
+                  }}>
+                    {aiPushed === 0 ? "All sessions already pushed — no new pushes needed." : `${aiPushed} session${aiPushed !== 1 ? "s" : ""} pushed to students.`}
+                  </div>
+                )}
+                {aiSuggestions.length === 0 && !aiLoading && (
+                  <div style={{ fontSize: 12, color: C.muted }}>
+                    Click "Refresh Suggestions" to see AI-generated curriculum recommendations for each student.
+                  </div>
+                )}
+                {aiSuggestions.slice(0, 5).map((s) => {
+                  const archetypeEmoji = s.archetype === "advanced" ? "🚀" : s.archetype === "on-track" ? "✅" : s.archetype === "developing" ? "📈" : "🌱";
+                  const archetypeColor = s.archetype === "advanced" ? C.mint : s.archetype === "on-track" ? C.blue : s.archetype === "developing" ? C.gold : C.amber;
+                  return (
+                    <div key={s.studentId} style={{
+                      display: "flex", alignItems: "flex-start", gap: 12,
+                      padding: "10px 0", borderTop: `1px solid ${C.border}`,
+                    }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+                        background: archetypeColor + "22",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 14,
+                      }}>{archetypeEmoji}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>
+                          {s.displayName}
+                          {s.priority === "urgent" && (
+                            <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, background: C.red + "22", color: C.red, padding: "2px 7px", borderRadius: 20 }}>Urgent</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>Focus: <strong style={{ color: C.text }}>{s.focusSkillName}</strong> · {s.masteryScore}% mastery</div>
+                        <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>{s.aiNote}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {aiSuggestions.length > 5 && (
+                  <div style={{ fontSize: 12, color: C.blue, marginTop: 8, fontWeight: 700 }}>
+                    <Link href="/teacher/ai-coach" style={{ color: C.blue, textDecoration: "none" }}>
+                      + {aiSuggestions.length - 5} more — view all in AI Coach →
+                    </Link>
+                  </div>
+                )}
+              </Card>
+            )}
           </>
         )}
 

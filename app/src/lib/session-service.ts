@@ -1249,10 +1249,28 @@ export async function createPlaySession(input: PlaySessionInput) {
     [input.studentId],
   );
 
-  const pushedActivity =
+  let pushedActivity: { id: string; skill_code: string; table: string } | null =
     pushedActivityResult.rowCount
-      ? (pushedActivityResult.rows[0] as { id: string; skill_code: string })
+      ? { ...(pushedActivityResult.rows[0] as { id: string; skill_code: string }), table: "guardian_pushed_activities" }
       : null;
+
+  // ── Teacher-pushed session: check after guardian pushed (lower priority) ─────
+  if (!pushedActivity) {
+    const teacherPushed = await db.query(
+      `select id, skill_code
+       from public.teacher_pushed_sessions
+       where student_id = $1 and consumed_at is null
+       order by priority desc, pushed_at asc
+       limit 1`,
+      [input.studentId],
+    );
+    if (teacherPushed.rowCount) {
+      pushedActivity = {
+        ...(teacherPushed.rows[0] as { id: string; skill_code: string }),
+        table: "teacher_pushed_sessions",
+      };
+    }
+  }
 
   const selectedQuestions = await selectSessionQuestions(
     input.studentId,
@@ -1314,12 +1332,12 @@ export async function createPlaySession(input: PlaySessionInput) {
 
   // Mark the pushed activity as consumed now that we have a session ID
   if (pushedActivity) {
+    const consumeTable =
+      pushedActivity.table === "teacher_pushed_sessions"
+        ? "public.teacher_pushed_sessions"
+        : "public.guardian_pushed_activities";
     await db.query(
-      `
-        update public.guardian_pushed_activities
-        set consumed_at = now(), session_id = $2
-        where id = $1
-      `,
+      `update ${consumeTable} set consumed_at = now(), session_id = $2 where id = $1`,
       [pushedActivity.id, session.rows[0].id as string],
     ).catch(() => {
       // Non-fatal: do not fail the session creation if the update fails
