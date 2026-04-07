@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       notifyMilestones?: boolean;
       schoolName?: string;
       isdName?: string;
+      stateCode?: string;
     };
 
     const email = (body.email ?? "").trim();
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
     const displayName = (body.displayName ?? "").trim();
     const schoolName = (body.schoolName ?? "").trim() || null;
     const isdName = (body.isdName ?? "").trim() || null;
+    const stateCode = (body.stateCode ?? "").trim() || null;
 
     const result = await accessParent(
       {
@@ -41,6 +43,7 @@ export async function POST(request: NextRequest) {
         notifyMilestones: body.notifyMilestones,
         schoolName: schoolName ?? undefined,
         isdName: isdName ?? undefined,
+        stateCode: stateCode ?? undefined,
       },
       { ipAddress, userAgent },
     );

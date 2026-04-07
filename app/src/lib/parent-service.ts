@@ -32,6 +32,7 @@ type ParentAccessInput =
       notifyMilestones?: boolean;
       schoolName?: string;
       isdName?: string;
+      stateCode?: string;
     }
   | {
       mode: "login";
@@ -436,6 +437,7 @@ export async function accessParent(
 
     const schoolName = input.schoolName?.trim() || null;
     const isdName = input.isdName?.trim() || null;
+    const stateCode = input.stateCode?.trim().toUpperCase() || null;
 
     const inserted = await db.query(
       `
@@ -446,12 +448,13 @@ export async function accessParent(
           relationship_label,
           email_verified,
           school_name,
-          isd_name
+          isd_name,
+          state_code
         )
-        values ($1, $2, $3, 'parent', false, $4, $5)
+        values ($1, $2, $3, 'parent', false, $4, $5, $6)
         returning id, username, display_name
       `,
-      [email, passwordHash, displayName, schoolName, isdName],
+      [email, passwordHash, displayName, schoolName, isdName, stateCode],
     );
 
     const guardianRow = inserted.rows[0];

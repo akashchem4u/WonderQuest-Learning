@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { US_STATES } from "@/lib/curriculum-frameworks";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
@@ -223,6 +224,7 @@ export default function ParentAccessPage() {
   const [regChildNameDebounceRef, setRegChildNameDebounceRef] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [regSchoolName, setRegSchoolName] = useState("");
   const [regIsdName, setRegIsdName] = useState("");
+  const [regStateCode, setRegStateCode] = useState("");
 
   // Forgot password fields
   const [forgotIdentifier, setForgotIdentifier] = useState("");
@@ -373,6 +375,7 @@ export default function ParentAccessPage() {
           notifyMilestones,
           schoolName: regSchoolName.trim() || undefined,
           isdName: regIsdName.trim() || undefined,
+          stateCode: regStateCode || undefined,
         }),
       });
       const payload = (await response.json()) as ParentAccessResponse & { error?: string };
@@ -923,6 +926,17 @@ export default function ParentAccessPage() {
                   <div>
                     <label style={labelStyle}>Your name</label>
                     <input onChange={(e) => setRegDisplayName(e.target.value)} placeholder="e.g. Sarah" style={inputStyle} type="text" value={regDisplayName} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>State <span style={{ font: "400 0.7rem system-ui", color: C.muted }}>(optional)</span></label>
+                    <select
+                      value={regStateCode}
+                      onChange={(e) => setRegStateCode(e.target.value)}
+                      style={{ ...inputStyle, background: "rgba(255,255,255,0.05)", color: "#f0f6ff" }}
+                    >
+                      <option value="">Select your state…</option>
+                      {US_STATES.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}
+                    </select>
                   </div>
                   <div style={{ display: "flex", gap: "10px" }}>
                     <div style={{ flex: 1 }}>

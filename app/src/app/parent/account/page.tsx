@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
+import { type CurriculumFramework } from "@/lib/curriculum-frameworks";
 
 // ── Theme tokens ──────────────────────────────────────────────────────────────
 const BASE     = "#100b2e";
@@ -78,6 +79,12 @@ export default function ParentAccountPage() {
   // Session / real data
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
+  const [accountCtx, setAccountCtx] = useState<{
+    stateCode: string | null;
+    schoolName: string | null;
+    isdName: string | null;
+    resolution?: { framework: CurriculumFramework; source: string; sourceLabel: string };
+  } | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   // Editable profile fields
@@ -151,6 +158,16 @@ export default function ParentAccountPage() {
         setSessionError(err instanceof Error ? err.message : "Could not load profile.");
         setLoadingSession(false);
       });
+
+    // Load curriculum/school context (non-blocking)
+    fetch("/api/parent/account-context")
+      .then(async (r) => {
+        if (r.ok) {
+          const ctx = await r.json() as typeof accountCtx;
+          setAccountCtx(ctx);
+        }
+      })
+      .catch(() => { /* ignore */ });
   }, [router]);
 
   // ── Profile save ─────────────────────────────────────────────────────────
@@ -580,6 +597,63 @@ export default function ParentAccountPage() {
                   {profileSaving ? "Saving..." : "Save profile"}
                 </button>
               </div>
+            </div>
+
+            {/* School & Standards card */}
+            <div style={cardStyle}>
+              <div style={cardHead}>School &amp; Curriculum Standards</div>
+              {accountCtx ? (
+                <>
+                  {accountCtx.resolution && accountCtx.stateCode ? (
+                    <div style={{ ...rowStyle }}>
+                      <span style={labelStyle}>Curriculum</span>
+                      <div style={{ flex: 1 }}>
+                        <span style={{
+                          display: "inline-block",
+                          fontWeight: 700,
+                          fontSize: 13,
+                          color: accountCtx.resolution.framework.color,
+                          background: `${accountCtx.resolution.framework.color}18`,
+                          border: `1.5px solid ${accountCtx.resolution.framework.color}35`,
+                          borderRadius: 8,
+                          padding: "3px 10px",
+                        }}>
+                          {accountCtx.resolution.framework.shortName}
+                        </span>
+                        <span style={{ fontSize: 11, color: MUTED, marginLeft: 8 }}>
+                          {accountCtx.resolution.source === "isd"
+                            ? `via ${accountCtx.resolution.sourceLabel}`
+                            : accountCtx.resolution.sourceLabel}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ ...rowStyle }}>
+                      <span style={labelStyle}>Curriculum</span>
+                      <a
+                        href="/parent"
+                        style={{ fontSize: 12, color: VIOLET, fontWeight: 600, textDecoration: "none" }}
+                      >
+                        Add your state to see curriculum alignment →
+                      </a>
+                    </div>
+                  )}
+                  {accountCtx.schoolName && (
+                    <div style={{ ...rowStyle }}>
+                      <span style={labelStyle}>School</span>
+                      <span style={valStyle}>{accountCtx.schoolName}</span>
+                    </div>
+                  )}
+                  {accountCtx.isdName && (
+                    <div style={{ ...rowStyle, borderBottom: "none" }}>
+                      <span style={labelStyle}>ISD / District</span>
+                      <span style={valStyle}>{accountCtx.isdName}</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ fontSize: 13, color: MUTED }}>Loading…</div>
+              )}
             </div>
 
           </div>

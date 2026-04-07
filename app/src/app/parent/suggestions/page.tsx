@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { ChildPicker } from "@/components/child-picker";
 import { getActiveChildId, setActiveChildId } from "@/lib/active-child";
+import { type CurriculumFramework, type FrameworkResolution, getSkillAlignment } from "@/lib/curriculum-frameworks";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -226,12 +227,14 @@ function SkillCard({
   studentId,
   onPush,
   pushing,
+  frameworkCode,
 }: {
   rec: Recommendation;
   childName: string;
   studentId: string;
   onPush: (skillCode: string, studentId: string) => Promise<void>;
   pushing: boolean;
+  frameworkCode?: string | null;
 }) {
   return (
     <div
@@ -273,6 +276,13 @@ function SkillCard({
           >
             {rec.skillName}
           </div>
+          {frameworkCode && getSkillAlignment(rec.skillCode, frameworkCode) && (
+            <div style={{ marginBottom: "4px" }}>
+              <span style={{ font: "500 0.68rem system-ui", color: C.muted }}>
+                📋 {frameworkCode} {getSkillAlignment(rec.skillCode, frameworkCode)}
+              </span>
+            </div>
+          )}
           <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
             {/* Activity type badge */}
             <span
@@ -455,6 +465,8 @@ export default function SuggestionsPage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [localPending, setLocalPending] = useState<PendingPushed[]>([]);
+  const [frameworkResolution, setFrameworkResolution] = useState<FrameworkResolution | null>(null);
+  const framework: CurriculumFramework | null = frameworkResolution?.framework ?? null;
 
   async function fetchSuggestions(childId: string) {
     setLoading(true);
@@ -481,6 +493,17 @@ export default function SuggestionsPage() {
         if (!res.ok) throw new Error("Not authenticated");
         const s = (await res.json()) as ParentSession;
         setSession(s);
+
+        // Load curriculum framework context (non-blocking)
+        fetch("/api/parent/account-context")
+          .then(async (r) => {
+            if (r.ok) {
+              const ctx = (await r.json()) as { resolution?: FrameworkResolution };
+              if (ctx.resolution) setFrameworkResolution(ctx.resolution);
+            }
+          })
+          .catch(() => { /* ignore */ });
+
         const persisted = getActiveChildId();
         const defaultChild = s.linkedChildren.find(c => c.id === persisted) ?? s.linkedChildren[0] ?? (s.linkedChild ?? null);
         const childId = defaultChild?.id;
@@ -651,6 +674,79 @@ export default function SuggestionsPage() {
             )}
           </div>
         </div>
+
+        {/* ── Curriculum framework banner ──────────────────────────────────────── */}
+        {frameworkResolution && frameworkResolution.source !== "national" && (
+          <div
+            style={{
+              background: `${frameworkResolution.framework.color}15`,
+              border: `1px solid ${frameworkResolution.framework.color}30`,
+              borderRadius: 12,
+              padding: "10px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 16,
+              animation: "fadeSlideIn 0.4s ease",
+            }}
+          >
+            <span style={{ fontSize: 18 }}>
+              {frameworkResolution.source === "isd" ? "📍" : "🏛️"}
+            </span>
+            <div>
+              <div style={{ font: "700 0.82rem system-ui", color: frameworkResolution.framework.color }}>
+                <strong>{frameworkResolution.sourceLabel}</strong>
+                {" · "}
+                {frameworkResolution.framework.shortName} Aligned
+              </div>
+              <div style={{ font: "400 0.72rem system-ui", color: "rgba(255,255,255,0.5)" }}>
+                {frameworkResolution.framework.description}
+              </div>
+            </div>
+            <a
+              href={frameworkResolution.framework.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ marginLeft: "auto", font: "600 0.72rem system-ui", color: frameworkResolution.framework.color, textDecoration: "none", flexShrink: 0 }}
+            >
+              View standards ↗
+            </a>
+          </div>
+        )}
+        {frameworkResolution && frameworkResolution.source === "national" && (
+          <div
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.09)",
+              borderRadius: 12,
+              padding: "10px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 16,
+              animation: "fadeSlideIn 0.4s ease",
+            }}
+          >
+            <span style={{ fontSize: 18 }}>🌐</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ font: "700 0.82rem system-ui", color: "rgba(255,255,255,0.55)" }}>
+                <strong>National Standards</strong>
+                {" · "}
+                Common Core Aligned
+              </div>
+              <div style={{ font: "400 0.72rem system-ui", color: "rgba(255,255,255,0.35)" }}>
+                Add your state in{" "}
+                <Link
+                  href="/parent/account"
+                  style={{ color: C.violet, textDecoration: "underline" }}
+                >
+                  Account settings
+                </Link>
+                {" "}to see state-specific alignment →
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Child picker ─────────────────────────────────────────────────────── */}
         {session && session.linkedChildren.length > 1 && (
@@ -862,6 +958,7 @@ export default function SuggestionsPage() {
                           studentId={studentId}
                           onPush={pushSession}
                           pushing={pushing.has(rec.skillCode)}
+                          frameworkCode={framework?.code}
                         />
                       ))}
                     </div>
