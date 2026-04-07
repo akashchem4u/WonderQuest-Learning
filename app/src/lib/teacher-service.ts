@@ -260,7 +260,25 @@ export async function getTeacherClassRoster(teacherId: string): Promise<RosterSt
           where ti.student_id = sp.id
             and ti.teacher_id = $1
             and ti.status = 'active'
-        )                                                              as in_intervention_queue
+        )                                                              as in_intervention_queue,
+        -- Consecutive-day streak: count backwards from the student's most recent
+        -- session date. A streak is still live if they played today or yesterday.
+        coalesce((
+          select count(*)
+          from (
+            select d,
+                   max(d) over ()                                      as latest_d,
+                   (row_number() over (order by d desc) - 1)::int     as rn
+            from (
+              select distinct cs2.started_at::date as d
+              from public.challenge_sessions cs2
+              where cs2.student_id = sp.id
+                and cs2.started_at::date between current_date - 90 and current_date
+            ) days
+          ) ranked
+          where latest_d >= current_date - 1
+            and d = latest_d - rn
+        ), 0)                                                          as streak_days
       from public.teacher_student_roster tsr
       join public.student_profiles sp on sp.id = tsr.student_id
       left join public.progression_states ps on ps.student_id = sp.id
@@ -288,7 +306,7 @@ export async function getTeacherClassRoster(teacherId: string): Promise<RosterSt
     totalPrev7d: Number(row.total_prev_7d),
     lastSessionAt: (row.last_session_at as string | null) ?? null,
     inInterventionQueue: Boolean(row.in_intervention_queue),
-    streak: 0, // TODO: compute from session dates
+    streak: Number(row.streak_days ?? 0),
   }));
 }
 

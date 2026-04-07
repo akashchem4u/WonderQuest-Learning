@@ -1198,8 +1198,8 @@ export default function ParentNotificationsPage() {
               </div>
 
               <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
-                <FilterChip label="All"       active={false} onClick={() => setMainTab("all")} />
-                <FilterChip label="🏅 Badges" count={badgeNotifs.filter((n) => n.unread).length || undefined} active={true}  onClick={() => {}} />
+                <FilterChip label="All"          active={false} onClick={() => { setMainTab("all"); setFilterChip("all"); }} />
+                <FilterChip label="🏅 Badges"    count={badgeNotifs.filter((n) => n.unread).length || undefined} active={true} onClick={() => setMainTab("badges")} />
                 <FilterChip label="⭐ Level-ups" active={false} onClick={() => { setMainTab("all"); setFilterChip("levelups"); }} />
                 <FilterChip label="📊 Reports"   active={false} onClick={() => { setMainTab("all"); setFilterChip("reports");  }} />
               </div>
