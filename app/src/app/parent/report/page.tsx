@@ -189,11 +189,19 @@ function mapReportToUI(report: ApiReport): {
     perfect: s.totalQuestions > 0 && s.correctCount === s.totalQuestions,
   }));
 
-  const heatmapDays: HeatmapDay[] = heatmap.map((h) => ({
-    label: h.dayLabel,
-    sessions: h.sessionCount,
-    active: h.sessionCount > 0,
-  }));
+  const heatmapDays: HeatmapDay[] = heatmap.map((h) => {
+    // Derive label from ISO date string as fallback (guards against serialization issues)
+    const safeLabel = h.dayLabel && !h.dayLabel.includes("Invalid")
+      ? h.dayLabel
+      : h.date
+        ? new Date(h.date + "T12:00:00.000Z").toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" })
+        : "—";
+    return {
+      label: safeLabel,
+      sessions: h.sessionCount,
+      active: h.sessionCount > 0,
+    };
+  });
 
   const activeDays = heatmap.filter((h) => h.sessionCount > 0).length;
   const avgSessionMin = stats.sessions > 0

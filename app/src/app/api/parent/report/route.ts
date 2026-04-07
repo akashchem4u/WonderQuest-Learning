@@ -165,7 +165,8 @@ export async function GET(request: NextRequest) {
             select generate_series($2::date, $3::date, interval '1 day')::date as day
           )
           select
-            dw.day,
+            to_char(dw.day, 'YYYY-MM-DD') as day,
+            to_char(dw.day, 'Dy') as day_label,
             coalesce(count(distinct cs.id), 0) as session_count
           from day_window dw
           left join public.challenge_sessions cs
@@ -254,11 +255,8 @@ export async function GET(request: NextRequest) {
       }),
       sessionLog: sessions,
       heatmap: heatmap.rows.map((row) => ({
-        dayLabel: new Date(`${String(row.day)}T00:00:00.000Z`).toLocaleDateString(
-          "en-US",
-          { weekday: "short", timeZone: "UTC" },
-        ),
-        date: String(row.day).slice(0, 10),
+        dayLabel: String(row.day_label ?? ""),
+        date: String(row.day ?? "").slice(0, 10),
         sessionCount: Number(row.session_count ?? 0),
       })),
     };
