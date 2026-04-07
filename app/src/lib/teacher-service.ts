@@ -154,6 +154,9 @@ export type RosterStudent = {
   sessionsLast7d: number;
   correctLast7d: number;
   totalLast7d: number;
+  sessionsPrev7d: number;
+  correctPrev7d: number;
+  totalPrev7d: number;
   lastSessionAt: string | null;
   inInterventionQueue: boolean;
   streak: number;
@@ -233,6 +236,24 @@ export async function getTeacherClassRoster(teacherId: string): Promise<RosterSt
           (select count(*)
            from public.session_results sr where sr.session_id = cs.id)
         ) filter (where cs.started_at >= now() - interval '7 days'), 0) as total_last_7d,
+        count(cs.id) filter (
+          where cs.started_at >= now() - interval '14 days'
+            and cs.started_at < now() - interval '7 days'
+        )                                                              as sessions_prev_7d,
+        coalesce(sum(
+          (select count(*) filter (where sr.correct)
+           from public.session_results sr where sr.session_id = cs.id)
+        ) filter (
+          where cs.started_at >= now() - interval '14 days'
+            and cs.started_at < now() - interval '7 days'
+        ), 0)                                                          as correct_prev_7d,
+        coalesce(sum(
+          (select count(*)
+           from public.session_results sr where sr.session_id = cs.id)
+        ) filter (
+          where cs.started_at >= now() - interval '14 days'
+            and cs.started_at < now() - interval '7 days'
+        ), 0)                                                          as total_prev_7d,
         max(cs.started_at)                                             as last_session_at,
         exists(
           select 1 from public.teacher_interventions ti
@@ -262,6 +283,9 @@ export async function getTeacherClassRoster(teacherId: string): Promise<RosterSt
     sessionsLast7d: Number(row.sessions_last_7d),
     correctLast7d: Number(row.correct_last_7d),
     totalLast7d: Number(row.total_last_7d),
+    sessionsPrev7d: Number(row.sessions_prev_7d),
+    correctPrev7d: Number(row.correct_prev_7d),
+    totalPrev7d: Number(row.total_prev_7d),
     lastSessionAt: (row.last_session_at as string | null) ?? null,
     inInterventionQueue: Boolean(row.in_intervention_queue),
     streak: 0, // TODO: compute from session dates

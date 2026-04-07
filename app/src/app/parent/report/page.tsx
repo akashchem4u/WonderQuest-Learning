@@ -505,6 +505,19 @@ function BarChart({ heatmap }: { heatmap: HeatmapDay[] }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+type DigestHighlights = {
+  sessions: number;
+  accuracy: number | null;
+  milestones: string[];
+  topSkills: string[];
+  growthAreas: string[];
+};
+
+type WeeklyDigest = {
+  narrative: string;
+  highlights: DigestHighlights;
+};
+
 function ParentWeeklyReportPageInner() {
   const [tab, setTab] = useState<Tab>("full");
   const [weekOffset, setWeekOffset] = useState(0);
@@ -512,6 +525,8 @@ function ParentWeeklyReportPageInner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<ParentSession | null>(null);
+  const [digest, setDigest] = useState<WeeklyDigest | null>(null);
+  const [digestLoading, setDigestLoading] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -539,7 +554,11 @@ function ParentWeeklyReportPageInner() {
     setLoading(true);
     setError(null);
 
-    fetch(`/api/parent/report?studentId=${encodeURIComponent(studentId)}&weekOffset=${weekOffset}`)
+    // Fetch report and digest in parallel
+    setDigestLoading(true);
+    setDigest(null);
+
+    const reportFetch = fetch(`/api/parent/report?studentId=${encodeURIComponent(studentId)}&weekOffset=${weekOffset}`)
       .then(async (res) => {
         if (res.status === 401) throw new Error("Session expired. Please sign in again.");
         if (!res.ok) {
@@ -547,7 +566,13 @@ function ParentWeeklyReportPageInner() {
           throw new Error((body as { error?: string }).error ?? "Failed to load report.");
         }
         return res.json() as Promise<{ report: ApiReport }>;
-      })
+      });
+
+    const digestFetch = fetch(`/api/parent/weekly-digest?studentId=${encodeURIComponent(studentId)}&weekOffset=${weekOffset}`)
+      .then((res) => (res.ok ? res.json() as Promise<WeeklyDigest> : null))
+      .catch(() => null);
+
+    reportFetch
       .then(({ report: r }) => {
         setReport(r);
         setLoading(false);
@@ -556,6 +581,10 @@ function ParentWeeklyReportPageInner() {
         setError(err instanceof Error ? err.message : "Failed to load report.");
         setLoading(false);
       });
+
+    digestFetch
+      .then((d) => { setDigest(d); setDigestLoading(false); })
+      .catch(() => setDigestLoading(false));
   }, [weekOffset, searchParams]);
 
   const TABS: { id: Tab; label: string }[] = [
@@ -818,6 +847,87 @@ function ParentWeeklyReportPageInner() {
                   </div>
                 </div>
               </div>
+
+              {/* ── AI Weekly Digest ─────────────────────────────────────────────── */}
+              {(digestLoading || digest) && (
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, rgba(155,114,255,0.08) 0%, rgba(56,189,248,0.06) 100%)",
+                    border: "1px solid rgba(155,114,255,0.2)",
+                    borderRadius: "16px",
+                    padding: "20px 24px",
+                    marginBottom: "20px",
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* Decorative gradient blob */}
+                  <div style={{
+                    position: "absolute", top: -20, right: -20, width: 120, height: 120,
+                    borderRadius: "50%", background: "rgba(155,114,255,0.08)", pointerEvents: "none",
+                  }} />
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    <div style={{
+                      fontSize: 22, flexShrink: 0, marginTop: 2,
+                      background: "rgba(155,114,255,0.15)", borderRadius: "50%",
+                      width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      🤖
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontSize: "0.7rem", fontWeight: 700, color: "#9b72ff",
+                        textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6,
+                      }}>
+                        AI Learning Story
+                      </div>
+                      {digestLoading && !digest ? (
+                        <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.4)", fontStyle: "italic" }}>
+                          Generating your personalised summary…
+                        </div>
+                      ) : digest ? (
+                        <>
+                          <p style={{ margin: "0 0 12px", fontSize: "0.9rem", color: "rgba(255,255,255,0.85)", lineHeight: 1.65 }}>
+                            {digest.narrative}
+                          </p>
+                          {/* Highlight pills */}
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            {digest.highlights.milestones.map((m) => (
+                              <span key={m} style={{
+                                fontSize: "0.72rem", fontWeight: 700, padding: "3px 10px",
+                                borderRadius: 20, background: "rgba(34,197,94,0.15)",
+                                border: "1px solid rgba(34,197,94,0.3)", color: "#22c55e",
+                              }}>
+                                🏅 Mastered: {m}
+                              </span>
+                            ))}
+                            {digest.highlights.topSkills.filter(
+                              (s) => !digest.highlights.milestones.includes(s),
+                            ).slice(0, 2).map((s) => (
+                              <span key={s} style={{
+                                fontSize: "0.72rem", padding: "3px 10px", borderRadius: 20,
+                                background: "rgba(155,114,255,0.1)",
+                                border: "1px solid rgba(155,114,255,0.2)", color: "#c4a8ff",
+                              }}>
+                                📖 {s}
+                              </span>
+                            ))}
+                            {digest.highlights.growthAreas.slice(0, 1).map((g) => (
+                              <span key={g} style={{
+                                fontSize: "0.72rem", padding: "3px 10px", borderRadius: 20,
+                                background: "rgba(255,209,102,0.1)",
+                                border: "1px solid rgba(255,209,102,0.2)", color: "#ffd166",
+                              }}>
+                                💪 Growing: {g}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* ── Tab bar ────────────────────────────────────────────────────────── */}
               <div

@@ -31,6 +31,9 @@ interface Student {
   sessionsLast7d: number;
   correctLast7d: number;
   totalLast7d: number;
+  sessionsPrev7d?: number;
+  correctPrev7d?: number;
+  totalPrev7d?: number;
   lastSessionAt: string | null;
   inInterventionQueue: boolean;
   streak: number;

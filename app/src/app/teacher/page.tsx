@@ -87,9 +87,35 @@ interface RosterStudent {
   sessionsLast7d: number;
   correctLast7d: number;
   totalLast7d: number;
+  sessionsPrev7d?: number;
+  correctPrev7d?: number;
+  totalPrev7d?: number;
   lastSessionAt: string | null;
   inInterventionQueue: boolean;
   streak: number;
+}
+
+function velocityInfo(s: RosterStudent): { icon: string; label: string; color: string } {
+  const sessions7 = s.sessionsLast7d;
+  const sessionsPrev = s.sessionsPrev7d ?? 0;
+  const acc7 = s.totalLast7d > 0 ? s.correctLast7d / s.totalLast7d : null;
+  const accPrev = (s.totalPrev7d ?? 0) > 0 ? (s.correctPrev7d ?? 0) / (s.totalPrev7d ?? 1) : null;
+
+  if (sessions7 === 0 && sessionsPrev === 0) return { icon: "—", label: "No activity", color: "#8b949e" };
+  if (sessions7 === 0) return { icon: "⏸", label: "Paused this week", color: "#f59e0b" };
+
+  // Determine trend from session frequency
+  const sessionDelta = sessions7 - sessionsPrev;
+  // Also factor in accuracy change
+  const accDelta = acc7 !== null && accPrev !== null ? acc7 - accPrev : 0;
+
+  if (sessionDelta >= 2 || (sessionDelta >= 0 && accDelta > 0.05)) {
+    return { icon: "↑", label: "Accelerating", color: "#22c55e" };
+  }
+  if (sessionDelta <= -2 || (sessionDelta < 0 && accDelta < -0.05)) {
+    return { icon: "↓", label: "Slowing down", color: "#f59e0b" };
+  }
+  return { icon: "→", label: "Steady", color: "#38bdf8" };
 }
 
 interface Intervention {
@@ -926,6 +952,7 @@ export default function TeacherPage() {
               const isInQueue = s.inInterventionQueue;
               const isActive = s.lastSessionAt && now - new Date(s.lastSessionAt).getTime() < oneDayMs;
               const status = isInQueue ? "Support" : isActive ? "Active" : "Idle";
+              const velocity = velocityInfo(s);
               return (
                 <div key={s.studentId} style={{
                   display: "flex",
@@ -944,6 +971,11 @@ export default function TeacherPage() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.displayName}</div>
                     <div style={{ fontSize: 11, color: C.muted }}>{bandLabel(s.launchBandCode)}</div>
                   </div>
+                  {/* Velocity trend */}
+                  <span title={velocity.label} style={{
+                    fontSize: 12, fontWeight: 700, color: velocity.color,
+                    minWidth: 18, textAlign: "center",
+                  }}>{velocity.icon}</span>
                   <span style={{
                     fontSize: 10,
                     fontWeight: 700,
