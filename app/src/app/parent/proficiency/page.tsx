@@ -2,8 +2,20 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { ChildPicker } from "@/components/child-picker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+type LinkedChild = {
+  id: string;
+  displayName: string;
+  avatarKey: string;
+  launchBandCode: string;
+};
+
+type ParentSession = {
+  linkedChildren: LinkedChild[];
+};
 
 type SkillSummaryItem = {
   skillCode: string;
@@ -339,9 +351,13 @@ export default function ProficiencyPage() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [session, setSession] = useState<ParentSession | null>(null);
+  const [activeChildId, setActiveChildId] = useState<string>("");
 
-  useEffect(() => {
-    fetch("/api/parent/skill-proficiency")
+  function fetchProficiency(childId: string) {
+    setLoading(true);
+    setData(null);
+    fetch(`/api/parent/skill-proficiency?childId=${encodeURIComponent(childId)}`)
       .then((r) => r.json())
       .then((json: ApiResponse) => {
         if (json.error) {
@@ -352,6 +368,34 @@ export default function ProficiencyPage() {
       })
       .catch(() => setError("Failed to load proficiency data."))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    // Load session to get children list, then fetch proficiency for first child
+    fetch("/api/parent/session")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Not authenticated"))))
+      .then((s: ParentSession) => {
+        setSession(s);
+        const firstId = s.linkedChildren[0]?.id ?? "";
+        if (firstId) {
+          setActiveChildId(firstId);
+          fetchProficiency(firstId);
+        } else {
+          setError("No child linked yet.");
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        // Fallback: try without childId (API picks first linked child)
+        fetch("/api/parent/skill-proficiency")
+          .then((r) => r.json())
+          .then((json: ApiResponse) => {
+            if (json.error) setError(json.error);
+            else setData(json);
+          })
+          .catch(() => setError("Failed to load proficiency data."))
+          .finally(() => setLoading(false));
+      });
   }, []);
 
   const containerStyle: React.CSSProperties = {
@@ -495,6 +539,20 @@ export default function ProficiencyPage() {
           </div>
         </div>
       </div>
+
+      {/* Child picker */}
+      {session && session.linkedChildren.length > 1 && (
+        <div style={{ padding: "16px 24px 0" }}>
+          <ChildPicker
+            children={session.linkedChildren}
+            activeChildId={activeChildId}
+            onSelect={(id) => {
+              setActiveChildId(id);
+              fetchProficiency(id);
+            }}
+          />
+        </div>
+      )}
 
       {/* Content */}
       <div style={{ padding: "24px 20px", maxWidth: 720, margin: "0 auto" }}>

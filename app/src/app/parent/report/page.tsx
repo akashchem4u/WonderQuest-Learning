@@ -2,12 +2,24 @@
 
 import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
+import { ChildPicker } from "@/components/child-picker";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Tab = "full" | "skills" | "habits" | "suggestions";
+
+type LinkedChild = {
+  id: string;
+  displayName: string;
+  avatarKey: string;
+  launchBandCode: string;
+};
+
+type ParentSession = {
+  linkedChildren: LinkedChild[];
+};
 
 type StatTileData = {
   label: string;
@@ -498,7 +510,17 @@ function ParentWeeklyReportPageInner() {
   const [report, setReport] = useState<ApiReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [session, setSession] = useState<ParentSession | null>(null);
   const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Load parent session to get list of children
+  useEffect(() => {
+    fetch("/api/parent/session")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Not authenticated"))))
+      .then((s: ParentSession) => setSession(s))
+      .catch(() => {/* non-fatal, picker just won't show */});
+  }, []);
 
   useEffect(() => {
     const studentId =
@@ -599,6 +621,17 @@ function ParentWeeklyReportPageInner() {
               Practice Tips →
             </Link>
           </div>
+
+          {/* ── Child picker ──────────────────────────────────────────────── */}
+          {session && session.linkedChildren.length > 1 && (
+            <ChildPicker
+              children={session.linkedChildren}
+              activeChildId={searchParams.get("studentId") ?? session.linkedChildren[0]?.id ?? ""}
+              onSelect={(childId) => {
+                router.push(`/parent/report?studentId=${childId}`);
+              }}
+            />
+          )}
 
           {/* Loading state */}
           {loading && (

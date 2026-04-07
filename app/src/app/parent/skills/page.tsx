@@ -3,8 +3,20 @@
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { ChildPicker } from "@/components/child-picker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+type LinkedChild = {
+  id: string;
+  displayName: string;
+  avatarKey: string;
+  launchBandCode: string;
+};
+
+type ParentSession = {
+  linkedChildren: LinkedChild[];
+};
 
 type SkillProgress = {
   skillCode: string;
@@ -257,20 +269,12 @@ export default function ParentSkillsPage() {
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("mastery-desc");
+  const [session, setSession] = useState<ParentSession | null>(null);
+  const [activeChildId, setActiveChildId] = useState<string>("");
 
-  useEffect(() => {
-    const studentId =
-      typeof window !== "undefined"
-        ? (new URLSearchParams(window.location.search).get("studentId") ??
-            localStorage.getItem("wq_active_student_id"))
-        : null;
-
-    if (!studentId) {
-      setError("No child selected. Please go back to Family Hub and select a child.");
-      setLoading(false);
-      return;
-    }
-
+  function fetchSkills(studentId: string) {
+    setLoading(true);
+    setSkills([]);
     fetch(`/api/parent/skills?studentId=${encodeURIComponent(studentId)}`)
       .then(async (res) => {
         if (res.status === 401) throw new Error("Session expired. Please sign in again.");
@@ -282,7 +286,6 @@ export default function ParentSkillsPage() {
         return res.json() as Promise<{ skills: any[] }>;
       })
       .then(({ skills: raw }) => {
-        // Normalise API field names → page type
         const mapped: SkillProgress[] = (raw ?? []).map((s) => ({
           skillCode: String(s.skillCode ?? ""),
           skillName: String(s.displayName ?? s.skillName ?? ""),
@@ -300,7 +303,49 @@ export default function ParentSkillsPage() {
         setError(err instanceof Error ? err.message : "Failed to load skills.");
         setLoading(false);
       });
+  }
+
+  useEffect(() => {
+    // Load session to get children, then pick the active child
+    fetch("/api/parent/session")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Not authenticated"))))
+      .then((s: ParentSession) => {
+        setSession(s);
+        const urlStudentId =
+          typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("studentId")
+            : null;
+        const studentId =
+          urlStudentId ??
+          (typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null) ??
+          s.linkedChildren[0]?.id ??
+          null;
+
+        if (!studentId) {
+          setError("No child selected. Please go back to Family Hub and select a child.");
+          setLoading(false);
+          return;
+        }
+        setActiveChildId(studentId);
+        fetchSkills(studentId);
+      })
+      .catch(() => {
+        // Fallback to old behavior if session fetch fails
+        const studentId =
+          typeof window !== "undefined"
+            ? (new URLSearchParams(window.location.search).get("studentId") ??
+                localStorage.getItem("wq_active_student_id"))
+            : null;
+
+        if (!studentId) {
+          setError("No child selected. Please go back to Family Hub and select a child.");
+          setLoading(false);
+          return;
+        }
+        fetchSkills(studentId);
+      });
   }, []);
+
 
   // ── Derived counts ──
   const masteredCount   = skills.filter((s) => skillStatus(s.masteryPct, s.totalCount) === "Mastered").length;
@@ -400,6 +445,18 @@ export default function ParentSkillsPage() {
               🏆 Milestones
             </Link>
           </div>
+
+          {/* ── Child picker ── */}
+          {session && session.linkedChildren.length > 1 && (
+            <ChildPicker
+              children={session.linkedChildren}
+              activeChildId={activeChildId}
+              onSelect={(id) => {
+                setActiveChildId(id);
+                fetchSkills(id);
+              }}
+            />
+          )}
 
           {/* ── Header + summary ── */}
           <div style={{ marginBottom: "20px" }}>

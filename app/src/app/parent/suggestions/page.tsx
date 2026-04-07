@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { ChildPicker } from "@/components/child-picker";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -445,6 +446,7 @@ function ToastNotification({ toasts, dismiss }: { toasts: Toast[]; dismiss: (id:
 
 export default function SuggestionsPage() {
   const [session, setSession] = useState<ParentSession | null>(null);
+  const [activeChildId, setActiveChildId] = useState<string>("");
   const [data, setData] = useState<SuggestionsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -453,7 +455,24 @@ export default function SuggestionsPage() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [localPending, setLocalPending] = useState<PendingPushed[]>([]);
 
-  // Load child name from session; load suggestions when session is ready
+  async function fetchSuggestions(childId: string) {
+    setLoading(true);
+    setData(null);
+    setLocalPending([]);
+    try {
+      const sugRes = await fetch(`/api/parent/suggested-sessions?studentId=${childId}`);
+      if (!sugRes.ok) throw new Error("Could not load suggestions");
+      const sugData = (await sugRes.json()) as SuggestionsResponse;
+      setData(sugData);
+      setLocalPending(sugData.pendingPushed ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Load session then fetch suggestions for the first child
   useEffect(() => {
     async function load() {
       try {
@@ -461,20 +480,16 @@ export default function SuggestionsPage() {
         if (!res.ok) throw new Error("Not authenticated");
         const s = (await res.json()) as ParentSession;
         setSession(s);
-        const childId = s.linkedChild?.id ?? s.linkedChildren[0]?.id;
+        const childId = s.linkedChildren[0]?.id ?? s.linkedChild?.id;
         if (!childId) {
           setError("No child linked yet. Add a child from the Family Hub.");
           setLoading(false);
           return;
         }
-        const sugRes = await fetch(`/api/parent/suggested-sessions?studentId=${childId}`);
-        if (!sugRes.ok) throw new Error("Could not load suggestions");
-        const sugData = (await sugRes.json()) as SuggestionsResponse;
-        setData(sugData);
-        setLocalPending(sugData.pendingPushed ?? []);
+        setActiveChildId(childId);
+        await fetchSuggestions(childId);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
-      } finally {
         setLoading(false);
       }
     }
@@ -508,7 +523,7 @@ export default function SuggestionsPage() {
         }
         const result = (await res.json()) as { activityId?: string };
         const childName =
-          session?.linkedChild?.displayName ??
+          session?.linkedChildren.find((c) => c.id === activeChildId)?.displayName ??
           session?.linkedChildren[0]?.displayName ??
           "your child";
         addToast(`Pushed! ${childName} will see this next session`, "success");
@@ -531,7 +546,7 @@ export default function SuggestionsPage() {
         });
       }
     },
-    [session, addToast]
+    [session, activeChildId, addToast]
   );
 
   function toggleSection(key: string) {
@@ -547,7 +562,10 @@ export default function SuggestionsPage() {
     setLocalPending((prev) => prev.filter((p) => p.activityId !== activityId));
   }
 
-  const activeChild = session?.linkedChild ?? session?.linkedChildren[0] ?? null;
+  const activeChild =
+    session?.linkedChildren.find((c) => c.id === activeChildId) ??
+    session?.linkedChildren[0] ??
+    null;
   const childName = activeChild?.displayName ?? "your child";
   const studentId = activeChild?.id ?? "";
 
@@ -629,6 +647,18 @@ export default function SuggestionsPage() {
             )}
           </div>
         </div>
+
+        {/* ── Child picker ─────────────────────────────────────────────────────── */}
+        {session && session.linkedChildren.length > 1 && (
+          <ChildPicker
+            children={session.linkedChildren}
+            activeChildId={activeChildId}
+            onSelect={(id) => {
+              setActiveChildId(id);
+              void fetchSuggestions(id);
+            }}
+          />
+        )}
 
         {/* ── Error state ─────────────────────────────────────────────────────── */}
         {error && (
