@@ -18,6 +18,7 @@ const sectionNav = {
   teacher: [
     { href: "/teacher",               label: "Dashboard",      icon: "🏠" },
     { href: "/teacher/class-health",  label: "Class Health",   icon: "💚" },
+    { href: "/teacher/ai-coach",      label: "AI Coach",       icon: "🤖" },
     { href: "/teacher/intervention-overview", label: "Interventions", icon: "🎯" },
     { href: "/teacher/recent-wins",   label: "Recent Wins",    icon: "🌟" },
     { href: "/teacher/band-coverage", label: "Band Coverage",  icon: "📐" },

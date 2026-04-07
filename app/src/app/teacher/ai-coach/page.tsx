@@ -1,31 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 const C = {
   base: "#100b2e",
-  blue: "#38bdf8",
+  surface: "#161b22",
+  border: "rgba(255,255,255,0.06)",
   violet: "#9b72ff",
   mint: "#22c55e",
   gold: "#ffd166",
   amber: "#f59e0b",
+  coral: "#ff7b6b",
+  blue: "#38bdf8",
   text: "#f0f6ff",
   muted: "#8b949e",
-  surface: "#161b22",
-  border: "rgba(255,255,255,0.06)",
-  red: "#ff7b6b",
+  urgent: "#ef4444",
 };
+
+type Archetype = "advanced" | "on-track" | "developing" | "foundational";
 
 interface AiSuggestion {
   studentId: string;
   displayName: string;
   bandCode: string;
-  archetype: "advanced" | "on-track" | "developing" | "foundational";
+  archetype: Archetype;
   focusSkill: string;
   focusSkillName: string;
   reason: string;
@@ -34,249 +35,287 @@ interface AiSuggestion {
   priority: "urgent" | "normal";
 }
 
-function archetypeInfo(archetype: AiSuggestion["archetype"]) {
-  switch (archetype) {
-    case "advanced": return { emoji: "🚀", label: "Advanced", color: C.mint };
-    case "on-track": return { emoji: "✅", label: "On Track", color: C.blue };
-    case "developing": return { emoji: "📈", label: "Developing", color: C.gold };
-    case "foundational": return { emoji: "🌱", label: "Foundational", color: C.amber };
-  }
-}
+const ARCHETYPE_LABELS: Record<Archetype, string> = {
+  advanced: "Advanced",
+  "on-track": "On Track",
+  developing: "Developing",
+  foundational: "Foundational",
+};
+
+const ARCHETYPE_COLORS: Record<Archetype, string> = {
+  advanced: C.mint,
+  "on-track": C.blue,
+  developing: C.amber,
+  foundational: C.coral,
+};
+
+const BAND_LABELS: Record<string, string> = {
+  PREK: "Pre-K", P0: "Pre-K", K1: "K–1", P1: "K–1",
+  G23: "G2–3", P2: "G2–3", G45: "G4–5", P3: "G4–5",
+};
 
 export default function AiCoachPage() {
-  const router = useRouter();
   const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pushing, setPushing] = useState(false);
-  const [pushed, setPushed] = useState<number | null>(null);
-  const [isVirtual, setIsVirtual] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pushing, setPushing] = useState<Set<string>>(new Set());
+  const [pushed, setPushed] = useState<Set<string>>(new Set());
+  const [pushAllBusy, setPushAllBusy] = useState(false);
+  const [pushAllResult, setPushAllResult] = useState<string | null>(null);
 
-  useEffect(() => {
-    setAuthed(!!getTeacherId());
+  const fetchSuggestions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/teacher/ai-suggestions");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as { suggestions: AiSuggestion[] };
+      setSuggestions(data.suggestions ?? []);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => {
-    if (!authed) return;
-    Promise.all([
-      fetch("/api/teacher/ai-suggestions").then((r) => r.ok ? r.json() : { suggestions: [] }),
-      fetch("/api/teacher/has-virtual-class").then((r) => r.ok ? r.json() : { isVirtual: false }),
-    ])
-      .then(([sData, vData]) => {
-        setSuggestions((sData as { suggestions: AiSuggestion[] }).suggestions ?? []);
-        setIsVirtual((vData as { isVirtual?: boolean }).isVirtual ?? false);
-      })
-      .catch(() => {/* ignore */})
-      .finally(() => setLoading(false));
-  }, [authed]);
+  useEffect(() => { if (authed) fetchSuggestions(); }, [authed, fetchSuggestions]);
 
-  async function handlePushAll() {
-    setPushing(true);
+  async function pushSession(s: AiSuggestion) {
+    setPushing((prev) => new Set(prev).add(s.studentId));
     try {
-      const res = await fetch("/api/teacher/ai-push-sessions", { method: "POST" });
-      if (res.ok) {
-        const data = await res.json() as { pushed: number; suggestions: AiSuggestion[] };
-        setPushed(data.pushed);
-        setSuggestions(data.suggestions ?? []);
-      }
-    } finally {
-      setPushing(false);
+      await fetch("/api/teacher/ai-push-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentIds: [s.studentId] }),
+      });
+      setPushed((prev) => new Set(prev).add(s.studentId));
+    } catch { /* ignore */ } finally {
+      setPushing((prev) => { const n = new Set(prev); n.delete(s.studentId); return n; });
     }
   }
 
-  async function handlePushOne(s: AiSuggestion) {
-    setPushing(true);
+  async function pushAll() {
+    setPushAllBusy(true);
+    setPushAllResult(null);
     try {
       const res = await fetch("/api/teacher/ai-push-sessions", { method: "POST" });
-      if (res.ok) {
-        const data = await res.json() as { pushed: number; suggestions: AiSuggestion[] };
-        setPushed(data.pushed);
-        setSuggestions(data.suggestions ?? []);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as { pushed: number };
+      setPushAllResult(`${data.pushed} session${data.pushed !== 1 ? "s" : ""} queued for your students`);
+      setPushed(new Set(suggestions.map((s) => s.studentId)));
+    } catch {
+      setPushAllResult("Could not push sessions — please try again");
     } finally {
-      setPushing(false);
+      setPushAllBusy(false);
     }
   }
 
   if (!authed) {
     return (
       <AppFrame audience="teacher" currentPath="/teacher/ai-coach">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
           <TeacherGate configured={true} />
         </div>
       </AppFrame>
     );
   }
 
+  const urgentCount = suggestions.filter((s) => s.priority === "urgent").length;
+  const archetypeCounts: Record<Archetype, number> = { advanced: 0, "on-track": 0, developing: 0, foundational: 0 };
+  for (const s of suggestions) archetypeCounts[s.archetype]++;
+
   return (
     <AppFrame audience="teacher" currentPath="/teacher/ai-coach">
-      <div style={{ fontFamily: "system-ui,-apple-system,sans-serif", color: C.text, minHeight: "100vh", padding: "24px 28px" }}>
+      <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px" }}>
+
         {/* Header */}
-        <div style={{ marginBottom: 6 }}>
-          <Link href="/teacher" style={{ fontSize: 12, color: C.muted, textDecoration: "none", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 10 }}>
-            ← Teacher Dashboard
-          </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
             <div>
-              <h1 style={{ fontSize: 22, fontWeight: 900, color: C.text, margin: 0 }}>🤖 AI Learning Coach</h1>
-              <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
-                Adaptive curriculum recommendations for your classroom
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.text }}>
+                🤖 AI Learning Coach
+              </h1>
+              <p style={{ margin: "6px 0 0", fontSize: 14, color: C.muted }}>
+                Personalized next-step recommendations for every student, based on their current mastery and curriculum alignment.
               </p>
             </div>
-            {isVirtual && (
-              <span style={{
-                fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20,
-                background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)",
-                color: C.amber,
-              }}>
-                🎭 Demo Mode
-              </span>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <button
+                onClick={fetchSuggestions}
+                disabled={loading}
+                style={{
+                  padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`,
+                  background: "transparent", color: C.muted, fontSize: 13, cursor: loading ? "default" : "pointer",
+                }}
+              >
+                ↻ Refresh
+              </button>
+              <button
+                onClick={pushAll}
+                disabled={pushAllBusy || suggestions.length === 0}
+                style={{
+                  padding: "8px 18px", borderRadius: 8, border: "none",
+                  background: pushAllBusy ? "rgba(155,114,255,0.4)" : C.violet,
+                  color: "#fff", fontSize: 13, fontWeight: 600,
+                  cursor: (pushAllBusy || suggestions.length === 0) ? "default" : "pointer",
+                  opacity: suggestions.length === 0 ? 0.4 : 1,
+                }}
+              >
+                {pushAllBusy ? "Queuing…" : "Push All Sessions →"}
+              </button>
+            </div>
+          </div>
+          {pushAllResult && (
+            <div style={{
+              marginTop: 12, padding: "10px 16px", borderRadius: 8,
+              background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)",
+              color: C.mint, fontSize: 13,
+            }}>
+              ✓ {pushAllResult}
+            </div>
+          )}
+        </div>
+
+        {/* Summary bar */}
+        {!loading && suggestions.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, marginBottom: 28 }}>
+            {urgentCount > 0 && (
+              <div style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: C.urgent }}>{urgentCount}</div>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Need urgent support</div>
+              </div>
             )}
-          </div>
-        </div>
-
-        {/* Demo mode banner */}
-        {isVirtual && (
-          <div style={{
-            background: "rgba(245,158,11,0.10)",
-            border: "1px solid rgba(245,158,11,0.3)",
-            borderRadius: 12,
-            padding: "12px 16px",
-            marginBottom: 20,
-            fontSize: 13,
-            color: C.text,
-          }}>
-            You are viewing a <strong style={{ color: C.amber }}>virtual demo classroom</strong>. These suggestions are generated from simulated mastery data. Push sessions to see how the AI coaching flow works end-to-end.
-          </div>
-        )}
-
-        {/* Push All button + status */}
-        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
-          <button
-            onClick={handlePushAll}
-            disabled={pushing || loading}
-            style={{
-              padding: "12px 24px", borderRadius: 12, background: C.violet, color: "#fff",
-              font: "700 0.9rem system-ui", border: "none",
-              cursor: (pushing || loading) ? "not-allowed" : "pointer",
-              opacity: (pushing || loading) ? 0.7 : 1,
-            }}
-          >
-            {pushing ? "Analyzing & pushing…" : "Push All →"}
-          </button>
-          <span style={{ fontSize: 12, color: C.muted }}>
-            Pushes the top-priority skill session for each student who needs it
-          </span>
-        </div>
-
-        {pushed !== null && (
-          <div style={{
-            background: C.mint + "15", border: `1px solid ${C.mint}44`,
-            borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 700,
-            color: C.mint, marginBottom: 20,
-          }}>
-            {pushed === 0
-              ? "All sessions already queued — no new pushes needed."
-              : `${pushed} session${pushed !== 1 ? "s" : ""} successfully pushed to students.`}
+            {(["advanced", "on-track", "developing", "foundational"] as Archetype[]).map((arch) =>
+              archetypeCounts[arch] > 0 ? (
+                <div key={arch} style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: ARCHETYPE_COLORS[arch] }}>{archetypeCounts[arch]}</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{ARCHETYPE_LABELS[arch]}</div>
+                </div>
+              ) : null,
+            )}
           </div>
         )}
 
         {/* Loading */}
         {loading && (
-          <div style={{ fontSize: 13, color: C.muted, padding: "20px 0" }}>
-            Analyzing student mastery data…
+          <div style={{ textAlign: "center", padding: "60px 24px", color: C.muted }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🧠</div>
+            <div style={{ fontSize: 15 }}>Analyzing your classroom…</div>
           </div>
         )}
 
-        {/* Suggestion cards */}
-        {!loading && suggestions.length === 0 && (
-          <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: 14, padding: "32px", textAlign: "center",
-          }}>
-            <div style={{ fontSize: 13, color: C.muted }}>
-              No students in your roster yet. Add students or create a demo classroom to see AI suggestions.
+        {/* Error */}
+        {!loading && error && (
+          <div style={{ padding: "20px", borderRadius: 10, background: "rgba(255,123,107,0.08)", border: "1px solid rgba(255,123,107,0.2)", color: C.coral, fontSize: 14 }}>
+            Could not load suggestions. {error}
+          </div>
+        )}
+
+        {/* Empty */}
+        {!loading && !error && suggestions.length === 0 && (
+          <div style={{ textAlign: "center", padding: "60px 24px", borderRadius: 12, background: "rgba(155,114,255,0.05)", border: "1px solid rgba(155,114,255,0.15)" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🎓</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 8 }}>No students to coach yet</div>
+            <div style={{ fontSize: 14, color: C.muted, maxWidth: 380, margin: "0 auto" }}>
+              Add students to your roster or set up a demo classroom from the dashboard to see AI coaching suggestions.
             </div>
           </div>
         )}
 
-        <div style={{ display: "grid", gap: 12 }}>
-          {suggestions.map((s) => {
-            const { emoji, label, color } = archetypeInfo(s.archetype);
-            return (
-              <div key={s.studentId} style={{
-                background: C.surface,
-                border: `1px solid ${s.priority === "urgent" ? C.red + "44" : C.border}`,
-                borderRadius: 14,
-                padding: "18px 20px",
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 16,
-              }}>
-                {/* Archetype icon */}
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                  background: color + "22",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 22,
+        {/* Student cards */}
+        {!loading && !error && suggestions.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {suggestions.map((s) => {
+              const isPushed = pushed.has(s.studentId);
+              const isBusy = pushing.has(s.studentId);
+              const archetypeColor = ARCHETYPE_COLORS[s.archetype];
+
+              return (
+                <div key={s.studentId} style={{
+                  padding: "18px 20px", borderRadius: 12,
+                  background: s.priority === "urgent" ? "rgba(239,68,68,0.05)" : C.surface,
+                  border: `1px solid ${s.priority === "urgent" ? "rgba(239,68,68,0.25)" : C.border}`,
+                  display: "flex", gap: 16, alignItems: "flex-start",
                 }}>
-                  {emoji}
+                  {/* Avatar */}
+                  <div style={{
+                    width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
+                    background: `${archetypeColor}22`, border: `2px solid ${archetypeColor}44`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 16, fontWeight: 700, color: archetypeColor,
+                  }}>
+                    {s.displayName.charAt(0).toUpperCase()}
+                  </div>
+
+                  {/* Body */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Name row */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                      <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{s.displayName}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: `${archetypeColor}22`, color: archetypeColor, border: `1px solid ${archetypeColor}44` }}>
+                        {ARCHETYPE_LABELS[s.archetype]}
+                      </span>
+                      <span style={{ fontSize: 11, color: C.muted }}>{BAND_LABELS[s.bandCode] ?? s.bandCode}</span>
+                      {s.priority === "urgent" && (
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: "rgba(239,68,68,0.15)", color: C.urgent, border: "1px solid rgba(239,68,68,0.3)" }}>
+                          ⚡ Urgent
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Mastery bar */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, color: C.muted }}>Focus: <span style={{ color: C.text, fontWeight: 500 }}>{s.focusSkillName}</span></span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: archetypeColor }}>{s.masteryScore}%</span>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                        <div style={{
+                          height: "100%", borderRadius: 3,
+                          width: `${Math.max(4, s.masteryScore)}%`,
+                          background: s.masteryScore < 40 ? C.urgent : s.masteryScore < 65 ? C.amber : archetypeColor,
+                          transition: "width 0.5s ease",
+                        }} />
+                      </div>
+                    </div>
+
+                    {/* AI Note */}
+                    <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(155,114,255,0.06)", border: "1px solid rgba(155,114,255,0.12)", fontSize: 13, color: C.muted, lineHeight: 1.55, marginBottom: 8 }}>
+                      <span style={{ color: C.violet, marginRight: 6 }}>🤖</span>{s.aiNote}
+                    </div>
+
+                    {/* Reason */}
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>{s.reason}</div>
+
+                    {/* Push button */}
+                    <button
+                      onClick={() => pushSession(s)}
+                      disabled={isBusy || isPushed}
+                      style={{
+                        padding: "7px 16px", borderRadius: 7, border: "none", fontSize: 13, fontWeight: 600,
+                        cursor: (isBusy || isPushed) ? "default" : "pointer",
+                        background: isPushed ? "rgba(34,197,94,0.15)" : isBusy ? "rgba(155,114,255,0.3)" : C.violet,
+                        color: isPushed ? C.mint : "#fff",
+                      }}
+                    >
+                      {isPushed ? "✓ Session queued" : isBusy ? "Queuing…" : "Push Session →"}
+                    </button>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
 
-                {/* Content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{s.displayName}</span>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-                      background: color + "22", color,
-                    }}>{label}</span>
-                    {s.priority === "urgent" && (
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-                        background: C.red + "22", color: C.red,
-                      }}>Urgent</span>
-                    )}
-                  </div>
-
-                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>
-                    Focus skill: <strong style={{ color: C.text }}>{s.focusSkillName}</strong>
-                    <span style={{ marginLeft: 8 }}>
-                      · Mastery: <strong style={{ color: s.masteryScore < 40 ? C.red : s.masteryScore < 65 ? C.amber : C.mint }}>{s.masteryScore}%</strong>
-                    </span>
-                  </div>
-
-                  {/* Mastery bar */}
-                  <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 4, marginBottom: 8, maxWidth: 200 }}>
-                    <div style={{
-                      width: `${s.masteryScore}%`, height: "100%", borderRadius: 4,
-                      background: s.masteryScore < 40 ? C.red : s.masteryScore < 65 ? C.amber : C.mint,
-                    }} />
-                  </div>
-
-                  <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic", lineHeight: 1.5 }}>
-                    {s.aiNote}
-                  </div>
-                </div>
-
-                {/* Push button */}
-                <button
-                  onClick={() => handlePushOne(s)}
-                  disabled={pushing}
-                  style={{
-                    padding: "8px 16px", borderRadius: 10, background: C.violet, color: "#fff",
-                    font: "700 0.8rem system-ui", border: "none",
-                    cursor: pushing ? "not-allowed" : "pointer",
-                    opacity: pushing ? 0.6 : 1,
-                    flexShrink: 0,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Push Session →
-                </button>
-              </div>
-            );
-          })}
+        {/* Info footer */}
+        <div style={{ marginTop: 32, padding: "14px 18px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: `1px solid ${C.border}`, fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
+          <strong style={{ color: C.text }}>How this works:</strong> The AI coach analyzes each student&apos;s mastery
+          across all curriculum skills for their grade band and identifies the single highest-impact skill to
+          practice next. Pushing a session queues it as the first activity the next time that student plays.
+          Suggestions refresh automatically as students complete sessions.
         </div>
       </div>
     </AppFrame>
