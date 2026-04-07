@@ -23,24 +23,24 @@ function scorePriority(
   masteryScore: number,
 ): number {
   // Higher score = higher recommendation rank
-  if (curriculumPriority === "must-have") {
+  if (curriculumPriority === "essential") {
     if (status === "not_started") return 100;
     if (status === "in_progress" && masteryScore < 70) return 90;
     if (status === "in_progress") return 70;
     return 10; // proficient — lowest interest
   }
-  if (curriculumPriority === "should-have") {
+  if (curriculumPriority === "on-track") {
     if (status === "not_started") return 60;
     if (status === "in_progress" && masteryScore < 70) return 50;
     if (status === "in_progress") return 40;
     return 8;
   }
-  if (curriculumPriority === "nice-to-have") {
+  if (curriculumPriority === "enrichment") {
     if (status === "not_started") return 30;
     if (status === "in_progress") return 20;
     return 5;
   }
-  // could-have
+  // challenge
   if (status === "not_started") return 15;
   if (status === "in_progress") return 10;
   return 3;

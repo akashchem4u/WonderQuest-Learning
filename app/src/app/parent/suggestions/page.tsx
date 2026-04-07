@@ -26,7 +26,7 @@ type Recommendation = {
   skillCode: string;
   skillName: string;
   subject: "math" | "reading" | "science" | "logic";
-  priority: "must-have" | "should-have" | "nice-to-have" | "could-have";
+  priority: "essential" | "on-track" | "enrichment" | "challenge";
   complexity: 1 | 2 | 3;
   activityType: "drill" | "story" | "explore" | "puzzle";
   description: string;
@@ -116,7 +116,7 @@ function formatTimeAgo(iso: string) {
 }
 
 const PRIORITY_CONFIG = {
-  "must-have": {
+  "essential": {
     label: "Essential",
     emoji: "🎯",
     color: C.coral,
@@ -124,7 +124,7 @@ const PRIORITY_CONFIG = {
     bg: "rgba(255,123,107,0.08)",
     border: "rgba(255,123,107,0.2)",
   },
-  "should-have": {
+  "on-track": {
     label: "On Track",
     emoji: "📗",
     color: "#4ade80",
@@ -132,7 +132,7 @@ const PRIORITY_CONFIG = {
     bg: "rgba(74,222,128,0.08)",
     border: "rgba(74,222,128,0.2)",
   },
-  "nice-to-have": {
+  "enrichment": {
     label: "Enrichment",
     emoji: "⭐",
     color: C.gold,
@@ -140,7 +140,7 @@ const PRIORITY_CONFIG = {
     bg: "rgba(255,209,102,0.08)",
     border: "rgba(255,209,102,0.2)",
   },
-  "could-have": {
+  "challenge": {
     label: "Challenge",
     emoji: "🚀",
     color: C.violet,
@@ -570,14 +570,14 @@ export default function SuggestionsPage() {
   const studentId = activeChild?.id ?? "";
 
   const priorityGroups: Array<keyof typeof PRIORITY_CONFIG> = [
-    "must-have",
-    "should-have",
-    "nice-to-have",
-    "could-have",
+    "essential",
+    "on-track",
+    "enrichment",
+    "challenge",
   ];
 
   const mustHaveUnstarted = (data?.recommendations ?? []).filter(
-    (r) => r.priority === "must-have" && r.status === "not_started"
+    (r) => r.priority === "essential" && r.status === "not_started"
   );
 
   return (
