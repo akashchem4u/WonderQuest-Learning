@@ -120,7 +120,19 @@ export async function GET(request: NextRequest) {
             cs.effectiveness_score,
             coalesce(sum(sr.points_earned), 0) as stars_earned,
             count(sr.id) filter (where sr.correct) as correct_count,
-            count(sr.id) as total_questions
+            count(sr.id) as total_questions,
+            -- Skills practiced: up to 4 distinct skill names from this session
+            (
+              select string_agg(skill_name, ', ')
+              from (
+                select distinct sk2.display_name as skill_name
+                from public.session_results sr2
+                join public.skills sk2 on sk2.id = sr2.skill_id
+                where sr2.session_id = cs.id
+                order by sk2.display_name
+                limit 4
+              ) t
+            ) as skills_practiced
           from public.challenge_sessions cs
           left join public.session_results sr
             on sr.session_id = cs.id
@@ -133,7 +145,9 @@ export async function GET(request: NextRequest) {
             cs.ended_at,
             cs.session_mode,
             cs.effectiveness_score
+          having count(sr.id) > 0
           order by cs.started_at desc
+          limit 30
         `,
         [studentId, weekStart.toISOString(), weekAfter.toISOString()],
       ),
@@ -198,6 +212,7 @@ export async function GET(request: NextRequest) {
       starsEarned: Number(row.stars_earned ?? 0),
       correctCount: Number(row.correct_count ?? 0),
       totalQuestions: Number(row.total_questions ?? 0),
+      skillsPracticed: row.skills_practiced ? String(row.skills_practiced) : null,
       durationMinutes:
         row.ended_at === null || row.ended_at === undefined
           ? null
@@ -214,6 +229,61 @@ export async function GET(request: NextRequest) {
           ? null
           : Number(row.effectiveness_score),
     }));
+
+    // ── Daily summaries for the "optimised" session log view ─────────────────
+    // Group sessions by calendar day so heavy users see a concise daily card
+    // rather than a raw per-session list.
+    type DailySummary = {
+      date: string;           // "2026-04-07"
+      dayLabel: string;       // "Monday"
+      sessionCount: number;
+      totalQuestions: number;
+      correctCount: number;
+      accuracyPct: number | null;
+      starsEarned: number;
+      totalMinutes: number;
+      skills: string[];
+    };
+
+    const dayMap = new Map<string, DailySummary>();
+    for (const s of sessions) {
+      const d = new Date(s.startedAt);
+      const dateKey = d.toISOString().slice(0, 10);
+      const dayName = d.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
+
+      if (!dayMap.has(dateKey)) {
+        dayMap.set(dateKey, {
+          date: dateKey,
+          dayLabel: dayName,
+          sessionCount: 0,
+          totalQuestions: 0,
+          correctCount: 0,
+          accuracyPct: null,
+          starsEarned: 0,
+          totalMinutes: 0,
+          skills: [],
+        });
+      }
+      const entry = dayMap.get(dateKey)!;
+      entry.sessionCount++;
+      entry.totalQuestions += s.totalQuestions;
+      entry.correctCount += s.correctCount;
+      entry.starsEarned += s.starsEarned;
+      entry.totalMinutes += s.durationMinutes ?? 0;
+      if (s.skillsPracticed) {
+        for (const sk of s.skillsPracticed.split(", ")) {
+          if (!entry.skills.includes(sk)) entry.skills.push(sk);
+        }
+      }
+    }
+    for (const entry of dayMap.values()) {
+      entry.accuracyPct = entry.totalQuestions > 0
+        ? Math.round((entry.correctCount / entry.totalQuestions) * 100)
+        : null;
+      entry.skills = entry.skills.slice(0, 5); // cap at 5 distinct skills per day
+    }
+    const dailySummaries: DailySummary[] = [...dayMap.values()]
+      .sort((a, b) => b.date.localeCompare(a.date));
 
     const learningMinutes = sessions.reduce(
       (total, session) => total + (session.durationMinutes ?? 0),
@@ -254,6 +324,7 @@ export async function GET(request: NextRequest) {
         };
       }),
       sessionLog: sessions,
+      dailySummaries,
       heatmap: heatmap.rows.map((row) => ({
         dayLabel: String(row.day_label ?? ""),
         date: String(row.day ?? "").slice(0, 10),

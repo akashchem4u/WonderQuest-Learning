@@ -16,12 +16,18 @@ export type AdaptiveSuggestion = {
   aiNote: string;
   masteryScore: number;
   priority: "urgent" | "normal";
+  // Skill fatigue: student has spent many sessions on focusSkill with limited progress
+  fatigued?: boolean;
+  varietySkill?: string;        // skill code to mix in as a variety break
+  varietySkillName?: string;    // display name of the variety skill
+  varietyReason?: string;       // why we're mixing this in
 };
 
 type MasteryRow = {
   skill_code: string;
   mastery_score: number;
   session_count: number;
+  proficient_at: string | null;
 };
 
 function detectArchetype(avgMastery: number): AdaptiveSuggestion["archetype"] {
@@ -75,7 +81,7 @@ export async function generateAdaptiveSuggestions(
     // Fetch mastery for all curriculum skills
     const skillCodes = curriculum.map((s) => s.code);
     const masteryRes = await db.query(
-      `select sk.code as skill_code, ssm.mastery_score, ssm.session_count
+      `select sk.code as skill_code, ssm.mastery_score, ssm.session_count, ssm.proficient_at
        from public.student_skill_mastery ssm
        join public.skills sk on sk.id = ssm.skill_id
        where ssm.student_id = $1 and sk.code = any($2::text[])`,
@@ -135,8 +141,45 @@ export async function generateAdaptiveSuggestions(
       }
     }
 
+    // ── Skill fatigue detection ─────────────────────────────────────────────
+    // If the student has done 5+ sessions on this skill with < 75% mastery,
+    // they may be hitting a plateau. Suggest mixing in a variety skill from
+    // the same subject to refresh engagement while maintaining progress.
+    const focusMasteryRow = masteryMap.get(focusSkill.code);
+    const focusSessionCount = focusMasteryRow?.session_count ?? 0;
+    const FATIGUE_THRESHOLD = 5;
+    let fatigued = false;
+    let varietySkill: string | undefined;
+    let varietySkillName: string | undefined;
+    let varietyReason: string | undefined;
+
+    if (focusSessionCount >= FATIGUE_THRESHOLD && focusMastery < 75 && !focusMasteryRow?.proficient_at) {
+      fatigued = true;
+      // Find a companion skill: same subject, different code, easier or different angle
+      const sameSubject = curriculum.filter(
+        (s) =>
+          s.subject === focusSkill.subject &&
+          s.code !== focusSkill.code &&
+          !masteryMap.get(s.code)?.proficient_at // not yet mastered
+      );
+      // Prefer an easier skill (lower complexity) or a skill the student hasn't started
+      const companion =
+        sameSubject.find((s) => (masteryMap.get(s.code)?.session_count ?? 0) < 3 && s.complexity < focusSkill.complexity) ??
+        sameSubject.find((s) => (masteryMap.get(s.code)?.session_count ?? 0) < 2) ??
+        sameSubject.find((s) => s.code !== focusSkill.code);
+
+      if (companion) {
+        varietySkill = companion.code;
+        varietySkillName = companion.name;
+        const first = displayName.split(" ")[0];
+        varietyReason = `${first} has practiced ${focusSkill.name} ${focusSessionCount} times. Mixing in ${companion.name} keeps engagement high and gives the mind a fresh angle — often helping the original skill click faster.`;
+      }
+    }
+
     const reason =
-      focusMastery === 0
+      fatigued && varietySkillName
+        ? `${displayName.split(" ")[0]} has had ${focusSessionCount} sessions on ${focusSkill.name} at ${Math.round(focusMastery)}%. Mix in ${varietySkillName} to re-energise progress.`
+        : focusMastery === 0
         ? `${displayName.split(" ")[0]} has not yet started ${focusSkill.name} — an ${focusSkill.priority} skill for their grade band.`
         : `${displayName.split(" ")[0]} is at ${Math.round(focusMastery)}% on ${focusSkill.name} — continued practice will build lasting proficiency.`;
 
@@ -151,6 +194,10 @@ export async function generateAdaptiveSuggestions(
       aiNote: buildAiNote(displayName, focusSkill.name, archetype),
       masteryScore: Math.round(focusMastery),
       priority,
+      fatigued: fatigued || undefined,
+      varietySkill: varietySkill || undefined,
+      varietySkillName: varietySkillName || undefined,
+      varietyReason: varietyReason || undefined,
     });
   }
 
@@ -175,15 +222,42 @@ export async function pushAdaptiveSessions(
        limit 1`,
       [teacherId, s.studentId, s.focusSkill],
     );
-    if (exists.rowCount) continue;
+    if (!exists.rowCount) {
+      await db.query(
+        `insert into public.teacher_pushed_sessions
+           (teacher_id, student_id, skill_code, reason, priority, note, is_ai_generated)
+         values ($1, $2, $3, $4, $5, $6, true)`,
+        [teacherId, s.studentId, s.focusSkill, s.reason, s.priority, s.aiNote],
+      );
+      pushed++;
+    }
 
-    await db.query(
-      `insert into public.teacher_pushed_sessions
-         (teacher_id, student_id, skill_code, reason, priority, note, is_ai_generated)
-       values ($1, $2, $3, $4, $5, $6, true)`,
-      [teacherId, s.studentId, s.focusSkill, s.reason, s.priority, s.aiNote],
-    );
-    pushed++;
+    // When the student is fatigued on the focus skill, also push the variety skill
+    // so they actually receive cross-skill questions in their next session.
+    if (s.fatigued && s.varietySkill && s.varietyReason) {
+      const varietyExists = await db.query(
+        `select 1 from public.teacher_pushed_sessions
+         where teacher_id = $1 and student_id = $2 and skill_code = $3 and consumed_at is null
+         limit 1`,
+        [teacherId, s.studentId, s.varietySkill],
+      );
+      if (!varietyExists.rowCount) {
+        await db.query(
+          `insert into public.teacher_pushed_sessions
+             (teacher_id, student_id, skill_code, reason, priority, note, is_ai_generated)
+           values ($1, $2, $3, $4, $5, $6, true)`,
+          [
+            teacherId,
+            s.studentId,
+            s.varietySkill,
+            s.varietyReason,
+            "normal",
+            `Variety break: mixing in ${s.varietySkillName ?? s.varietySkill} to prevent plateau fatigue on ${s.focusSkillName}.`,
+          ],
+        );
+        pushed++;
+      }
+    }
   }
   return pushed;
 }

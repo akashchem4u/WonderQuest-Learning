@@ -33,6 +33,10 @@ interface AiSuggestion {
   aiNote: string;
   masteryScore: number;
   priority: "urgent" | "normal";
+  fatigued?: boolean;
+  varietySkill?: string;
+  varietySkillName?: string;
+  varietyReason?: string;
 }
 
 const ARCHETYPE_LABELS: Record<Archetype, string> = {
@@ -264,6 +268,11 @@ export default function AiCoachPage() {
                           ⚡ Urgent
                         </span>
                       )}
+                      {s.fatigued && (
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: "rgba(245,158,11,0.15)", color: C.amber, border: "1px solid rgba(245,158,11,0.3)" }}>
+                          🔄 Skill Fatigue
+                        </span>
+                      )}
                     </div>
 
                     {/* Mastery bar */}
@@ -286,6 +295,25 @@ export default function AiCoachPage() {
                     <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(155,114,255,0.06)", border: "1px solid rgba(155,114,255,0.12)", fontSize: 13, color: C.muted, lineHeight: 1.55, marginBottom: 8 }}>
                       <span style={{ color: C.violet, marginRight: 6 }}>🤖</span>{s.aiNote}
                     </div>
+
+                    {/* Variety skill card (shown when student is fatigued) */}
+                    {s.fatigued && s.varietySkillName && (
+                      <div style={{
+                        padding: "10px 14px", borderRadius: 8, marginBottom: 8,
+                        background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.18)",
+                        display: "flex", gap: 10, alignItems: "flex-start",
+                      }}>
+                        <span style={{ fontSize: 16, flexShrink: 0 }}>🔀</span>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: C.amber, marginBottom: 3 }}>
+                            Mix in: {s.varietySkillName}
+                          </div>
+                          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>
+                            {s.varietyReason ?? `Alternating with ${s.varietySkillName} will re-energise focus and often makes the original skill click faster.`}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Reason */}
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>{s.reason}</div>
@@ -315,7 +343,10 @@ export default function AiCoachPage() {
           <strong style={{ color: C.text }}>How this works:</strong> The AI coach analyzes each student&apos;s mastery
           across all curriculum skills for their grade band and identifies the single highest-impact skill to
           practice next. Pushing a session queues it as the first activity the next time that student plays.
-          Suggestions refresh automatically as students complete sessions.
+          When a student has spent many sessions on a skill without breaking through, the coach flags a{" "}
+          <span style={{ color: C.amber }}>🔄 Skill Fatigue</span> alert and automatically queues a variety
+          skill alongside the main focus — keeping engagement high while reinforcing the original concept from
+          a fresh angle. Suggestions refresh automatically as students complete sessions.
         </div>
       </div>
     </AppFrame>
