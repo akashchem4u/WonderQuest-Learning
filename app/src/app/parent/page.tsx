@@ -261,8 +261,6 @@ export default function ParentAccessPage() {
   const [resetError, setResetError] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
 
-  const returningMode = accessMode === "returning";
-
   const activeChildId =
     selectedChildId ??
     result?.linkedChild?.id ??
@@ -326,30 +324,21 @@ export default function ParentAccessPage() {
     }
   }, [result, selectedChildId]);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSignIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError("");
     try {
-      const response = await fetch("/api/parent/access", {
+      const response = await fetch("/api/parent/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          pin,
-          displayName: returningMode ? "" : displayName,
-          childUsername: returningMode ? "" : childUsername,
-          relationship: "parent",
-          notifyWeekly,
-          notifyMilestones,
-        }),
+        body: JSON.stringify({ identifier, password }),
       });
       const payload = (await response.json()) as ParentAccessResponse & { error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Parent access failed.");
+      if (!response.ok) throw new Error(payload.error ?? "Sign-in failed.");
       const defaultId = payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null;
       setSelectedChildId(defaultId);
       if (defaultId) localStorage.setItem("wq_active_student_id", defaultId);
-      // Redirect to the originally requested page if present
       const nextPath = typeof window !== "undefined"
         ? new URLSearchParams(window.location.search).get("next")
         : null;
@@ -359,7 +348,126 @@ export default function ParentAccessPage() {
       }
       setResult(payload);
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Parent access failed.");
+      setError(caughtError instanceof Error ? caughtError.message : "Sign-in failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRegister(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/parent/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: regEmail,
+          password: regPassword,
+          displayName: regDisplayName,
+          childUsername: regChildName.trim() || undefined,
+          notifyWeekly,
+          notifyMilestones,
+        }),
+      });
+      const payload = (await response.json()) as ParentAccessResponse & { error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Registration failed.");
+      const defaultId = payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null;
+      setSelectedChildId(defaultId);
+      if (defaultId) localStorage.setItem("wq_active_student_id", defaultId);
+      const nextPath = typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("next")
+        : null;
+      if (nextPath && nextPath.startsWith("/parent/")) {
+        window.location.assign(nextPath);
+        return;
+      }
+      setResult(payload);
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "Registration failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function handleChildNameChange(val: string) {
+    const cleaned = val.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20);
+    setRegChildName(cleaned);
+    setRegChildNameAvailability("idle");
+    setRegChildNameMessage("");
+
+    if (regChildNameDebounceRef) clearTimeout(regChildNameDebounceRef);
+
+    if (!cleaned || cleaned.length < 2) {
+      setRegChildNameAvailability("idle");
+      return;
+    }
+
+    setRegChildNameAvailability("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/parent/check-child-name?username=${encodeURIComponent(cleaned)}`);
+        const data = (await res.json()) as { available?: boolean; message?: string };
+        if (data.available) {
+          setRegChildNameAvailability("available");
+          setRegChildNameMessage("Available!");
+        } else {
+          setRegChildNameAvailability("taken");
+          setRegChildNameMessage(data.message ?? "That name is taken.");
+        }
+      } catch {
+        setRegChildNameAvailability("idle");
+      }
+    }, 500);
+    setRegChildNameDebounceRef(timer);
+  }
+
+  async function handleForgotStep1(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/parent/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: forgotIdentifier }),
+      });
+      const payload = (await response.json()) as { token?: string; displayName?: string; error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Request failed.");
+      setForgotToken(payload.token ?? "");
+      setForgotDisplayName(payload.displayName ?? "");
+      setAccessMode("forgot-verify");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "Request failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleForgotStep2(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/parent/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: forgotToken, childPin: forgotChildPin, newPassword: forgotNewPassword }),
+      });
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Password reset failed.");
+      setError("");
+      setAccessMode("signin");
+      setForgotIdentifier("");
+      setForgotToken("");
+      setForgotChildPin("");
+      setForgotNewPassword("");
+      setForgotDisplayName("");
+      // Show a success message via error field (we'll style it green inline)
+      setError("__success__Password updated! Sign in with your new password.");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "Password reset failed.");
     } finally {
       setSubmitting(false);
     }
@@ -698,7 +806,7 @@ export default function ParentAccessPage() {
               </div>
             </div>
 
-            {/* ── Right sign-in card ────────────────────────────────────────── */}
+            {/* ── Right auth card ────────────────────────────────────────── */}
             <div
               style={{
                 background: "rgba(255,255,255,0.05)",
@@ -721,297 +829,218 @@ export default function ParentAccessPage() {
               >
                 Parent Portal
               </div>
-              <div
-                style={{
-                  font: "700 1.5rem system-ui",
-                  color: C.text,
-                  marginBottom: "24px",
-                }}
-              >
-                {returningMode ? "Welcome back" : "Create parent access"}
-              </div>
 
-              {/* Mode toggle */}
-              <div style={{ display: "flex", gap: "8px", marginBottom: "22px" }}>
-                {(["returning", "new"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => { setAccessMode(mode); setError(""); }}
-                    type="button"
-                    style={{
-                      flex: 1,
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      cursor: "pointer",
-                      font: "600 0.8rem system-ui",
-                      textAlign: "left",
-                      border:
-                        accessMode === mode
-                          ? "2px solid #9b72ff"
-                          : "1.5px solid rgba(155,114,255,0.2)",
-                      background:
-                        accessMode === mode
-                          ? "rgba(155,114,255,0.18)"
-                          : "rgba(255,255,255,0.04)",
-                      color: accessMode === mode ? C.violet : C.muted,
-                      fontFamily: "system-ui",
-                    }}
-                  >
-                    <span style={{ display: "block", marginBottom: "2px" }}>
-                      {mode === "returning" ? "🔐" : "✨"}
-                    </span>
-                    {mode === "returning" ? "Existing parent" : "First-time setup"}
-                    <span
-                      style={{
-                        display: "block",
-                        font: "400 0.7rem system-ui",
-                        marginTop: "2px",
-                        color: "rgba(255,255,255,0.35)",
-                      }}
-                    >
-                      {mode === "returning" ? "Username + PIN" : "Set name, PIN, link child"}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              {/* ── Tab bar (Sign In / Create Account) ── */}
+              {(accessMode === "signin" || accessMode === "register") && (
+                <>
+                  <div style={{ font: "700 1.5rem system-ui", color: C.text, marginBottom: "20px" }}>
+                    {accessMode === "signin" ? "Welcome back" : "Create your account"}
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", marginBottom: "22px" }}>
+                    {(["signin", "register"] as const).map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => { setAccessMode(tab); setError(""); }}
+                        type="button"
+                        style={{
+                          flex: 1,
+                          padding: "9px 12px",
+                          borderRadius: "10px",
+                          cursor: "pointer",
+                          font: "600 0.82rem system-ui",
+                          border: accessMode === tab ? "2px solid #9b72ff" : "1.5px solid rgba(155,114,255,0.2)",
+                          background: accessMode === tab ? "rgba(155,114,255,0.18)" : "rgba(255,255,255,0.04)",
+                          color: accessMode === tab ? C.violet : C.muted,
+                          fontFamily: "system-ui",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {tab === "signin" ? "Sign In" : "Create Account"}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
 
-              <form
-                onSubmit={handleSubmit}
-                style={{ display: "flex", flexDirection: "column", gap: "14px" }}
-              >
-                <div>
-                  <label style={labelStyle}>Username</label>
-                  <input
-                    autoComplete="username"
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="parent username"
-                    style={inputStyle}
-                    type="text"
-                    value={username}
-                  />
-                </div>
-
-                <div>
-                  <label style={labelStyle}>4-digit PIN</label>
-                  <input
-                    autoComplete="current-password"
-                    maxLength={4}
-                    onChange={(e) => setPin(e.target.value)}
-                    placeholder="0000"
-                    style={inputStyle}
-                    type="password"
-                    value={pin}
-                  />
-                </div>
-
-                {!returningMode && (
-                  <>
-                    <div>
-                      <label style={labelStyle}>Display name</label>
-                      <input
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Parent name"
-                        style={inputStyle}
-                        type="text"
-                        value={displayName}
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Child username</label>
-                      <input
-                        onChange={(e) => setChildUsername(e.target.value)}
-                        placeholder="child quest name"
-                        style={inputStyle}
-                        type="text"
-                        value={childUsername}
-                      />
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      {[
-                        {
-                          key: "weekly",
-                          label: "Weekly summary",
-                          sub: "Time, insights, and next focus.",
-                          val: notifyWeekly,
-                          toggle: () => setNotifyWeekly((v) => !v),
-                        },
-                        {
-                          key: "milestones",
-                          label: "Milestones",
-                          sub: "Badges, trophies, and level moments.",
-                          val: notifyMilestones,
-                          toggle: () => setNotifyMilestones((v) => !v),
-                        },
-                      ].map((item) => (
-                        <button
-                          key={item.key}
-                          onClick={item.toggle}
-                          type="button"
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            padding: "11px 14px",
-                            borderRadius: "10px",
-                            cursor: "pointer",
-                            border: `1.5px solid ${item.val ? "rgba(155,114,255,0.3)" : C.border}`,
-                            background: item.val
-                              ? "rgba(155,114,255,0.1)"
-                              : C.surface,
-                            textAlign: "left",
-                            fontFamily: "system-ui",
-                          }}
-                        >
-                          <div>
-                            <div
-                              style={{
-                                font: "600 0.82rem system-ui",
-                                color: C.text,
-                              }}
-                            >
-                              {item.label}
-                            </div>
-                            <div
-                              style={{
-                                font: "400 0.7rem system-ui",
-                                color: C.muted,
-                              }}
-                            >
-                              {item.sub}
-                            </div>
-                          </div>
-                          <span
-                            style={{
-                              font: "700 0.72rem system-ui",
-                              color: item.val ? C.violet : C.muted,
-                              background: item.val
-                                ? "rgba(155,114,255,0.15)"
-                                : "rgba(255,255,255,0.06)",
-                              padding: "3px 10px",
-                              borderRadius: "10px",
-                            }}
-                          >
-                            {item.val ? "On" : "Off"}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {error && (
-                  <p
-                    style={{
-                      font: "500 0.82rem system-ui",
-                      color: "#ff6b6b",
-                      background: "rgba(255,107,107,0.1)",
-                      border: "1px solid rgba(255,107,107,0.25)",
-                      borderRadius: "8px",
-                      padding: "10px 14px",
-                      margin: 0,
-                    }}
-                  >
-                    {error}
-                  </p>
-                )}
-
-                <button
-                  disabled={submitting}
-                  type="submit"
-                  style={{
-                    ...primaryBtnStyle,
-                    opacity: submitting ? 0.7 : 1,
-                    cursor: submitting ? "not-allowed" : "pointer",
-                    marginTop: "4px",
-                  }}
+              {/* ── Sign In form ── */}
+              {accessMode === "signin" && (
+                <form
+                  onSubmit={handleSignIn}
+                  style={{ display: "flex", flexDirection: "column", gap: "14px" }}
                 >
-                  {submitting
-                    ? returningMode
-                      ? "Signing in…"
-                      : "Saving…"
-                    : returningMode
-                      ? "Sign in to Dashboard →"
-                      : "Create parent access"}
-                </button>
+                  <div>
+                    <label style={labelStyle}>Email or username</label>
+                    <input autoComplete="username" onChange={(e) => setIdentifier(e.target.value)} placeholder="you@example.com" style={inputStyle} type="text" value={identifier} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Password</label>
+                    <input autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={inputStyle} type="password" value={password} />
+                  </div>
 
-                {/* ── Google OAuth separator + coming-soon button ── */}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "4px 0 2px" }}>
-                  <div style={{ flex: 1, height: "1px", background: C.border }} />
-                  <span style={{ font: "400 0.72rem system-ui", color: C.muted, whiteSpace: "nowrap" }}>
-                    or
-                  </span>
-                  <div style={{ flex: 1, height: "1px", background: C.border }} />
-                </div>
+                  {error && !error.startsWith("__success__") && (
+                    <p style={{ font: "500 0.82rem system-ui", color: "#ff6b6b", background: "rgba(255,107,107,0.1)", border: "1px solid rgba(255,107,107,0.25)", borderRadius: "8px", padding: "10px 14px", margin: 0 }}>
+                      {error}
+                    </p>
+                  )}
+                  {error.startsWith("__success__") && (
+                    <p style={{ font: "500 0.82rem system-ui", color: C.mint, background: "rgba(88,232,193,0.1)", border: "1px solid rgba(88,232,193,0.25)", borderRadius: "8px", padding: "10px 14px", margin: 0 }}>
+                      {error.replace("__success__", "")}
+                    </p>
+                  )}
 
-                <div title="Coming soon" style={{ position: "relative" }}>
-                  <button
-                    disabled
-                    type="button"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "10px",
-                      width: "100%",
-                      padding: "11px 16px",
-                      borderRadius: "10px",
-                      border: `1px solid ${C.border}`,
-                      background: C.surface,
-                      color: C.muted,
-                      font: "500 0.92rem system-ui",
-                      opacity: 0.45,
-                      cursor: "not-allowed",
-                    }}
-                  >
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "50%",
-                        background: "linear-gradient(135deg,#ea4335 25%,#fbbc04 50%,#34a853 75%,#4285f4 100%)",
-                        color: "#fff",
-                        font: "700 0.75rem system-ui",
-                        flexShrink: 0,
-                      }}
-                    >
-                      G
-                    </span>
-                    Continue with Google
-                    <span style={{ font: "400 0.72rem system-ui", marginLeft: "auto" }}>Coming soon</span>
+                  <button disabled={submitting} type="submit" style={{ ...primaryBtnStyle, opacity: submitting ? 0.7 : 1, cursor: submitting ? "not-allowed" : "pointer", marginTop: "4px" }}>
+                    {submitting ? "Signing in\u2026" : "Sign In \u2192"}
                   </button>
-                </div>
 
-                <div style={{ textAlign: "center" }}>
-                  <Link
-                    href="/child"
-                    style={{
-                      font: "500 0.8rem system-ui",
-                      color: C.violet,
-                      textDecoration: "none",
-                    }}
-                  >
-                    Child access →
-                  </Link>
-                </div>
-              </form>
+                  <div style={{ textAlign: "center" }}>
+                    <button type="button" onClick={() => { setAccessMode("forgot"); setError(""); }} style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.violet, fontFamily: "system-ui" }}>
+                      Forgot password?
+                    </button>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <Link href="/child" style={{ font: "500 0.8rem system-ui", color: C.violet, textDecoration: "none" }}>
+                      Child access \u2192
+                    </Link>
+                  </div>
+                </form>
+              )}
+
+              {/* ── Create Account form ── */}
+              {accessMode === "register" && (
+                <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div>
+                    <label style={labelStyle}>Your email</label>
+                    <input autoComplete="email" onChange={(e) => setRegEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} type="email" value={regEmail} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Password (min 6 characters)</label>
+                    <input autoComplete="new-password" onChange={(e) => setRegPassword(e.target.value)} placeholder="\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7" style={inputStyle} type="password" value={regPassword} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Your name</label>
+                    <input onChange={(e) => setRegDisplayName(e.target.value)} placeholder="e.g. Sarah" style={inputStyle} type="text" value={regDisplayName} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>{"Child's quest name "}<span style={{ font: "400 0.7rem system-ui", color: C.muted }}>(optional \u2014 letters &amp; numbers only)</span></label>
+                    <input
+                      onChange={(e) => handleChildNameChange(e.target.value)}
+                      placeholder="e.g. stargazer42"
+                      style={{
+                        ...inputStyle,
+                        borderColor: regChildNameAvailability === "available"
+                          ? "rgba(88,232,193,0.6)"
+                          : regChildNameAvailability === "taken" || regChildNameAvailability === "invalid"
+                            ? "rgba(255,123,107,0.6)"
+                            : "rgba(155,114,255,0.3)",
+                      }}
+                      type="text"
+                      value={regChildName}
+                    />
+                    {regChildNameAvailability === "checking" && (
+                      <div style={{ font: "500 0.75rem system-ui", marginTop: 4, color: C.muted }}>Checking\u2026</div>
+                    )}
+                    {regChildNameMessage && regChildNameAvailability !== "checking" && (
+                      <div style={{ font: "500 0.75rem system-ui", marginTop: 4, color: regChildNameAvailability === "available" ? C.mint : "#ff7b6b" }}>
+                        {regChildNameMessage}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {[
+                      { key: "weekly", label: "Weekly summaries", sub: "Time, insights, and next focus.", val: notifyWeekly, toggle: () => setNotifyWeekly((v) => !v) },
+                      { key: "milestones", label: "Milestones", sub: "Badges, trophies, and level moments.", val: notifyMilestones, toggle: () => setNotifyMilestones((v) => !v) },
+                    ].map((item) => (
+                      <button key={item.key} onClick={item.toggle} type="button" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 14px", borderRadius: "10px", cursor: "pointer", border: `1.5px solid ${item.val ? "rgba(155,114,255,0.3)" : C.border}`, background: item.val ? "rgba(155,114,255,0.1)" : C.surface, textAlign: "left", fontFamily: "system-ui" }}>
+                        <div>
+                          <div style={{ font: "600 0.82rem system-ui", color: C.text }}>{item.label}</div>
+                          <div style={{ font: "400 0.7rem system-ui", color: C.muted }}>{item.sub}</div>
+                        </div>
+                        <span style={{ font: "700 0.72rem system-ui", color: item.val ? C.violet : C.muted, background: item.val ? "rgba(155,114,255,0.15)" : "rgba(255,255,255,0.06)", padding: "3px 10px", borderRadius: "10px" }}>
+                          {item.val ? "On" : "Off"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {error && (
+                    <p style={{ font: "500 0.82rem system-ui", color: "#ff6b6b", background: "rgba(255,107,107,0.1)", border: "1px solid rgba(255,107,107,0.25)", borderRadius: "8px", padding: "10px 14px", margin: 0 }}>
+                      {error}
+                    </p>
+                  )}
+
+                  <button disabled={submitting} type="submit" style={{ ...primaryBtnStyle, opacity: submitting ? 0.7 : 1, cursor: submitting ? "not-allowed" : "pointer", marginTop: "4px" }}>
+                    {submitting ? "Creating account\u2026" : "Create Account \u2192"}
+                  </button>
+                  <div style={{ textAlign: "center" }}>
+                    <Link href="/child" style={{ font: "500 0.8rem system-ui", color: C.violet, textDecoration: "none" }}>Child access \u2192</Link>
+                  </div>
+                </form>
+              )}
+
+              {/* ── Forgot Password \u2014 Step 1 ── */}
+              {accessMode === "forgot" && (
+                <form onSubmit={handleForgotStep1} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ font: "700 1.3rem system-ui", color: C.text, marginBottom: "8px" }}>Reset your password</div>
+                  <div style={{ font: "400 0.82rem/1.5 system-ui", color: C.muted, marginBottom: "6px" }}>
+                    Enter your email or username. We will give you a recovery code to use right here \u2014 no email needed.
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Email or username</label>
+                    <input onChange={(e) => setForgotIdentifier(e.target.value)} placeholder="you@example.com" style={inputStyle} type="text" value={forgotIdentifier} />
+                  </div>
+                  {error && (
+                    <p style={{ font: "500 0.82rem system-ui", color: "#ff6b6b", background: "rgba(255,107,107,0.1)", border: "1px solid rgba(255,107,107,0.25)", borderRadius: "8px", padding: "10px 14px", margin: 0 }}>{error}</p>
+                  )}
+                  <button disabled={submitting} type="submit" style={{ ...primaryBtnStyle, opacity: submitting ? 0.7 : 1, cursor: submitting ? "not-allowed" : "pointer" }}>
+                    {submitting ? "Looking up\u2026" : "Get recovery code \u2192"}
+                  </button>
+                  <div style={{ textAlign: "center" }}>
+                    <button type="button" onClick={() => { setAccessMode("signin"); setError(""); }} style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.muted, fontFamily: "system-ui" }}>
+                      \u2190 Back to Sign In
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* ── Forgot Password \u2014 Step 2 ── */}
+              {accessMode === "forgot-verify" && (
+                <form onSubmit={handleForgotStep2} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ font: "700 1.3rem system-ui", color: C.text, marginBottom: "4px" }}>
+                    {forgotDisplayName ? `Hi, ${forgotDisplayName}!` : "Almost there!"}
+                  </div>
+                  <div style={{ background: "rgba(88,232,193,0.08)", border: "1px solid rgba(88,232,193,0.3)", borderRadius: "12px", padding: "14px 16px" }}>
+                    <div style={{ font: "600 0.72rem system-ui", color: C.mint, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Your recovery code \u2014 save this!</div>
+                    <div style={{ font: "700 1.6rem/1 system-ui", color: C.text, letterSpacing: "0.12em" }}>{forgotToken}</div>
+                    <div style={{ font: "400 0.72rem system-ui", color: C.muted, marginTop: "6px" }}>This code expires in 30 minutes.</div>
+                  </div>
+                  <div style={{ font: "400 0.82rem/1.5 system-ui", color: C.muted }}>
+                    To verify it is you, enter your {"child's"} 4-digit passcode and choose a new password.
+                  </div>
+                  <div>
+                    <label style={labelStyle}>{"Child's"} 4-digit passcode</label>
+                    <input inputMode="numeric" maxLength={4} onChange={(e) => setForgotChildPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="\u2022\u2022\u2022\u2022" style={{ ...inputStyle, fontSize: "1.4rem", letterSpacing: "6px", textAlign: "center" }} type="password" value={forgotChildPin} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>New password</label>
+                    <input autoComplete="new-password" onChange={(e) => setForgotNewPassword(e.target.value)} placeholder="At least 6 characters" style={inputStyle} type="password" value={forgotNewPassword} />
+                  </div>
+                  {error && (
+                    <p style={{ font: "500 0.82rem system-ui", color: "#ff6b6b", background: "rgba(255,107,107,0.1)", border: "1px solid rgba(255,107,107,0.25)", borderRadius: "8px", padding: "10px 14px", margin: 0 }}>{error}</p>
+                  )}
+                  <button disabled={submitting} type="submit" style={{ ...primaryBtnStyle, opacity: submitting ? 0.7 : 1, cursor: submitting ? "not-allowed" : "pointer" }}>
+                    {submitting ? "Resetting\u2026" : "Reset Password \u2192"}
+                  </button>
+                  <div style={{ textAlign: "center" }}>
+                    <button type="button" onClick={() => { setAccessMode("forgot"); setError(""); setForgotToken(""); setForgotDisplayName(""); }} style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.muted, fontFamily: "system-ui" }}>
+                      \u2190 Back
+                    </button>
+                  </div>
+                </form>
+              )}
 
               {/* COPPA note */}
-              <div
-                style={{
-                  marginTop: "20px",
-                  padding: "12px 14px",
-                  background: "rgba(255,255,255,0.03)",
-                  borderRadius: "8px",
-                  border: `1px solid ${C.border}`,
-                  font: "400 0.71rem/1.6 system-ui",
-                  color: "rgba(255,255,255,0.35)",
-                  textAlign: "center",
-                }}
-              >
+              <div style={{ marginTop: "20px", padding: "12px 14px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", border: `1px solid ${C.border}`, font: "400 0.71rem/1.6 system-ui", color: "rgba(255,255,255,0.35)", textAlign: "center" }}>
                 🔒 This portal is for parents and guardians only. We comply with COPPA and never collect data from children without parental consent.
               </div>
             </div>

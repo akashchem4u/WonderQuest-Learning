@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
@@ -312,9 +312,11 @@ export default function ParentLinkPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
 
-  // Step 1 state
+  // Step 1 state — "quest name" is used as both displayName and username
   const [childName,  setChildName]  = useState("");
-  const [username,   setUsername]   = useState("");
+  const [nameAvailability, setNameAvailability] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
+  const [nameMessage, setNameMessage] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [avatar,     setAvatar]     = useState("🦁");
   const [nickname,   setNickname]   = useState("");
 
@@ -339,6 +341,36 @@ export default function ParentLinkPage() {
   // Submit state
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  function handleQuestNameChange(val: string) {
+    const cleaned = val.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20);
+    setChildName(cleaned);
+    setNameAvailability("idle");
+    setNameMessage("");
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (!cleaned || cleaned.length < 2) {
+      return;
+    }
+
+    setNameAvailability("checking");
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/parent/check-child-name?username=${encodeURIComponent(cleaned)}`);
+        const data = (await res.json()) as { available?: boolean; message?: string };
+        if (data.available) {
+          setNameAvailability("available");
+          setNameMessage("Available!");
+        } else {
+          setNameAvailability("taken");
+          setNameMessage(data.message ?? "That name is taken — try a different one!");
+        }
+      } catch {
+        setNameAvailability("idle");
+      }
+    }, 500);
+  }
 
   function handleGradeChange(g: string) {
     setGrade(g);
@@ -410,29 +442,26 @@ export default function ParentLinkPage() {
               We use this to personalise their learning adventure. First name only — we don&apos;t need a surname.
             </StepSub>
 
-            {/* First name */}
+            {/* Quest name (used as both display name and username) */}
             <div style={{ marginBottom: 20 }}>
-              <FormLabel>Child&apos;s first name</FormLabel>
-              <TextInput
-                placeholder="e.g. Maya"
-                value={childName}
-                onChange={setChildName}
-              />
-              <div style={{ font: "400 0.72rem/1.5 system-ui", color: MUTED, marginTop: 6 }}>
-                We&apos;ll use this to cheer them on! We never share names externally.
+              <FormLabel>{"Child's quest name"}</FormLabel>
+              <div style={{ position: "relative" }}>
+                <TextInput
+                  placeholder="e.g. stargazer42"
+                  value={childName}
+                  onChange={handleQuestNameChange}
+                />
               </div>
-            </div>
-
-            {/* Username */}
-            <div style={{ marginBottom: 20 }}>
-              <FormLabel>Username (they&apos;ll use this to log in)</FormLabel>
-              <TextInput
-                placeholder="e.g. stargazer123"
-                value={username}
-                onChange={(val) => setUsername(val.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20))}
-              />
+              {nameAvailability === "checking" && (
+                <div style={{ font: "500 0.75rem system-ui", color: MUTED, marginTop: 5 }}>Checking…</div>
+              )}
+              {nameMessage && nameAvailability !== "checking" && (
+                <div style={{ font: "500 0.75rem system-ui", marginTop: 5, color: nameAvailability === "available" ? "#58e8c1" : "#ff7b6b" }}>
+                  {nameMessage}
+                </div>
+              )}
               <div style={{ font: "400 0.72rem/1.5 system-ui", color: MUTED, marginTop: 6 }}>
-                Lowercase letters, numbers and underscores only. Max 20 characters.
+                Letters and numbers only, 2–20 characters. This is how they sign in and how we cheer them on!
               </div>
             </div>
 
@@ -485,7 +514,11 @@ export default function ParentLinkPage() {
               </div>
             </div>
 
-            <PrimaryBtn onClick={() => setStep(2)} disabled={!childName.trim()} fullWidth>
+            <PrimaryBtn
+              onClick={() => setStep(2)}
+              disabled={!childName.trim() || childName.length < 2 || nameAvailability === "taken" || nameAvailability === "invalid" || nameAvailability === "checking"}
+              fullWidth
+            >
               Continue →
             </PrimaryBtn>
           </FlowCard>
@@ -766,12 +799,12 @@ export default function ParentLinkPage() {
           <FlowCard>
             <StepBar current={4} />
             <Eyebrow>Account security</Eyebrow>
-            <StepTitle>Choose a 4-digit PIN</StepTitle>
+            <StepTitle>Choose a 4-digit passcode</StepTitle>
             <StepSub>
-              {childName || "Your child"} will use this PIN to sign in on any device. Make it something they can remember!
+              {childName || "Your child"} will use this passcode to sign in on any device. Make it something they can remember!
             </StepSub>
 
-            <FormLabel>PIN (4 digits)</FormLabel>
+            <FormLabel>Passcode (4 digits)</FormLabel>
             <input
               type="password"
               inputMode="numeric"
@@ -796,7 +829,7 @@ export default function ParentLinkPage() {
               }}
             />
 
-            <FormLabel>Confirm PIN</FormLabel>
+            <FormLabel>Confirm passcode</FormLabel>
             <input
               type="password"
               inputMode="numeric"
@@ -919,10 +952,10 @@ export default function ParentLinkPage() {
               }}
             >
               {[
-                { key: "Name",           val: childName || "—"                  },
-                { key: "Avatar",         val: `${avatar} ${nickname || childName || "—"}` },
+                { key: "Quest name",     val: childName || "—"                  },
+                { key: "Avatar",         val: `${avatar} ${childName || "—"}` },
                 { key: "Grade",          val: `${grade}${age ? ` (Age ${age})` : ""}` },
-                { key: "PIN",            val: "••••"                            },
+                { key: "Passcode",       val: "••••"                            },
                 { key: "Daily sessions", val: `${sessionLimit} (~${sessionLimit === "Unlimited" ? "unlimited" : "30–45"} min)` },
                 { key: "Focus areas",    val: selectedFocusLabels               },
                 { key: "Notifications",  val: notifSummary                      },
@@ -960,7 +993,7 @@ export default function ParentLinkPage() {
               <strong style={{ display: "block", fontSize: "0.85rem", marginBottom: 2, color: MINT }}>
                 🌟 Ready to start!
               </strong>
-              {childName || "Your child"}&apos;s first session will begin from the {selectedBandLabel}. WonderQuest will personalise as they play. You can always edit these settings from your dashboard.
+              {childName || "Your child"}&apos;s first session will begin from the {selectedBandLabel}. WonderQuest will personalise as they play. They sign in with their quest name and passcode. You can always edit these settings from your dashboard.
             </div>
 
             {submitError && (
@@ -981,7 +1014,7 @@ export default function ParentLinkPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       displayName: childName.trim() || "Explorer",
-                      username: username.trim() || childName.trim().toLowerCase().replace(/[^a-z0-9]/g, "") || "explorer",
+                      username: childName.trim().toLowerCase() || "explorer",
                       avatarKey: avatar,
                       birthYear,
                       pin,
