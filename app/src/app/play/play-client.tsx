@@ -2411,6 +2411,9 @@ function PlayClientInner() {
                 <Link href="/parent" style={{ fontSize: 12, color: C.muted, textDecoration: "none", textAlign: "center", padding: "6px 0" }}>
                   Parent view
                 </Link>
+                <a href="/api/child/logout" style={{ fontSize: 12, color: C.muted, textDecoration: "none", textAlign: "center", padding: "6px 0" }}>
+                  Sign out
+                </a>
               </div>
             </div>
           </div>

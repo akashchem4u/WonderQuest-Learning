@@ -188,7 +188,7 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
       </div>
 
       {/* Sign out / switch child */}
-      <div style={{ textAlign: "center", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
         <Link
           href="/child?manual=1"
           style={{
@@ -201,6 +201,18 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
         >
           Switch child →
         </Link>
+        <a
+          href="/api/child/logout"
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "rgba(255,255,255,0.3)",
+            textDecoration: "none",
+            transition: "color 0.15s",
+          }}
+        >
+          Sign out →
+        </a>
       </div>
     </PageShell>
   );
