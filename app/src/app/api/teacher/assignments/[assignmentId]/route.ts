@@ -3,24 +3,24 @@ import {
   updateTeacherAssignment,
   deleteTeacherAssignment,
 } from "@/lib/prototype-service";
-import { hasTeacherAccess } from "@/lib/teacher-access";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ assignmentId: string }> },
 ) {
-  if (!(await hasTeacherAccess())) {
-    return NextResponse.json(
-      { error: "Teacher access is required." },
-      { status: 401 },
-    );
-  }
-
   try {
     const { assignmentId } = await params;
     const body = await request.json();
+    const auth = await requireTeacherSession(request, body.teacherId);
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const { teacherId } = auth;
     const payload = await updateTeacherAssignment(assignmentId, {
-      teacherId: body.teacherId,
+      teacherId,
       title: body.title,
       description: body.description,
       skillCodes: body.skillCodes,
@@ -42,19 +42,18 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ assignmentId: string }> },
 ) {
-  if (!(await hasTeacherAccess())) {
-    return NextResponse.json(
-      { error: "Teacher access is required." },
-      { status: 401 },
-    );
-  }
-
   try {
     const { assignmentId } = await params;
-    const teacherId = request.nextUrl.searchParams.get("teacherId")?.trim() ?? "";
-    if (!teacherId) {
-      return NextResponse.json({ error: "teacherId is required." }, { status: 400 });
+    const auth = await requireTeacherSession(
+      request,
+      request.nextUrl.searchParams.get("teacherId"),
+    );
+
+    if (!auth.ok) {
+      return auth.response;
     }
+
+    const { teacherId } = auth;
     const payload = await deleteTeacherAssignment(teacherId, assignmentId);
     return NextResponse.json(payload);
   } catch (error) {

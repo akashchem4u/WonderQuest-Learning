@@ -58,6 +58,26 @@ fetch_route() {
   printf '%s\n' "${http_code}"
 }
 
+check_route_status() {
+  local route="$1"
+  local expected_status="$2"
+  local description="$3"
+  local method="${4:-GET}"
+  local tmp_file
+
+  tmp_file="$(mktemp)"
+  local http_code
+  http_code="$(curl -LsS -X "${method}" -o "${tmp_file}" -w '%{http_code}' "${BASE_URL}${route}")"
+
+  if [[ "${http_code}" == "${expected_status}" ]]; then
+    pass "${description}"
+  else
+    fail "${description}: expected HTTP ${expected_status}, got ${http_code}"
+  fi
+
+  rm -f "${tmp_file}"
+}
+
 check_route_contains() {
   local route="$1"
   local expected="$2"
@@ -118,16 +138,21 @@ printf 'Base URL: %s\n' "${BASE_URL}"
 section "Public Route Checks"
 check_route_contains "/" "WonderQuest Learning" "Home page loads"
 check_route_contains_any "/child" "Child route loads" \
-  "Child quickstart" \
-  "Choose the quickest path" \
-  "Create a profile or sign in" \
-  "One big tap to start, one calm setup, then straight into play."
-check_route_contains "/parent" "Parent journey" "Parent route loads"
+  "Start your adventure" \
+  "Sign in to continue your quests." \
+  "Sign In & Play"
+check_route_contains_any "/parent" "Parent route loads" \
+  "Family Hub" \
+  "learning adventure" \
+  "This portal is for parents and guardians only."
 check_route_contains_any "/owner" "Owner gate loads" \
-  "Unlock owner console" \
-  "Sign in to the owner console." \
-  "Existing owner sign-in"
-check_route_contains "/teacher" "Unlock teacher dashboard" "Teacher gate loads"
+  "Ops Console" \
+  "WQ Console" \
+  "Good morning"
+check_route_contains_any "/teacher" "Teacher gate loads" \
+  "Sign in to teacher dashboard" \
+  "Teacher access" \
+  "Enter your teacher username and password."
 
 section "Runtime Signal Checks"
 home_tmp="$(mktemp)"
@@ -152,6 +177,36 @@ else
 fi
 
 rm -f "${home_tmp}"
+
+health_tmp="$(mktemp)"
+health_status="$(fetch_route "/api/health" "${health_tmp}")"
+
+if [[ "${health_status}" != "200" ]]; then
+  fail "Health route returns HTTP 200: got ${health_status}"
+else
+  pass "Health route returns HTTP 200"
+
+  if grep -Fq '"status":"ok"' "${health_tmp}"; then
+    pass "Health route reports ok"
+  else
+    fail 'Health route did not report `"status":"ok"`'
+  fi
+
+  if grep -Fq '"liveQuestionGenerationEnabled":true' "${health_tmp}"; then
+    pass "Health route reports live question generation enabled"
+  else
+    warn "Health route does not report live question generation enabled"
+  fi
+fi
+
+rm -f "${health_tmp}"
+
+section "Auth Gate Checks"
+check_route_status "/api/parent/activity" "401" "Parent activity route is parent-gated"
+check_route_status "/api/parent/reset-child-pin" "401" "Parent reset-child-pin route is parent-gated" "POST"
+check_route_status "/api/teacher/class" "401" "Teacher class route is teacher-gated"
+check_route_status "/api/teacher/skills" "401" "Teacher skills route is teacher-gated"
+check_route_status "/api/teacher/interventions" "401" "Teacher interventions route is teacher-gated"
 
 section "Summary"
 printf 'Passes: %d\n' "${PASS_COUNT}"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 /**
  * GET /api/teacher/interventions/auto-queue?teacherId=...
@@ -7,11 +8,16 @@ import { db } from "@/lib/db";
  * Indicates which were auto-triggered vs manually created.
  */
 export async function GET(request: NextRequest) {
-  const teacherId = request.nextUrl.searchParams.get("teacherId");
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
 
-  if (!teacherId) {
-    return NextResponse.json({ error: "teacherId is required" }, { status: 400 });
+  if (!auth.ok) {
+    return auth.response;
   }
+
+  const { teacherId } = auth;
 
   try {
     const result = await db.query(

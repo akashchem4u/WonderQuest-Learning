@@ -1,28 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveTeacherIntervention } from "@/lib/prototype-service";
-import { hasTeacherAccess } from "@/lib/teacher-access";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await hasTeacherAccess())) {
-    return NextResponse.json(
-      { error: "Teacher access is required." },
-      { status: 401 },
-    );
-  }
-
   try {
     const body = await request.json();
-    const teacherId = typeof body.teacherId === "string" ? body.teacherId.trim() : "";
+    const auth = await requireTeacherSession(request, body.teacherId);
 
-    if (!teacherId) {
-      return NextResponse.json(
-        { error: "teacherId is required." },
-        { status: 400 },
-      );
+    if (!auth.ok) {
+      return auth.response;
     }
+
+    const { teacherId } = auth;
 
     const { id } = await context.params;
     const payload = await resolveTeacherIntervention({

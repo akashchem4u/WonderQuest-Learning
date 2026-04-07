@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { isValidTeacherId } from "@/lib/teacher-identity";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 // GET — fetch sent messages for this teacher
 export async function GET(request: NextRequest) {
-  const teacherId = request.nextUrl.searchParams.get("teacherId");
-  if (!isValidTeacherId(teacherId)) {
-    return NextResponse.json({ error: "teacherId required" }, { status: 400 });
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
+
+  if (!auth.ok) {
+    return auth.response;
   }
+
+  const { teacherId } = auth;
+
   try {
     const result = await db.query(`
       select
@@ -36,14 +43,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { teacherId, studentId, title, messageBody } = body as {
+    const { teacherId: requestedTeacherId, studentId, title, messageBody } = body as {
       teacherId?: string;
       studentId?: string;
       title?: string;
       messageBody?: string;
     };
+    const auth = await requireTeacherSession(request, requestedTeacherId);
 
-    if (!isValidTeacherId(teacherId)) return NextResponse.json({ error: "teacherId required" }, { status: 400 });
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const { teacherId } = auth;
+
     if (!studentId) return NextResponse.json({ error: "studentId required" }, { status: 400 });
     if (!title?.trim() || !messageBody?.trim()) return NextResponse.json({ error: "title and message required" }, { status: 400 });
     if (title.length > 120) return NextResponse.json({ error: "Title too long (max 120 chars)" }, { status: 400 });

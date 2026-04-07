@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTeacherStudentDetail } from "@/lib/teacher-service";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ studentId: string }> },
 ) {
   const { studentId } = await params;
-  const teacherId = request.nextUrl.searchParams.get("teacherId");
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
 
-  if (!teacherId) {
-    return NextResponse.json({ error: "teacherId is required" }, { status: 400 });
+  if (!auth.ok) {
+    return auth.response;
   }
+
+  const { teacherId } = auth;
 
   try {
     const detail = await getTeacherStudentDetail(teacherId, studentId);

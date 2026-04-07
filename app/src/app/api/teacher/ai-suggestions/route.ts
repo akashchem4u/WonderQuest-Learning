@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isValidTeacherId } from "@/lib/teacher-identity";
 import { generateAdaptiveSuggestions } from "@/lib/adaptive-teacher";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 export async function GET(request: NextRequest) {
-  const teacherId = request.cookies.get("wonderquest-teacher-id")?.value ?? "";
-  if (!isValidTeacherId(teacherId)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireTeacherSession(request);
+
+  if (!auth.ok) {
+    return auth.response;
   }
 
   try {
+    const { teacherId } = auth;
     const suggestions = await generateAdaptiveSuggestions(teacherId);
     return NextResponse.json({ suggestions });
   } catch (error) {

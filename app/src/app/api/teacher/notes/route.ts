@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 export async function GET(request: NextRequest) {
-  const teacherId = request.cookies.get("wonderquest-teacher-id")?.value ?? "";
-  if (!teacherId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireTeacherSession(request);
+  if (!auth.ok) return auth.response;
+  const { teacherId } = auth;
 
   const { db } = await import("@/lib/db");
   try {
@@ -22,8 +24,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const teacherId = request.cookies.get("wonderquest-teacher-id")?.value ?? "";
-  if (!teacherId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireTeacherSession(request);
+  if (!auth.ok) return auth.response;
+  const { teacherId } = auth;
 
   const body = await request.json() as { noteText?: string; studentId?: string };
   const noteText = (body.noteText ?? "").trim().slice(0, 500);
@@ -51,8 +54,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const teacherId = request.cookies.get("wonderquest-teacher-id")?.value ?? "";
-  if (!teacherId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireTeacherSession(request);
+  if (!auth.ok) return auth.response;
+  const { teacherId } = auth;
 
   const { searchParams } = new URL(request.url);
   const noteId = searchParams.get("id") ?? "";

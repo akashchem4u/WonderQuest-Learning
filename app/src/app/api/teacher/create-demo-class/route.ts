@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isValidTeacherId } from "@/lib/teacher-identity";
 import { createVirtualClassroom, hasVirtualClassroom } from "@/lib/virtual-classroom";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
-const VALID_BANDS = new Set(["PREK", "K1", "G23", "G45"]);
+const VALID_BANDS = new Set(["PREK", "K1", "G23", "G45", "G6"]);
 
 export async function POST(request: NextRequest) {
-  const teacherId = request.cookies.get("wonderquest-teacher-id")?.value ?? "";
-  if (!isValidTeacherId(teacherId)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireTeacherSession(request);
+
+  if (!auth.ok) {
+    return auth.response;
   }
 
   const body = await request.json().catch(() => ({})) as { bandCode?: string };
@@ -18,6 +19,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const { teacherId } = auth;
     const already = await hasVirtualClassroom(teacherId);
     if (already) {
       return NextResponse.json({ alreadyExists: true });

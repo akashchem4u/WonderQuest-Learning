@@ -1,28 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { hasTeacherAccess } from "@/lib/teacher-access";
+import { requireTeacherSession } from "@/lib/teacher-session";
 import { updateTeacherProfile, ensureTeacherClassCode } from "@/lib/teacher-service";
 
-function readTeacherId(value: string | null) {
-  return value?.trim() ?? "";
-}
-
 export async function GET(request: NextRequest) {
-  if (!(await hasTeacherAccess())) {
-    return NextResponse.json(
-      { error: "Teacher access is required." },
-      { status: 401 },
-    );
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
+
+  if (!auth.ok) {
+    return auth.response;
   }
 
-  const teacherId = readTeacherId(request.nextUrl.searchParams.get("teacherId"));
-
-  if (!teacherId) {
-    return NextResponse.json(
-      { error: "teacherId is required." },
-      { status: 400 },
-    );
-  }
+  const { teacherId } = auth;
 
   try {
     const teacher = await db.query(
@@ -94,24 +85,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!(await hasTeacherAccess())) {
-    return NextResponse.json(
-      { error: "Teacher access is required." },
-      { status: 401 },
-    );
+  const auth = await requireTeacherSession(request);
+
+  if (!auth.ok) {
+    return auth.response;
   }
 
-  // Read teacherId from cookie (wonderquest-teacher-id is not httpOnly)
-  const cookieHeader = request.headers.get("cookie") ?? "";
-  const teacherIdMatch = cookieHeader.match(/wonderquest-teacher-id=([^;]+)/);
-  const teacherId = teacherIdMatch ? decodeURIComponent(teacherIdMatch[1]).trim() : "";
-
-  if (!teacherId) {
-    return NextResponse.json(
-      { error: "Teacher session not found. Please sign in again." },
-      { status: 401 },
-    );
-  }
+  const { teacherId } = auth;
 
   try {
     const body = (await request.json()) as {

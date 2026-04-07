@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTeacherClassRoster } from "@/lib/teacher-service";
-import { isValidTeacherId } from "@/lib/teacher-identity";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 export async function GET(request: NextRequest) {
-  const teacherId = request.nextUrl.searchParams.get("teacherId");
-  if (!isValidTeacherId(teacherId)) {
-    return NextResponse.json({ roster: [] });
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
+
+  if (!auth.ok) {
+    return auth.response;
   }
+
+  const { teacherId } = auth;
 
   try {
     const roster = await getTeacherClassRoster(teacherId);

@@ -4,15 +4,20 @@ import {
   createIntervention,
   resolveIntervention,
 } from "@/lib/teacher-service";
-import { isValidTeacherId } from "@/lib/teacher-identity";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 export async function GET(request: NextRequest) {
-  const teacherId = request.nextUrl.searchParams.get("teacherId");
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
   const status = request.nextUrl.searchParams.get("status") ?? "active";
 
-  if (!isValidTeacherId(teacherId)) {
-    return NextResponse.json({ interventions: [] });
+  if (!auth.ok) {
+    return auth.response;
   }
+
+  const { teacherId } = auth;
 
   try {
     const interventions = await getTeacherInterventions(teacherId, status);
@@ -33,16 +38,23 @@ export async function POST(request: NextRequest) {
       interventionType?: string;
       teacherNote?: string;
     };
+    const auth = await requireTeacherSession(request, body.teacherId);
 
-    if (!body.teacherId || !body.studentId || !body.reason) {
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const { teacherId } = auth;
+
+    if (!body.studentId || !body.reason) {
       return NextResponse.json(
-        { error: "teacherId, studentId, and reason are required" },
+        { error: "studentId and reason are required" },
         { status: 400 },
       );
     }
 
     const result = await createIntervention({
-      teacherId: body.teacherId,
+      teacherId,
       studentId: body.studentId,
       skillCode: body.skillCode,
       reason: body.reason,
@@ -64,15 +76,22 @@ export async function PATCH(request: NextRequest) {
       interventionId?: string;
       resolutionNote?: string;
     };
+    const auth = await requireTeacherSession(request, body.teacherId);
 
-    if (!body.teacherId || !body.interventionId) {
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const { teacherId } = auth;
+
+    if (!body.interventionId) {
       return NextResponse.json(
-        { error: "teacherId and interventionId are required" },
+        { error: "interventionId is required" },
         { status: 400 },
       );
     }
 
-    await resolveIntervention(body.teacherId, body.interventionId, body.resolutionNote);
+    await resolveIntervention(teacherId, body.interventionId, body.resolutionNote);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("[api/teacher/interventions PATCH] error:", error);

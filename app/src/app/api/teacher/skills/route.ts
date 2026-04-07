@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { isValidTeacherId } from "@/lib/teacher-identity";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 export async function GET(request: NextRequest) {
-  const teacherId = request.nextUrl.searchParams.get("teacherId")?.trim() ?? "";
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
   const bandsParam = request.nextUrl.searchParams.get("bands")?.trim() ?? "";
 
-  if (!isValidTeacherId(teacherId)) {
-    return NextResponse.json({ skills: [] });
+  if (!auth.ok) {
+    return auth.response;
   }
+
+  const { teacherId } = auth;
 
   try {
     // If band codes provided use them, else derive from roster
@@ -51,6 +56,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ skills });
   } catch (error) {
     console.error("[api/teacher/skills] error:", error);
-    return NextResponse.json({ skills: [] });
+    return NextResponse.json({ error: "Failed to load skills." }, { status: 500 });
   }
 }

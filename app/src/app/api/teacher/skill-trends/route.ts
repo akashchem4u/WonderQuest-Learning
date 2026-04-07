@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTeacherSkillTrends } from "@/lib/analytics-service";
-import { hasTeacherAccess } from "@/lib/teacher-access";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 function parsePositiveInt(value: string | null, fallback: number, max: number) {
   const parsed = Number(value ?? "");
@@ -11,20 +11,16 @@ function parsePositiveInt(value: string | null, fallback: number, max: number) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!(await hasTeacherAccess())) {
-    return NextResponse.json(
-      { error: "Teacher access is required." },
-      { status: 401 },
-    );
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
+
+  if (!auth.ok) {
+    return auth.response;
   }
 
-  const teacherId = request.nextUrl.searchParams.get("teacherId")?.trim() ?? "";
-  if (!teacherId) {
-    return NextResponse.json(
-      { error: "teacherId is required." },
-      { status: 400 },
-    );
-  }
+  const { teacherId } = auth;
 
   const days = parsePositiveInt(request.nextUrl.searchParams.get("days"), 30, 90);
   const payload = await getTeacherSkillTrends(teacherId, { days });

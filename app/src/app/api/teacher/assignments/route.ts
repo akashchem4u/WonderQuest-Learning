@@ -3,28 +3,19 @@ import {
   createTeacherAssignment,
   listTeacherAssignments,
 } from "@/lib/prototype-service";
-import { hasTeacherAccess } from "@/lib/teacher-access";
-
-function readTeacherId(value: string | null) {
-  return value?.trim() ?? "";
-}
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 export async function GET(request: NextRequest) {
-  if (!(await hasTeacherAccess())) {
-    return NextResponse.json(
-      { error: "Teacher access is required." },
-      { status: 401 },
-    );
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
+
+  if (!auth.ok) {
+    return auth.response;
   }
 
-  const teacherId = readTeacherId(request.nextUrl.searchParams.get("teacherId"));
-
-  if (!teacherId) {
-    return NextResponse.json(
-      { error: "teacherId is required." },
-      { status: 400 },
-    );
-  }
+  const { teacherId } = auth;
 
   try {
     const payload = await listTeacherAssignments(teacherId);
@@ -38,17 +29,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await hasTeacherAccess())) {
-    return NextResponse.json(
-      { error: "Teacher access is required." },
-      { status: 401 },
-    );
-  }
-
   try {
     const body = await request.json();
+    const auth = await requireTeacherSession(request, body.teacherId);
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const { teacherId } = auth;
     const payload = await createTeacherAssignment({
-      teacherId: body.teacherId,
+      teacherId,
       title: body.title,
       description: body.description,
       skillCodes: body.skillCodes,

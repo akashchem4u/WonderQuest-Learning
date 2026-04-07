@@ -600,7 +600,7 @@ export default function ParentAccessPage() {
 
   if (!result) {
     return (
-      <AppFrame audience="parent" currentPath="/parent">
+      <AppFrame audience="home" currentPath="/parent">
         <div
           style={{
             minHeight: "100vh",

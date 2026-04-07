@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAssignmentProgress } from "@/lib/teacher-service";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ assignmentId: string }> },
 ) {
-  const teacherId = request.nextUrl.searchParams.get("teacherId");
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
 
-  if (!teacherId) {
-    return NextResponse.json({ error: "teacherId is required" }, { status: 400 });
+  if (!auth.ok) {
+    return auth.response;
   }
 
   const { assignmentId } = await params;
+
+  const { teacherId } = auth;
 
   if (!assignmentId) {
     return NextResponse.json({ error: "assignmentId is required" }, { status: 400 });

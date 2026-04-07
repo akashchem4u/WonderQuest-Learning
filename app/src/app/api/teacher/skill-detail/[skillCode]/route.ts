@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { isValidTeacherId } from "@/lib/teacher-identity";
 import { formatTeacherBandLabel } from "@/lib/teacher-band-format";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 // GET /api/teacher/skill-detail/[skillCode]?teacherId=xxx
 // Returns: skillName, totalStudents, mastered, building, started, avgAccuracy,
@@ -28,15 +28,20 @@ export async function GET(
   { params }: { params: Promise<{ skillCode: string }> },
 ) {
   const { skillCode } = await params;
-  const teacherId = request.nextUrl.searchParams.get("teacherId");
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
 
-  if (!isValidTeacherId(teacherId)) {
-    return NextResponse.json({ error: "teacherId is required" }, { status: 400 });
+  if (!auth.ok) {
+    return auth.response;
   }
 
   if (!skillCode) {
     return NextResponse.json({ error: "skillCode is required" }, { status: 400 });
   }
+
+  const { teacherId } = auth;
 
   try {
     // -- Skill metadata --

@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { isValidTeacherId } from "@/lib/teacher-identity";
+import { requireTeacherSession } from "@/lib/teacher-session";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ studentId: string }> },
 ) {
   const { studentId } = await params;
-  const teacherId = request.nextUrl.searchParams.get("teacherId");
+  const auth = await requireTeacherSession(
+    request,
+    request.nextUrl.searchParams.get("teacherId"),
+  );
 
-  if (!isValidTeacherId(teacherId)) {
-    return NextResponse.json({ error: "teacherId is required" }, { status: 400 });
+  if (!auth.ok) {
+    return auth.response;
   }
+
+  const { teacherId } = auth;
 
   // Verify the student is on this teacher's roster
   const rosterCheck = await db.query(
