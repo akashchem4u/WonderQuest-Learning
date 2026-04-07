@@ -378,6 +378,9 @@ export async function createChildForParent(
   const launchBandCode = ensureLaunchBandCode(ensureText(input.launchBandCode) || "K1");
 
   if (!username) throw new Error("Username is required.");
+  if (!/^[a-zA-Z0-9]{2,20}$/.test(username)) {
+    throw new Error("Child username must be 2–20 letters and numbers only.");
+  }
   if (!displayName) throw new Error("Display name is required.");
   if (!validatePin(pin)) throw new Error("PIN must be exactly 4 digits.");
 

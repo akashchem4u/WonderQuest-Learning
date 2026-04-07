@@ -108,13 +108,14 @@ export async function GET(request: NextRequest) {
     const masteryResult = await db.query(
       `
         select
-          skill_code,
-          mastery_score,
-          session_count,
-          proficient_at
-        from public.student_skill_mastery
-        where student_id = $1
-          and skill_code = any($2::text[])
+          sk.code as skill_code,
+          ssm.mastery_score,
+          ssm.session_count,
+          ssm.proficient_at
+        from public.student_skill_mastery ssm
+        join public.skills sk on sk.id = ssm.skill_id
+        where ssm.student_id = $1
+          and sk.code = any($2::text[])
       `,
       [studentId, skillCodes],
     );

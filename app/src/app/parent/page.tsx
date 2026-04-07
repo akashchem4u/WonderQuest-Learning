@@ -85,7 +85,9 @@ type ParentAccessResponse = {
   childDashboard: ChildDashboard | null;
 };
 
-type ParentAccessMode = "new" | "returning";
+type ParentAccessMode = "signin" | "register" | "forgot" | "forgot-verify";
+
+type NameAvailability = "idle" | "checking" | "available" | "taken" | "invalid";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -203,13 +205,30 @@ const DASHBOARD_NAV = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ParentAccessPage() {
-  const [accessMode, setAccessMode] = useState<ParentAccessMode>("returning");
+  const [accessMode, setAccessMode] = useState<ParentAccessMode>("signin");
   const [notifyWeekly, setNotifyWeekly] = useState(true);
   const [notifyMilestones, setNotifyMilestones] = useState(true);
-  const [username, setUsername] = useState("");
-  const [pin, setPin] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [childUsername, setChildUsername] = useState("");
+
+  // Sign-in fields
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+
+  // Register fields
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regDisplayName, setRegDisplayName] = useState("");
+  const [regChildName, setRegChildName] = useState("");
+  const [regChildNameAvailability, setRegChildNameAvailability] = useState<NameAvailability>("idle");
+  const [regChildNameMessage, setRegChildNameMessage] = useState("");
+  const [regChildNameDebounceRef, setRegChildNameDebounceRef] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  // Forgot password fields
+  const [forgotIdentifier, setForgotIdentifier] = useState("");
+  const [forgotToken, setForgotToken] = useState("");
+  const [forgotDisplayName, setForgotDisplayName] = useState("");
+  const [forgotChildPin, setForgotChildPin] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ParentAccessResponse | null>(null);
@@ -915,6 +934,56 @@ export default function ParentAccessPage() {
                       ? "Sign in to Dashboard →"
                       : "Create parent access"}
                 </button>
+
+                {/* ── Google OAuth separator + coming-soon button ── */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "4px 0 2px" }}>
+                  <div style={{ flex: 1, height: "1px", background: C.border }} />
+                  <span style={{ font: "400 0.72rem system-ui", color: C.muted, whiteSpace: "nowrap" }}>
+                    or
+                  </span>
+                  <div style={{ flex: 1, height: "1px", background: C.border }} />
+                </div>
+
+                <div title="Coming soon" style={{ position: "relative" }}>
+                  <button
+                    disabled
+                    type="button"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "10px",
+                      width: "100%",
+                      padding: "11px 16px",
+                      borderRadius: "10px",
+                      border: `1px solid ${C.border}`,
+                      background: C.surface,
+                      color: C.muted,
+                      font: "500 0.92rem system-ui",
+                      opacity: 0.45,
+                      cursor: "not-allowed",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        background: "linear-gradient(135deg,#ea4335 25%,#fbbc04 50%,#34a853 75%,#4285f4 100%)",
+                        color: "#fff",
+                        font: "700 0.75rem system-ui",
+                        flexShrink: 0,
+                      }}
+                    >
+                      G
+                    </span>
+                    Continue with Google
+                    <span style={{ font: "400 0.72rem system-ui", marginLeft: "auto" }}>Coming soon</span>
+                  </button>
+                </div>
 
                 <div style={{ textAlign: "center" }}>
                   <Link

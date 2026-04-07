@@ -12,18 +12,40 @@ import {
   recordParentAccessAttempt,
 } from "@/lib/parent-access";
 import { hashPin, normalizeUsername, validatePin, verifyPin } from "@/lib/pin";
+import {
+  hashPassword,
+  validateEmail,
+  validatePassword,
+  verifyPassword,
+} from "@/lib/password";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ParentAccessInput = {
-  username: string;
-  pin: string;
-  displayName?: string;
-  childUsername?: string;
-  relationship?: string;
-  notifyWeekly?: boolean;
-  notifyMilestones?: boolean;
-};
+type ParentAccessInput =
+  | {
+      mode: "register";
+      email: string;
+      password: string;
+      displayName: string;
+      childUsername?: string;
+      notifyWeekly?: boolean;
+      notifyMilestones?: boolean;
+    }
+  | {
+      mode: "login";
+      identifier: string;
+      password: string;
+    }
+  | {
+      mode: "legacy-pin";
+      username: string;
+      pin: string;
+      displayName?: string;
+      childUsername?: string;
+      relationship?: string;
+      notifyWeekly?: boolean;
+      notifyMilestones?: boolean;
+    };
 
 type ParentAccessContext = {
   ipAddress?: string | null;
@@ -256,153 +278,82 @@ async function getChildDashboard(studentId: string) {
 
 // ─── Exported service functions ───────────────────────────────────────────────
 
-export async function accessParent(
-  input: ParentAccessInput,
-  context: ParentAccessContext = {},
+// ─── Internal helper: link child by username + set notification preferences ────
+
+async function linkChildByUsername(
+  guardianId: string,
+  childUsername: string,
+  notifyWeekly: boolean,
+  notifyMilestones: boolean,
 ) {
-  const username = normalizeUsername(ensureText(input.username));
-  const pin = ensureText(input.pin);
-  const displayName = ensureText(input.displayName);
-  const childUsername = normalizeUsername(ensureText(input.childUsername));
-  const relationship = ensureText(input.relationship) || "parent";
-
-  if (!username) {
-    throw new Error("Parent username is required.");
-  }
-
-  if (!validatePin(pin)) {
-    throw new Error("PIN must be exactly 4 digits.");
-  }
-
-  await assertParentAccessAllowed(username, context.ipAddress ?? null);
-
-  let guardianRow: Record<string, unknown>;
-
-  const existing = await db.query(
+  const child = await db.query(
     `
-      select id, username, display_name, pin_hash
-      from public.guardian_profiles
-      where username = $1
+      select
+        sp.id,
+        sp.username,
+        sp.display_name,
+        sp.avatar_key,
+        sp.launch_band_code,
+        ps.total_points,
+        ps.current_level,
+        ps.badge_count,
+        ps.trophy_count
+      from public.student_profiles sp
+      left join public.progression_states ps
+        on ps.student_id = sp.id
+      where sp.username = $1
       limit 1
     `,
-    [username],
+    [childUsername],
   );
 
-  if (existing.rowCount) {
-    const row = existing.rows[0];
-
-    if (!verifyPin(pin, username, row.pin_hash as string)) {
-      await recordParentAccessAttempt({
-        identifier: username,
-        ipAddress: context.ipAddress ?? null,
-        userAgent: context.userAgent ?? null,
-        succeeded: false,
-        failureReason: "wrong-pin",
-      });
-      throw new Error("Wrong username or PIN.");
-    }
-
-    guardianRow = row;
-  } else {
-    if (!displayName) {
-      throw new Error("Display name is required for first-time parent setup.");
-    }
-
-    const inserted = await db.query(
-      `
-        insert into public.guardian_profiles (
-          username,
-          pin_hash,
-          display_name,
-          relationship_label
-        )
-        values ($1, $2, $3, $4)
-        returning id, username, display_name
-      `,
-      [username, hashPin(pin, username), displayName, relationship],
-    );
-
-    guardianRow = inserted.rows[0];
+  if (!child.rowCount) {
+    throw new Error("Child username was not found.");
   }
 
-  let linkedChild = null;
+  const linkedChild = child.rows[0];
 
-  if (childUsername) {
-    const child = await db.query(
-      `
-        select
-          sp.id,
-          sp.username,
-          sp.display_name,
-          sp.avatar_key,
-          sp.launch_band_code,
-          ps.total_points,
-          ps.current_level,
-          ps.badge_count,
-          ps.trophy_count
-        from public.student_profiles sp
-        left join public.progression_states ps
-          on ps.student_id = sp.id
-        where sp.username = $1
-        limit 1
-      `,
-      [childUsername],
-    );
+  await db.query(
+    `
+      insert into public.guardian_student_links (guardian_id, student_id)
+      values ($1, $2)
+      on conflict (guardian_id, student_id) do nothing
+    `,
+    [guardianId, linkedChild.id],
+  );
 
-    if (!child.rowCount) {
-      throw new Error("Child username was not found.");
-    }
+  const preferenceRows = [
+    { notificationType: "weekly-summary", enabled: notifyWeekly },
+    { notificationType: "milestone-earned", enabled: notifyMilestones },
+  ];
 
-    linkedChild = child.rows[0];
-
+  for (const item of preferenceRows) {
     await db.query(
       `
-        insert into public.guardian_student_links (guardian_id, student_id)
-        values ($1, $2)
-        on conflict (guardian_id, student_id) do nothing
+        insert into public.notification_preferences (
+          guardian_id,
+          channel,
+          notification_type,
+          enabled,
+          preferred_time_window
+        )
+        values ($1, 'in-app', $2, $3, 'evening')
+        on conflict (guardian_id, channel, notification_type)
+        do update set enabled = excluded.enabled, preferred_time_window = excluded.preferred_time_window
       `,
-      [guardianRow.id, linkedChild.id],
+      [guardianId, item.notificationType, item.enabled],
     );
-
-    const preferenceRows = [
-      {
-        notificationType: "weekly-summary",
-        enabled: ensureBoolean(input.notifyWeekly),
-      },
-      {
-        notificationType: "milestone-earned",
-        enabled: ensureBoolean(input.notifyMilestones),
-      },
-    ];
-
-    for (const item of preferenceRows) {
-      await db.query(
-        `
-          insert into public.notification_preferences (
-            guardian_id,
-            channel,
-            notification_type,
-            enabled,
-            preferred_time_window
-          )
-          values ($1, 'in-app', $2, $3, 'evening')
-          on conflict (guardian_id, channel, notification_type)
-          do update set enabled = excluded.enabled, preferred_time_window = excluded.preferred_time_window
-        `,
-        [guardianRow.id, item.notificationType, item.enabled],
-      );
-    }
   }
 
-  await clearParentAccessFailures(username, context.ipAddress ?? null);
-  await recordParentAccessAttempt({
-    identifier: username,
-    ipAddress: context.ipAddress ?? null,
-    userAgent: context.userAgent ?? null,
-    succeeded: true,
-    failureReason: null,
-  });
+  return linkedChild;
+}
 
+// ─── Internal helper: build the full access response ─────────────────────────
+
+async function buildAccessResponse(
+  guardianRow: Record<string, unknown>,
+  linkedChild: Record<string, unknown> | null,
+) {
   const linkedChildren = await getLinkedChildren(guardianRow.id as string);
   const dashboardStudentId =
     (linkedChild?.id as string | undefined) ?? linkedChildren[0]?.id;
@@ -439,6 +390,229 @@ export async function accessParent(
     childDashboards,
     childDashboard,
   };
+}
+
+export async function accessParent(
+  input: ParentAccessInput,
+  context: ParentAccessContext = {},
+) {
+  // ── Mode: register ────────────────────────────────────────────────────────
+  if (input.mode === "register") {
+    const email = input.email.toLowerCase().trim();
+    const displayName = ensureText(input.displayName);
+    const childUsername = input.childUsername
+      ? normalizeUsername(ensureText(input.childUsername))
+      : "";
+
+    const emailError = validateEmail(email);
+    if (emailError) throw new Error(emailError);
+
+    const passwordError = validatePassword(input.password);
+    if (passwordError) throw new Error(passwordError);
+
+    if (!displayName) throw new Error("Your name is required.");
+
+    await assertParentAccessAllowed(email, context.ipAddress ?? null);
+
+    const existing = await db.query(
+      `select id from public.guardian_profiles where email = $1 limit 1`,
+      [email],
+    );
+
+    if (existing.rowCount) {
+      await recordParentAccessAttempt({
+        identifier: email,
+        ipAddress: context.ipAddress ?? null,
+        userAgent: context.userAgent ?? null,
+        succeeded: false,
+        failureReason: "email-already-exists",
+      });
+      throw new Error("An account with this email already exists. Try signing in.");
+    }
+
+    const passwordHash = hashPassword(input.password, email);
+
+    const inserted = await db.query(
+      `
+        insert into public.guardian_profiles (
+          email,
+          password_hash,
+          display_name,
+          relationship_label,
+          email_verified
+        )
+        values ($1, $2, $3, 'parent', false)
+        returning id, username, display_name
+      `,
+      [email, passwordHash, displayName],
+    );
+
+    const guardianRow = inserted.rows[0];
+
+    let linkedChild: Record<string, unknown> | null = null;
+    if (childUsername) {
+      linkedChild = await linkChildByUsername(
+        guardianRow.id as string,
+        childUsername,
+        ensureBoolean(input.notifyWeekly),
+        ensureBoolean(input.notifyMilestones),
+      );
+    }
+
+    await clearParentAccessFailures(email, context.ipAddress ?? null);
+    await recordParentAccessAttempt({
+      identifier: email,
+      ipAddress: context.ipAddress ?? null,
+      userAgent: context.userAgent ?? null,
+      succeeded: true,
+      failureReason: null,
+    });
+
+    return buildAccessResponse(guardianRow, linkedChild);
+  }
+
+  // ── Mode: login ───────────────────────────────────────────────────────────
+  if (input.mode === "login") {
+    const identifier = ensureText(input.identifier);
+
+    if (!identifier) throw new Error("Email or username is required.");
+
+    await assertParentAccessAllowed(identifier, context.ipAddress ?? null);
+
+    // Look up by email (case insensitive) OR username (case insensitive)
+    const result = await db.query(
+      `
+        select id, username, display_name, email, password_hash, pin_hash
+        from public.guardian_profiles
+        where lower(email) = lower($1)
+           or lower(username) = lower($1)
+        limit 1
+      `,
+      [identifier],
+    );
+
+    if (!result.rowCount) {
+      await recordParentAccessAttempt({
+        identifier,
+        ipAddress: context.ipAddress ?? null,
+        userAgent: context.userAgent ?? null,
+        succeeded: false,
+        failureReason: "not-found",
+      });
+      throw new Error("Invalid credentials.");
+    }
+
+    const row = result.rows[0];
+    let authenticated = false;
+
+    if (row.password_hash) {
+      // Email/password auth
+      const emailForHash = (row.email as string | null) ?? identifier.toLowerCase().trim();
+      authenticated = verifyPassword(input.password, emailForHash, row.password_hash as string);
+    } else if (row.pin_hash) {
+      // Legacy PIN backward-compat: treat password field as PIN
+      const uname = (row.username as string | null) ?? identifier.toLowerCase().trim();
+      authenticated = verifyPin(input.password, uname, row.pin_hash as string);
+    }
+
+    if (!authenticated) {
+      await recordParentAccessAttempt({
+        identifier,
+        ipAddress: context.ipAddress ?? null,
+        userAgent: context.userAgent ?? null,
+        succeeded: false,
+        failureReason: "wrong-password",
+      });
+      throw new Error("Invalid credentials.");
+    }
+
+    await clearParentAccessFailures(identifier, context.ipAddress ?? null);
+    await recordParentAccessAttempt({
+      identifier,
+      ipAddress: context.ipAddress ?? null,
+      userAgent: context.userAgent ?? null,
+      succeeded: true,
+      failureReason: null,
+    });
+
+    return buildAccessResponse(row, null);
+  }
+
+  // ── Mode: legacy-pin ──────────────────────────────────────────────────────
+  {
+    const legacyInput = input as Extract<ParentAccessInput, { mode: "legacy-pin" }>;
+    const username = normalizeUsername(ensureText(legacyInput.username));
+    const pin = ensureText(legacyInput.pin);
+    const displayName = ensureText(legacyInput.displayName);
+    const childUsername = normalizeUsername(ensureText(legacyInput.childUsername));
+    const relationship = ensureText(legacyInput.relationship) || "parent";
+
+    if (!username) throw new Error("Parent username is required.");
+    if (!validatePin(pin)) throw new Error("PIN must be exactly 4 digits.");
+
+    await assertParentAccessAllowed(username, context.ipAddress ?? null);
+
+    let guardianRow: Record<string, unknown>;
+
+    const existing = await db.query(
+      `select id, username, display_name, pin_hash
+       from public.guardian_profiles
+       where username = $1
+       limit 1`,
+      [username],
+    );
+
+    if (existing.rowCount) {
+      const row = existing.rows[0];
+      if (!verifyPin(pin, username, row.pin_hash as string)) {
+        await recordParentAccessAttempt({
+          identifier: username,
+          ipAddress: context.ipAddress ?? null,
+          userAgent: context.userAgent ?? null,
+          succeeded: false,
+          failureReason: "wrong-pin",
+        });
+        throw new Error("Wrong username or PIN.");
+      }
+      guardianRow = row;
+    } else {
+      if (!displayName) {
+        throw new Error("Display name is required for first-time parent setup.");
+      }
+      const inserted = await db.query(
+        `
+          insert into public.guardian_profiles (
+            username, pin_hash, display_name, relationship_label
+          )
+          values ($1, $2, $3, $4)
+          returning id, username, display_name
+        `,
+        [username, hashPin(pin, username), displayName, relationship],
+      );
+      guardianRow = inserted.rows[0];
+    }
+
+    let linkedChild: Record<string, unknown> | null = null;
+    if (childUsername) {
+      linkedChild = await linkChildByUsername(
+        guardianRow.id as string,
+        childUsername,
+        ensureBoolean(legacyInput.notifyWeekly),
+        ensureBoolean(legacyInput.notifyMilestones),
+      );
+    }
+
+    await clearParentAccessFailures(username, context.ipAddress ?? null);
+    await recordParentAccessAttempt({
+      identifier: username,
+      ipAddress: context.ipAddress ?? null,
+      userAgent: context.userAgent ?? null,
+      succeeded: true,
+      failureReason: null,
+    });
+
+    return buildAccessResponse(guardianRow, linkedChild);
+  }
 }
 
 export async function restoreParentSession(guardianId: string) {
@@ -960,6 +1134,23 @@ export async function markParentNotificationRead(
     guardianScoped:
       result.rows[0].guardian_id !== null && result.rows[0].guardian_id !== undefined,
   };
+}
+
+// ─── Google OAuth stub (not yet implemented) ─────────────────────────────────
+
+/**
+ * Future integration point for Sign in with Google.
+ * guardian_profiles already has google_id and oauth_provider columns
+ * (migration 20260409_000017_parent_email_auth.sql).
+ *
+ * @throws Always — Google OAuth is not yet implemented.
+ */
+export async function accessParentViaGoogle(
+  _googleId: string,
+  _email: string,
+  _displayName: string,
+): Promise<never> {
+  throw new Error("Google OAuth not yet implemented — coming soon");
 }
 
 export async function markAllParentNotificationsRead(
