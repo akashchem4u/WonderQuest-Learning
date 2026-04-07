@@ -41,7 +41,7 @@ export type QuestionQueryFilters = {
   minDifficulty?: number;
   maxDifficulty?: number;
   limit?: number;
-  orderBy?: "difficulty_asc" | "difficulty_desc" | "question_key_asc";
+  orderBy?: "difficulty_asc" | "difficulty_desc" | "question_key_asc" | "random";
 };
 
 const MODULE_BY_SUBJECT: Record<string, string> = {
@@ -282,10 +282,12 @@ function buildQuestionQuery(filters: QuestionQueryFilters) {
 
   const orderBy =
     filters.orderBy === "difficulty_desc"
-      ? "ei.difficulty desc, ei.example_key asc"
+      ? "ei.difficulty desc, random()"
       : filters.orderBy === "question_key_asc"
         ? "ei.example_key asc"
-        : "ei.difficulty asc, ei.example_key asc";
+        : filters.orderBy === "random"
+          ? "random()"
+          : "ei.difficulty asc, random()";
 
   let limitClause = "";
   if (typeof filters.limit === "number" && Number.isFinite(filters.limit)) {

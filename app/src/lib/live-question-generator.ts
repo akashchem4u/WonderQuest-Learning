@@ -131,6 +131,53 @@ function buildDeveloperPrompt() {
   ].join(" ");
 }
 
+// Variety pools used to seed the AI with a different surface context each call
+const VARIETY_SCENARIOS: Record<string, string[]> = {
+  math: [
+    "a bakery counting cookies", "kids at a school fair", "a space mission counting stars",
+    "a farm with animals", "a toy store sorting items", "a garden with flowers",
+    "a sports day with points", "a birthday party", "a zoo visit", "a grocery shopping trip",
+    "building blocks and towers", "a treasure hunt", "a library with books",
+    "a kitchen recipe", "a bus route with stops",
+  ],
+  "early-literacy": [
+    "a storybook about woodland creatures", "a letter-shaped snack", "a school mailbox",
+    "a picture book about the beach", "a classroom word wall", "an alphabet parade",
+    "a talking parrot learning words", "a magic spell with letters", "a treasure map with labels",
+    "a friendly dragon learning to read",
+  ],
+  phonics: [
+    "a pirate reading a map", "a robot sounding out words", "a singing caterpillar",
+    "a frog learning letters by a pond", "a rocket ship with letter panels",
+    "a bakery spelling ingredients", "a superhero with a word shield",
+  ],
+  reading: [
+    "a mystery in the school library", "a letter from a pen pal", "a class newspaper story",
+    "a nature journal about butterflies", "a recipe card story", "an adventure diary",
+    "a story about two friends exploring a cave", "a message in a bottle",
+  ],
+  science: [
+    "a nature walk in the park", "a science fair project", "a garden observation journal",
+    "a wildlife documentary about frogs", "a weather station", "a backyard bug hunt",
+    "a kitchen experiment with vinegar", "a visit to a natural history museum",
+  ],
+  logic: [
+    "a puzzle room challenge", "a detective solving clues", "a robot sorting shapes",
+    "a treasure chest with a pattern lock", "a board game with rules", "a recipe that follows steps",
+    "a map with a route to decode",
+  ],
+};
+
+const GENERIC_SCENARIOS = [
+  "an everyday classroom moment", "a playground activity", "a family road trip",
+  "a community helper at work", "a season change observation",
+];
+
+function pickVarietyScenario(subjectCode: string): string {
+  const pool = VARIETY_SCENARIOS[subjectCode] ?? GENERIC_SCENARIOS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 function buildUserPrompt(input: {
   launchBandCode: string;
   bandLabel: string;
@@ -150,6 +197,10 @@ function buildUserPrompt(input: {
     ? input.recentPrompts.map((prompt) => `- ${prompt}`).join("\n")
     : "- none provided";
 
+  // Pick a fresh scenario context so repeated generation for the same skill
+  // produces surface-level variety across students and sessions
+  const scenarioHint = pickVarietyScenario(input.subjectCode);
+
   return [
     `Launch band: ${input.launchBandCode} (${input.bandLabel})`,
     getAgeGuidance(input.launchBandCode),
@@ -157,7 +208,8 @@ function buildUserPrompt(input: {
     `Skill: ${input.skillCode} (${input.skillName})`,
     `Skill description: ${input.skillDescription}`,
     `Difficulty target: ${input.difficulty} on a ${input.difficultyFloor}-${input.difficultyCeiling} band scale.`,
-    `Theme wrapper: ${input.themeCode ?? "default theme"}`,
+    `Theme wrapper: ${input.themeCode ?? "everyday classroom"}`,
+    `Scenario context (use this to give the question a fresh setting — do NOT copy it literally, just let it inspire the scenario): ${scenarioHint}`,
     `Generation reason: ${input.reason}`,
     input.referencePrompt
       ? `Reference question to avoid duplicating directly: ${input.referencePrompt}`

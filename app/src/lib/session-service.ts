@@ -355,13 +355,19 @@ async function collectBandQuestionsByDifficulty(input: {
         excludeQuestionKeys: input.baseExcludeQuestionKeys,
         minDifficulty: difficulty,
         maxDifficulty: difficulty,
-        orderBy: "question_key_asc",
+        orderBy: "random",
         limit: input.limit,
       }),
     ),
   );
 
-  return bucketResults.flat().slice(0, input.limit);
+  // Shuffle across difficulty buckets so question order varies per student/session
+  const flat = bucketResults.flat();
+  for (let i = flat.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [flat[i], flat[j]] = [flat[j], flat[i]];
+  }
+  return flat.slice(0, input.limit);
 }
 
 async function pickQuestion(
@@ -373,7 +379,7 @@ async function pickQuestion(
   const baseFilters = {
     launchBands: [launchBandCode],
     skillCodes: [skillCode],
-    orderBy: "difficulty_asc" as const,
+    orderBy: "random" as const,
     limit: 1,
   };
 
@@ -958,7 +964,7 @@ async function findAdaptiveCandidate(filters: {
   minDifficulty?: number;
   maxDifficulty?: number;
   excludeQuestionKeys?: string[];
-  orderBy?: "difficulty_asc" | "difficulty_desc";
+  orderBy?: "difficulty_asc" | "difficulty_desc" | "random";
 }) {
   const [candidate] = await findQuestions({
     launchBands: filters.launchBands,
