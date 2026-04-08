@@ -139,7 +139,7 @@ function SegBar({ segs }: { segs: { flex: number; color: string }[] }) {
 
 function NavBtn({ href, children }: { href: string; children: string }) {
   return (
-    <a href={href} style={{ display: "inline-block", padding: "10px 22px", borderRadius: 10, background: "rgba(155,114,255,0.12)", border: `1px solid rgba(155,114,255,0.3)`, color: C.violet, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+    <a href={href} style={{ display: "inline-flex", alignItems: "center", padding: "10px 22px", borderRadius: 10, background: "rgba(155,114,255,0.12)", border: `1px solid rgba(155,114,255,0.3)`, color: C.violet, fontSize: 13, fontWeight: 700, textDecoration: "none", minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
       {children}
     </a>
   );
@@ -245,7 +245,7 @@ export default function ClassHealthPage() {
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher/class-health">
-      <div style={{ background: C.base, minHeight: "100vh", padding: "28px 24px", fontFamily: "system-ui,-apple-system,sans-serif", color: C.text }}>
+      <div style={{ background: C.base, minHeight: "100vh", padding: "28px 24px", paddingBottom: "env(safe-area-inset-bottom, 16px)", fontFamily: "system-ui,-apple-system,sans-serif", color: C.text }}>
         <div style={{ marginBottom: 28, maxWidth: 960 }}>
           <div style={{ fontSize: 26, fontWeight: 900, color: C.text, marginBottom: 4 }}>📊 Class Health</div>
           <div style={{ fontSize: 14, color: C.muted }}>
@@ -319,7 +319,7 @@ export default function ClassHealthPage() {
                             <span style={{ color: C.text, fontWeight: 600 }}>{s.name}</span>
                             <button
                               onClick={() => { setActiveStudentId(s.studentId); router.push(`/teacher/students/${s.studentId}`); }}
-                              style={{ background: "transparent", border: "none", color: C.violet, fontSize: 12, fontWeight: 700, textDecoration: "none", cursor: "pointer", padding: 0, fontFamily: "system-ui,-apple-system,sans-serif" }}
+                              style={{ background: "transparent", border: "none", color: C.violet, fontSize: 12, fontWeight: 700, textDecoration: "none", cursor: "pointer", padding: "0 8px", fontFamily: "system-ui,-apple-system,sans-serif", minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
                             >View →</button>
                           </div>
                           {s.interventionReason ? (
@@ -354,7 +354,7 @@ export default function ClassHealthPage() {
               </div>
             </div>
             <SparkBar color={C.mint} />
-            <a href="/teacher/class" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none", marginTop: 8 }}>View student activity →</a>
+            <a href="/teacher/class" style={{ display: "inline-flex", alignItems: "center", fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none", marginTop: 8, minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>View student activity →</a>
           </div>
 
           <div style={{ background: C.surface, borderRadius: 14, padding: "18px 20px", border: `1px solid ${C.border}` }}>
@@ -380,7 +380,7 @@ export default function ClassHealthPage() {
                 </div>
               ))}
             </div>
-            <a href="/teacher/skill-mastery" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none" }}>View skill breakdown →</a>
+            <a href="/teacher/skill-mastery" style={{ display: "inline-flex", alignItems: "center", fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none", minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>View skill breakdown →</a>
           </div>
 
           <div style={{ background: C.surface, borderRadius: 14, padding: "18px 20px", border: `1px solid ${C.border}` }}>
@@ -398,7 +398,7 @@ export default function ClassHealthPage() {
               </div>
             </div>
             <SparkBar color={C.amber} />
-            <a href="/teacher/support" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none", marginTop: 8 }}>Review support queue →</a>
+            <a href="/teacher/support" style={{ display: "inline-flex", alignItems: "center", fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none", marginTop: 8, minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>Review support queue →</a>
           </div>
 
           <div style={{ background: C.surface, borderRadius: 14, padding: "18px 20px", border: `1px solid ${C.border}` }}>
@@ -424,7 +424,7 @@ export default function ClassHealthPage() {
                 </div>
               ))}
             </div>
-            <a href="/teacher/class" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none" }}>View streak breakdown →</a>
+            <a href="/teacher/class" style={{ display: "inline-flex", alignItems: "center", fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none", minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>View streak breakdown →</a>
           </div>
         </div>
 

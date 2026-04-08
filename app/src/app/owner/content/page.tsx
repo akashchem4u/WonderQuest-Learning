@@ -3,6 +3,7 @@ import { AppFrame } from "@/components/app-frame";
 import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
 import OwnerGate from "../owner-gate";
 import ReviewQueueClient from "./review-queue-client";
+import AuditLogClient from "./audit-log-client";
 
 export const dynamic = "force-dynamic";
 
@@ -513,6 +514,41 @@ export default async function OwnerContentPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Audit log */}
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: C.muted,
+                  marginTop: "20px",
+                  marginBottom: "8px",
+                  paddingBottom: "6px",
+                  borderBottom: `1px solid ${C.border}`,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <span>Content Audit Log</span>
+                <span
+                  style={{
+                    fontSize: "9px",
+                    fontWeight: 700,
+                    padding: "1px 6px",
+                    borderRadius: "3px",
+                    background: "rgba(155,114,255,0.12)",
+                    color: C.violet,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  COPPA P2-3.9
+                </span>
+              </div>
+              <AuditLogClient />
             </div>
 
             {/* ── Side column ─────────────────────────────────────────── */}

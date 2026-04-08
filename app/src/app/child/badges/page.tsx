@@ -64,26 +64,6 @@ function formatEarnedAt(earnedAt: string | null): string | undefined {
   return d.toLocaleDateString();
 }
 
-// ─── All badges catalog (fallback/placeholder) ───────────────────────────────
-
-const ALL_BADGES_CATALOG: Omit<Badge, "earned" | "earnedDate" | "isNew">[] = [
-  { id: "first-quest", emoji: "🌟", name: "First Quest!", description: "Complete your very first quest", category: "quest" },
-  { id: "forest-explorer", emoji: "🌲", name: "Forest Explorer", description: "Complete the Enchanted Forest", category: "world" },
-  { id: "on-fire", emoji: "🔥", name: "On Fire!", description: "Reach a 5-day quest streak", category: "streak" },
-  { id: "star-collector", emoji: "⭐", name: "Star Collector", description: "Collect 50 stars", category: "star" },
-  { id: "crystal-master", emoji: "💎", name: "Crystal Master", description: "Complete Crystal Caverns", category: "quest" },
-  { id: "world-champion", emoji: "🏆", name: "World Champion", description: "Complete 3 worlds", category: "world" },
-];
-
-const MYSTERY_BADGES: Omit<Badge, "earned" | "earnedDate" | "isNew">[] = [
-  { id: "mystery-1", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
-  { id: "mystery-2", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
-  { id: "mystery-3", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
-  { id: "mystery-4", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
-  { id: "mystery-5", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
-  { id: "mystery-6", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
-];
-
 function apiBadgesToBadgeList(apiBadges: ApiBadge[]): Badge[] {
   return apiBadges.map((ab, i) => {
     const key = ab.iconKey ?? ab.badgeKey;
@@ -97,15 +77,6 @@ function apiBadgesToBadgeList(apiBadges: ApiBadge[]): Badge[] {
       earnedDate: formatEarnedAt(ab.earnedAt),
       isNew: ab.earned && i === 0,
     };
-  });
-}
-
-function buildPlaceholderBadgeList(sessionBadgeCount: number): Badge[] {
-  return ALL_BADGES_CATALOG.map((b, i) => {
-    if (i < sessionBadgeCount) {
-      return { ...b, earned: true, earnedDate: i === sessionBadgeCount - 1 ? "today" : "recently", isNew: i === sessionBadgeCount - 1 };
-    }
-    return { ...b, earned: false };
   });
 }
 

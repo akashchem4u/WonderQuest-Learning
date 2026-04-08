@@ -32,9 +32,10 @@ const inputStyle: React.CSSProperties = {
   background: "rgba(255,255,255,0.06)",
   color: "#fff",
   fontFamily: "inherit",
-  fontSize: 15,
+  fontSize: 16,
   boxSizing: "border-box",
   outline: "none",
+  minHeight: 44,
 };
 
 const sectionLabel: React.CSSProperties = {
@@ -189,6 +190,7 @@ function ProfileContent() {
           maxWidth: 620,
           margin: "0 auto",
           padding: "32px 16px 80px",
+          paddingBottom: "env(safe-area-inset-bottom, 80px)",
           color: C.text,
         }}
       >
@@ -271,6 +273,9 @@ function ProfileContent() {
                           fontSize: 14,
                           cursor: "pointer",
                           transition: "all 0.15s",
+                          minHeight: 44,
+                          touchAction: "manipulation",
+                          WebkitTapHighlightColor: "transparent",
                         }}
                       >
                         {g === "K" ? "Kindergarten" : `Grade ${g}`}
@@ -305,6 +310,9 @@ function ProfileContent() {
                     fontSize: 15,
                     cursor: saving ? "default" : "pointer",
                     transition: "all 0.15s",
+                    minHeight: 44,
+                    touchAction: "manipulation",
+                    WebkitTapHighlightColor: "transparent",
                   }}
                 >
                   {saving ? "Saving…" : "Save Changes"}
@@ -355,6 +363,9 @@ function ProfileContent() {
                       fontSize: 14,
                       cursor: "pointer",
                       transition: "all 0.2s",
+                      minHeight: 44,
+                      touchAction: "manipulation",
+                      WebkitTapHighlightColor: "transparent",
                     }}
                   >
                     {copied ? "Copied!" : "Copy Code"}
@@ -411,6 +422,11 @@ function ProfileContent() {
                       color: "rgba(255,255,255,0.35)",
                       textDecoration: "none",
                       fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      minHeight: 44,
+                      touchAction: "manipulation",
+                      WebkitTapHighlightColor: "transparent",
                     }}
                   >
                     Sign out →

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
 import OwnerGate from "../owner-gate";
+import RetentionReportClient from "./retention-report-client";
 
 export const dynamic = "force-dynamic";
 
@@ -318,6 +319,14 @@ export default async function GovernancePage() {
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* ── Data retention: live stale-account report ─────────────── */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: C.muted2, marginBottom: 12 }}>
+                Data Retention — Account Activity (COPPA 3.4)
+              </div>
+              <RetentionReportClient />
             </div>
 
             {/* ── Data retention policy ────────────────────────────────── */}

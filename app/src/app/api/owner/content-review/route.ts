@@ -130,6 +130,12 @@ export async function POST(request: NextRequest) {
       [skillCode, action, note ?? null],
     );
 
+    await db.query(
+      `INSERT INTO public.content_audit_log (entity_type, entity_id, action, changed_by, notes)
+       VALUES ('skill', $1, $2, 'owner', $3)`,
+      [skillCode, action, note ?? null],
+    );
+
     return NextResponse.json({ ok: true, skillCode, action });
   } catch (err) {
     if (isDatabaseConnectionError(err)) {

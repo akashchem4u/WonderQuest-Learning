@@ -133,7 +133,7 @@ export default function AiCoachPage() {
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher/ai-coach">
-      <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px" }}>
+      <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px", paddingBottom: "env(safe-area-inset-bottom, 24px)" }}>
 
         {/* Header */}
         <div style={{ marginBottom: 28 }}>
@@ -153,6 +153,7 @@ export default function AiCoachPage() {
                 style={{
                   padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`,
                   background: "transparent", color: C.muted, fontSize: 13, cursor: loading ? "default" : "pointer",
+                  minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                 }}
               >
                 ↻ Refresh
@@ -166,6 +167,7 @@ export default function AiCoachPage() {
                   color: "#fff", fontSize: 13, fontWeight: 600,
                   cursor: (pushAllBusy || suggestions.length === 0) ? "default" : "pointer",
                   opacity: suggestions.length === 0 ? 0.4 : 1,
+                  minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                 }}
               >
                 {pushAllBusy ? "Queuing…" : "Push All Sessions →"}
@@ -327,6 +329,7 @@ export default function AiCoachPage() {
                         cursor: (isBusy || isPushed) ? "default" : "pointer",
                         background: isPushed ? "rgba(34,197,94,0.15)" : isBusy ? "rgba(155,114,255,0.3)" : C.violet,
                         color: isPushed ? C.mint : "#fff",
+                        minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       {isPushed ? "✓ Session queued" : isBusy ? "Queuing…" : "Push Session →"}

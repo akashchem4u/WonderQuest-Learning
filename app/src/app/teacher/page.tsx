@@ -375,6 +375,9 @@ export default function TeacherPage() {
     background: activeTab === tab ? C.blue : C.surface,
     color: activeTab === tab ? "#0b1622" : C.muted,
     transition: "all .18s",
+    minHeight: 44,
+    touchAction: "manipulation",
+    WebkitTapHighlightColor: "transparent",
   });
 
   // ── Auth gate ────────────────────────────────────────────────────────────
@@ -430,10 +433,11 @@ export default function TeacherPage() {
                     border: `1px solid ${C.border}`,
                     borderRadius: 10,
                     color: C.text,
-                    fontSize: 14,
+                    fontSize: 16,
                     fontFamily: "system-ui,-apple-system,sans-serif",
                     outline: "none",
                     boxSizing: "border-box",
+                    minHeight: 44,
                   }}
                 />
               </div>
@@ -453,10 +457,11 @@ export default function TeacherPage() {
                     border: `1px solid ${C.border}`,
                     borderRadius: 10,
                     color: C.text,
-                    fontSize: 14,
+                    fontSize: 16,
                     fontFamily: "system-ui,-apple-system,sans-serif",
                     outline: "none",
                     boxSizing: "border-box",
+                    minHeight: 44,
                   }}
                 />
               </div>
@@ -475,6 +480,9 @@ export default function TeacherPage() {
                   cursor: profileSaving ? "default" : "pointer",
                   fontFamily: "system-ui,-apple-system,sans-serif",
                   opacity: profileSaving ? 0.7 : 1,
+                  minHeight: 44,
+                  touchAction: "manipulation",
+                  WebkitTapHighlightColor: "transparent",
                 }}
               >
                 {profileSaving ? "Saving…" : "Save and continue"}
@@ -483,7 +491,7 @@ export default function TeacherPage() {
           </div>
         </div>
       )}
-      <div style={{ fontFamily: "system-ui,-apple-system,sans-serif", color: C.text, minHeight: "100vh", padding: "24px 28px" }}>
+      <div style={{ fontFamily: "system-ui,-apple-system,sans-serif", color: C.text, minHeight: "100vh", padding: "24px 28px", paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
 
         {/* Profile completion banner */}
         {showProfileBanner && (
@@ -514,6 +522,9 @@ export default function TeacherPage() {
                 cursor: "pointer",
                 fontFamily: "system-ui,-apple-system,sans-serif",
                 whiteSpace: "nowrap",
+                minHeight: 44,
+                touchAction: "manipulation",
+                WebkitTapHighlightColor: "transparent",
               }}
             >
               Complete profile
@@ -568,6 +579,11 @@ export default function TeacherPage() {
                 textDecoration: "none",
                 whiteSpace: "nowrap",
                 transition: "background .15s",
+                minHeight: 44,
+                display: "inline-flex",
+                alignItems: "center",
+                touchAction: "manipulation",
+                WebkitTapHighlightColor: "transparent",
               }}
             >
               {n.label}
@@ -603,6 +619,9 @@ export default function TeacherPage() {
                   color: demoBand === band ? C.violet : C.muted,
                   font: "700 0.82rem system-ui",
                   cursor: "pointer",
+                  minHeight: 44,
+                  touchAction: "manipulation",
+                  WebkitTapHighlightColor: "transparent",
                 }}>
                   {band === "PREK" ? "Pre-K" : band === "K1" ? "K–1" : band === "G23" ? "G2–3" : "G4–5"}
                 </button>
@@ -615,6 +634,9 @@ export default function TeacherPage() {
               cursor: creatingDemo ? "not-allowed" : "pointer",
               opacity: creatingDemo ? 0.7 : 1,
               marginBottom: 16,
+              minHeight: 44,
+              touchAction: "manipulation",
+              WebkitTapHighlightColor: "transparent",
             }}>
               {creatingDemo ? "Creating demo classroom…" : "✨ Explore with Demo Classroom"}
             </button>
@@ -670,6 +692,9 @@ export default function TeacherPage() {
                 cursor: "pointer",
                 fontFamily: "system-ui,-apple-system,sans-serif",
                 whiteSpace: "nowrap",
+                minHeight: 44,
+                touchAction: "manipulation",
+                WebkitTapHighlightColor: "transparent",
               }}
             >
               Remove Demo
@@ -871,6 +896,9 @@ export default function TeacherPage() {
                         cursor: aiLoading ? "not-allowed" : "pointer",
                         opacity: aiLoading ? 0.7 : 1,
                         fontFamily: "system-ui,-apple-system,sans-serif",
+                        minHeight: 44,
+                        touchAction: "manipulation",
+                        WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       {aiLoading ? "Analyzing…" : "Push All Sessions →"}
@@ -885,6 +913,9 @@ export default function TeacherPage() {
                         border: `1px solid rgba(155,114,255,0.3)`,
                         cursor: aiLoading ? "not-allowed" : "pointer",
                         fontFamily: "system-ui,-apple-system,sans-serif",
+                        minHeight: 44,
+                        touchAction: "manipulation",
+                        WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       {aiLoading ? "…" : "Refresh Suggestions"}
@@ -1011,6 +1042,9 @@ export default function TeacherPage() {
                       background: "transparent",
                       cursor: "pointer",
                       fontFamily: "system-ui,-apple-system,sans-serif",
+                      minHeight: 44,
+                      touchAction: "manipulation",
+                      WebkitTapHighlightColor: "transparent",
                     }}
                   >
                     View report →
@@ -1062,6 +1096,9 @@ export default function TeacherPage() {
                   cursor: "pointer",
                   fontFamily: "system-ui",
                   flexShrink: 0,
+                  minHeight: 44,
+                  touchAction: "manipulation",
+                  WebkitTapHighlightColor: "transparent",
                 }}>{q.action}</button>
               </div>
             ))}
