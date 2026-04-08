@@ -23,6 +23,7 @@ function readPositiveInt(name: string, fallback: number) {
 const SESSION_TTL_MINUTES = readPositiveInt("ACCESS_SESSION_TTL_MINUTES", 240);
 const MAX_ATTEMPTS = readPositiveInt("ACCESS_MAX_ATTEMPTS", 5);
 const LOCKOUT_MINUTES = readPositiveInt("ACCESS_LOCKOUT_MINUTES", 15);
+const IDLE_TIMEOUT_MINUTES = readPositiveInt("ACCESS_IDLE_TIMEOUT_MINUTES", 60);
 
 function hashToken(token: string) {
   return createHash("sha256")
@@ -219,9 +220,10 @@ export async function requireChildAccessSession(request: NextRequest) {
         and token_hash = $2
         and revoked_at is null
         and expires_at > now()
+        and (last_seen_at is null or last_seen_at > now() - ($3 * interval '1 minute'))
       returning id, student_id, expires_at
     `,
-    [ACCESS_TYPE_CHILD, hashToken(token)],
+    [ACCESS_TYPE_CHILD, hashToken(token), IDLE_TIMEOUT_MINUTES],
   );
 
   if (!result.rowCount) {

@@ -201,6 +201,63 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
         ))}
       </div>
 
+      {/* Quick access portals */}
+      <div style={{ maxWidth: 480, margin: "0 auto 8px", padding: "0 16px" }}>
+        <div style={{
+          fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.35)",
+          textTransform: "uppercase", letterSpacing: 1.2,
+          textAlign: "center", marginBottom: 12,
+        }}>
+          Your Adventure
+        </div>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+          gap: 12,
+          maxWidth: 480,
+          margin: "0 auto",
+        }}>
+          {([
+            { href: "/child/world",    emoji: "🗺️", label: "World Map",   desc: "See your progress",   color: "#9b72ff" },
+            { href: "/play",           emoji: "⚡",  label: "Quick Quest", desc: "3-min practice",       color: "#ffd166" },
+            { href: "/child/badges",   emoji: "🏅",  label: "My Badges",  desc: "Earned rewards",       color: "#50e890" },
+            { href: "/child/trophies", emoji: "🏆",  label: "Trophies",   desc: "Special achievements", color: "#ff9f43" },
+            { href: "/child/streak",   emoji: "🔥",  label: "Streak",     desc: "Daily habit",          color: "#fb7185" },
+            { href: "/child/missed",   emoji: "🎯",  label: "Practice",   desc: "Skills to improve",    color: "#60a5fa" },
+          ] as { href: string; emoji: string; label: string; desc: string; color: string }[]).map(item => (
+            <a key={item.href} href={item.href} style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              padding: "18px 12px", borderRadius: 16,
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${item.color}30`,
+              textDecoration: "none",
+              gap: 6,
+            }}>
+              <span style={{ fontSize: 32 }}>{item.emoji}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#e8e0ff" }}>{item.label}</span>
+              <span style={{ fontSize: 11, color: "#9b8ec4", textAlign: "center" }}>{item.desc}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* Settings quick links */}
+      <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", padding: "16px 16px 24px" }}>
+        {([
+          { href: "/child/theme",           label: "🎨 Theme" },
+          { href: "/child/voice-preferences", label: "🔊 Audio" },
+          { href: "/child/high-contrast",   label: "♿ Accessibility" },
+        ] as { href: string; label: string }[]).map(item => (
+          <a key={item.href} href={item.href} style={{
+            fontSize: 12, fontWeight: 700, color: "#9b8ec4",
+            textDecoration: "none", padding: "6px 12px",
+            borderRadius: 8, background: "rgba(255,255,255,0.04)",
+          }}>
+            {item.label}
+          </a>
+        ))}
+      </div>
+
       {/* Sign out / switch child */}
       <div style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
         <Link

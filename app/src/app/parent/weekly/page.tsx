@@ -243,6 +243,9 @@ export default function ParentWeeklyPage() {
   const [authed, setAuthed] = useState<boolean | null>(null); // null = unknown
   const [children, setChildren] = useState<LinkedChild[]>([]);
   const [activeCid, setActiveCid] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [digestSent, setDigestSent] = useState(false);
+  const [digestError, setDigestError] = useState(false);
 
   // Step 1: Restore parent session to get children list
   useEffect(() => {
@@ -536,13 +539,60 @@ export default function ParentWeeklyPage() {
               </div>
 
               {/* Footer nav */}
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
                 <Link href="/parent/practice" style={{ fontSize: "0.84rem", fontWeight: 700, color: VIOLET, textDecoration: "none" }}>
                   Practice today →
                 </Link>
                 <Link href="/parent/benchmark" style={{ fontSize: "0.84rem", fontWeight: 700, color: MUTED, textDecoration: "none" }}>
                   Skill benchmarks →
                 </Link>
+              </div>
+
+              {/* Email digest button */}
+              <div style={{ marginTop: 20 }}>
+                <button
+                  onClick={async () => {
+                    if (sending || digestSent) return;
+                    setDigestError(false);
+                    setSending(true);
+                    try {
+                      const body = activeCid ? JSON.stringify({ studentId: activeCid }) : undefined;
+                      const r = await fetch("/api/parent/send-digest", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body,
+                      });
+                      if (r.ok) {
+                        setDigestSent(true);
+                      } else {
+                        setDigestError(true);
+                      }
+                    } catch {
+                      setDigestError(true);
+                    } finally {
+                      setSending(false);
+                    }
+                  }}
+                  style={{
+                    padding: "10px 20px",
+                    background: digestSent ? "rgba(80,232,144,0.12)" : "rgba(155,114,255,0.12)",
+                    border: `1px solid ${digestSent ? "rgba(80,232,144,0.3)" : VBORDER}`,
+                    borderRadius: 10,
+                    fontSize: "0.84rem",
+                    fontWeight: 700,
+                    color: digestSent ? "#4ade80" : VIOLET,
+                    cursor: sending || digestSent ? "default" : "pointer",
+                    opacity: sending ? 0.7 : 1,
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {sending ? "Sending…" : digestSent ? "✓ Sent to your email" : "📧 Email me this digest"}
+                </button>
+                {digestError && (
+                  <div style={{ marginTop: 6, fontSize: "0.75rem", color: "#ff7b6b" }}>
+                    Could not send email. Please try again.
+                  </div>
+                )}
               </div>
             </>
           )}

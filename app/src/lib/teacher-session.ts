@@ -9,6 +9,14 @@ function hashToken(token: string) {
   return createHash("sha256").update(`wonderquest:teacher:${token}`).digest("hex");
 }
 
+function readPositiveInt(name: string, fallback: number) {
+  const raw = Number(process.env[name] ?? "");
+  if (!Number.isFinite(raw) || raw <= 0) return fallback;
+  return Math.floor(raw);
+}
+
+const TEACHER_IDLE_TIMEOUT_MINUTES = readPositiveInt("TEACHER_IDLE_TIMEOUT_MINUTES", 60);
+
 type TeacherSessionResult =
   | { ok: true; teacherId: string }
   | { ok: false; response: NextResponse };
@@ -41,8 +49,9 @@ export async function requireTeacherSession(
     `UPDATE public.access_sessions
      SET last_seen_at = now()
      WHERE access_type = 'teacher' AND token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
+       AND (last_seen_at IS NULL OR last_seen_at > now() - ($2 * interval '1 minute'))
      RETURNING student_id`,
-    [hashToken(token)],
+    [hashToken(token), TEACHER_IDLE_TIMEOUT_MINUTES],
   );
 
   if (!result.rowCount) {
