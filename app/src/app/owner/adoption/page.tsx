@@ -104,16 +104,18 @@ export default function AdoptionPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
+    const timer = setTimeout(() => setLoadError("Request timed out"), 8000);
     fetch("/api/owner/overview")
-      .then((res) => res.json())
+      .then((res) => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
       .then((data: OverviewData & { error?: string }) => {
+        clearTimeout(timer);
         if (data?.error) {
           setLoadError(data.error);
         } else {
           setOverview(data);
         }
       })
-      .catch(() => setLoadError("Failed to fetch overview data."));
+      .catch((e: Error) => { clearTimeout(timer); setLoadError(e.message ?? "Failed to fetch overview data."); });
   }, []);
 
   if (loadError) {

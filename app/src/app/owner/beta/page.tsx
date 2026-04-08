@@ -211,10 +211,11 @@ export default function OwnerBetaPage() {
   const [loadingOverview, setLoadingOverview] = useState(true);
 
   useEffect(() => {
+    const timer = setTimeout(() => setLoadingOverview(false), 8000);
     fetch("/api/owner/overview")
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data) setOverview(data as Overview); })
-      .catch(() => {})
+      .then((data) => { clearTimeout(timer); if (data) setOverview(data as Overview); })
+      .catch(() => { clearTimeout(timer); })
       .finally(() => setLoadingOverview(false));
   }, []);
 

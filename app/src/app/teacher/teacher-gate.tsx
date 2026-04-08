@@ -240,13 +240,13 @@ export default function TeacherGate({ configured }: TeacherGateProps) {
   // ── State A — sign in form ─────────────────────────────────────────────────
   return (
     <form className="gate-form gate-form-teacher" onSubmit={handleSignIn}>
-      <div className="gate-role-badge gate-role-badge-teacher">Teacher access</div>
+      <div className="gate-role-badge gate-role-badge-teacher">Classroom</div>
       <div className="gate-heading">
-        <strong>Sign in to teacher dashboard</strong>
+        <strong>Sign in to Classroom</strong>
         <p>
           {lockedOut
             ? "Too many attempts. Please wait before trying again."
-            : "Enter your teacher username and password."}
+            : "Enter your teacher access code to continue."}
         </p>
       </div>
 
@@ -269,7 +269,7 @@ export default function TeacherGate({ configured }: TeacherGateProps) {
 
       <div className="gate-entry-row">
         <label className="gate-entry-label" htmlFor="teacher-password-input">
-          Password
+          Access code
         </label>
         <input
           autoComplete="current-password"
@@ -278,7 +278,7 @@ export default function TeacherGate({ configured }: TeacherGateProps) {
           id="teacher-password-input"
           name="teacherPassword"
           onChange={(e) => { setPassword(e.target.value); setError(""); }}
-          placeholder="Enter password"
+          placeholder="Enter access code"
           type="password"
           value={password}
         />

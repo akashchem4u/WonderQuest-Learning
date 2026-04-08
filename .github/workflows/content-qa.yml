@@ -1,0 +1,86 @@
+name: Content QA
+
+on:
+  pull_request:
+    paths:
+      - "data/launch/**"
+      - "tools/content_qa_sample.mjs"
+      - "tools/question-prompt-sanitizer.mjs"
+      - "app/scripts/content-bank-report.mjs"
+      - ".github/workflows/content-qa.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "data/launch/**"
+      - "tools/content_qa_sample.mjs"
+      - "tools/question-prompt-sanitizer.mjs"
+      - "app/scripts/content-bank-report.mjs"
+      - ".github/workflows/content-qa.yml"
+  workflow_dispatch:
+
+jobs:
+  content-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Generate content reports
+        run: |
+          node app/scripts/content-bank-report.mjs > content-bank-report.json
+          node tools/content_qa_sample.mjs > content-qa.json
+
+      - name: Validate content report
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from "node:fs";
+
+          const report = JSON.parse(fs.readFileSync("content-bank-report.json", "utf8"));
+          const qa = JSON.parse(fs.readFileSync("content-qa.json", "utf8"));
+
+          const failures = [];
+
+          if ((report.duplicateQuestionKeys ?? []).length > 0) {
+            failures.push(`duplicateQuestionKeys=${report.duplicateQuestionKeys.length}`);
+          }
+
+          if ((report.missingExplainers ?? []).length > 0) {
+            failures.push(`missingExplainers=${report.missingExplainers.length}`);
+          }
+
+          if (Number(report.promptHygiene?.issueCount ?? 0) > 0) {
+            failures.push(`promptHygiene=${report.promptHygiene.issueCount}`);
+          }
+
+          if ((qa.flaggedIssues ?? []).length > 0) {
+            failures.push(`flaggedIssues=${qa.flaggedIssues.length}`);
+          }
+
+          for (const [band, summary] of Object.entries(qa.bandSummaries ?? {})) {
+            if (Number(summary.difficultyFailures ?? 0) > 0) {
+              failures.push(`${band}.difficultyFailures=${summary.difficultyFailures}`);
+            }
+
+            if (Number(summary.disallowedAnswerFailures ?? 0) > 0) {
+              failures.push(`${band}.disallowedAnswerFailures=${summary.disallowedAnswerFailures}`);
+            }
+
+            if (Number(summary.promptHygieneFailures ?? 0) > 0) {
+              failures.push(`${band}.promptHygieneFailures=${summary.promptHygieneFailures}`);
+            }
+          }
+
+          if (failures.length > 0) {
+            console.error("Content QA failed:", failures.join(", "));
+            process.exit(1);
+          }
+
+          console.log("Content QA passed.");
+          EOF

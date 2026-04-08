@@ -105,23 +105,31 @@ export default function OwnerFeedbackSummaryPage() {
   const [openFeedback, setOpenFeedback] = useState<OpenFeedbackData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setError("Request timed out");
+    }, 8000);
     Promise.all([
-      fetch("/api/owner/overview").then((r) => r.json()),
-      fetch("/api/owner/feedback?status=open&limit=50").then((r) => r.json()),
+      fetch("/api/owner/overview").then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      fetch("/api/owner/feedback?status=open&limit=50").then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
     ])
       .then(([ov, fb]) => {
+        clearTimeout(timer);
         setOverview(ov as OverviewData);
         setOpenFeedback(fb as OpenFeedbackData);
         setLoading(false);
       })
-      .catch((err) => {
-        setError(String(err));
+      .catch((err: Error) => {
+        clearTimeout(timer);
+        setError(err.message ?? String(err));
         setLoading(false);
       });
-  }, []);
+  }, [retryCount]);
 
   // Derived stats from real data
   const totalFeedback = overview?.counts.feedbackItems ?? 0;
@@ -162,9 +170,15 @@ export default function OwnerFeedbackSummaryPage() {
             Loading feedback data…
           </div>
         )}
-        {error && (
-          <div style={{ maxWidth: 1100, margin: "0 auto 16px", fontSize: 13, color: RED }}>
-            Error: {error}
+        {!loading && error && (
+          <div style={{ maxWidth: 1100, margin: "0 auto", padding: 32, textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9", marginBottom: 8 }}>Failed to load</div>
+            <div style={{ fontSize: 13, color: "rgba(241,245,249,0.5)", marginBottom: 20 }}>{error}</div>
+            <button onClick={() => setRetryCount((n) => n + 1)}
+              style={{ padding: "10px 20px", borderRadius: 8, background: "#9b72ff", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+              Retry
+            </button>
           </div>
         )}
 

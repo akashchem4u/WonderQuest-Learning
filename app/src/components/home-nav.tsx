@@ -29,8 +29,8 @@ export function HomeNav() {
 
       <nav style={{ display: "flex", gap: 4, alignItems: "center" }}>
         {[
-          { href: "/parent", label: "For families" },
-          { href: "/teacher", label: "For teachers" },
+          { href: "/parent", label: "Family Hub" },
+          { href: "/teacher", label: "Classroom" },
         ].map(({ href, label }) => (
           <Link key={href} href={href} style={{
             padding: "8px 14px", borderRadius: 10,
@@ -69,8 +69,8 @@ export function HomeNav() {
             }}>
               {[
                 { href: "/child", label: "👦 Child portal" },
-                { href: "/parent", label: "👨‍👩‍👧 Parent hub" },
-                { href: "/teacher", label: "🏫 Teacher dashboard" },
+                { href: "/parent", label: "👨‍👩‍👧 Family Hub" },
+                { href: "/teacher", label: "🏫 Classroom" },
               ].map(({ href, label }) => (
                 <Link
                   key={href}

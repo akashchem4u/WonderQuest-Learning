@@ -46,13 +46,23 @@ function fmtNum(n: number) {
 export default function OwnerUsersPage() {
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function fetchData() {
+    setLoading(true);
+    setError(null);
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setError("Request timed out");
+    }, 8000);
     fetch("/api/owner/overview")
-      .then((r) => r.ok ? r.json() : null)
-      .then((d: OverviewData | null) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then((d: OverviewData) => { clearTimeout(timer); setData(d); setLoading(false); })
+      .catch((e: Error) => { clearTimeout(timer); setLoading(false); setError(e.message ?? "Failed to load"); });
+  }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchData(); }, []);
 
   return (
     <AppFrame audience="owner" currentPath="/owner">
@@ -64,7 +74,18 @@ export default function OwnerUsersPage() {
         <p style={{ fontSize: 13, color: C.muted, margin: "0 0 24px" }}>Live counts from production — testers excluded</p>
 
         {loading && <div style={{ color: C.muted, fontSize: 14 }}>Loading…</div>}
-        {!loading && !data && <div style={{ color: C.coral, fontSize: 14 }}>Failed to load data</div>}
+        {!loading && error && (
+          <div style={{ padding: 32, textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9", marginBottom: 8 }}>Failed to load</div>
+            <div style={{ fontSize: 13, color: "rgba(241,245,249,0.5)", marginBottom: 20 }}>{error}</div>
+            <button onClick={() => fetchData()}
+              style={{ padding: "10px 20px", borderRadius: 8, background: "#9b72ff", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+              Retry
+            </button>
+          </div>
+        )}
+        {!loading && !error && !data && <div style={{ color: C.coral, fontSize: 14 }}>No data available</div>}
         {!loading && data && (
           <>
             {/* User breakdown */}

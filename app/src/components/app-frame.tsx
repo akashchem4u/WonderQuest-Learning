@@ -41,13 +41,12 @@ const mobileNav = [
   { href: "/child",   label: "Child",     icon: "👶" },
   { href: "/parent",  label: "Family",    icon: "👨‍👩‍👧" },
   { href: "/teacher", label: "Classroom", icon: "🎓" },
-  { href: "/owner",   label: "Ops",       icon: "🔑" },
 ];
 
 // Switch-to links shown at sidebar footer
 const switchLinks = {
   parent:  [{ href: "/teacher", label: "Classroom" }, { href: "/child", label: "Child" }],
-  teacher: [{ href: "/parent",  label: "Family Hub" }, { href: "/owner", label: "Ops" }],
+  teacher: [{ href: "/parent",  label: "Family Hub" }],
   owner:   [{ href: "/teacher", label: "Classroom" }, { href: "/parent", label: "Family Hub" }],
 } as const;
 
@@ -59,9 +58,8 @@ const audienceMeta = {
     shortLabel: "Home",
     title: "Learning that meets every child where they are.",
     topLinks: [
-      { href: "/parent",  label: "For families" },
-      { href: "/teacher", label: "For teachers" },
-      { href: "/owner",   label: "Platform ops" },
+      { href: "/parent",  label: "Family Hub" },
+      { href: "/teacher", label: "Classroom" },
     ],
   },
   kid: {
@@ -69,8 +67,8 @@ const audienceMeta = {
     shortLabel: "Play",
     title: "Your learning adventure starts here.",
     topLinks: [
-      { href: "/parent",  label: "For families" },
-      { href: "/teacher", label: "For teachers" },
+      { href: "/parent",  label: "Family Hub" },
+      { href: "/teacher", label: "Classroom" },
     ],
   },
   parent:  { label: "Family Hub",   shortLabel: "Family",    title: "Family Hub"   },

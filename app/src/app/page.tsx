@@ -55,25 +55,25 @@ const AUDIENCES = [
   },
   {
     emoji: "👨‍👩‍👧", href: "/parent",
-    label: "For families",
+    label: "Family Hub",
     title: "Know exactly what happened — and what's next.",
     body: "A weekly AI digest tells you what your child practiced, what's improving, and what to focus on at home. Multi-child households, PIN-based access, and full link health visibility.",
     accent: "#2dd4bf",
     accentBg: "rgba(45,212,191,0.08)",
     accentBorder: "rgba(45,212,191,0.24)",
     highlights: ["📬 Weekly AI learning digest", "👨‍👩‍👧 Multi-child household support", "🔐 PIN-based child access", "📈 Skill-level progress tracking"],
-    cta: "Open family hub →",
+    cta: "Go to Family Hub →",
   },
   {
     emoji: "🏫", href: "/teacher",
-    label: "For teachers",
+    label: "Classroom",
     title: "Class insights without the extra work.",
     body: "See who is on track, who needs support, and which skills are slipping — all in one place. Intervention queue, mastery bars, AI student archetypes, and real win streaks.",
     accent: "#60a5fa",
     accentBg: "rgba(96,165,250,0.08)",
     accentBorder: "rgba(96,165,250,0.24)",
     highlights: ["🚨 Automatic intervention queue", "📐 Mastery by skill & band", "🤖 AI student archetype detection", "🏅 Recent wins feed"],
-    cta: "Open teacher dashboard →",
+    cta: "Go to Classroom →",
   },
 ];
 
@@ -127,7 +127,7 @@ export default async function HomePage() {
             marginBottom: 28,
           }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.teal, display: "inline-block" }} aria-hidden="true" />
-            Early access · Ages 2–10 · {status.launchBandCount || bandList.length} live bands
+            Early access · Ages 2–11 · {status.launchBandCount || bandList.length} bands
           </div>
 
           {/* Headline */}
@@ -159,7 +159,7 @@ export default async function HomePage() {
             lineHeight: 1.7,
             color: T.muted,
           }}>
-            WonderQuest is an AI-powered adaptive learning platform for children aged 2–10.
+            WonderQuest is an AI-powered adaptive learning platform for children aged 2–11.
             Short quests, instant parent insights, and classroom-ready teacher tools —
             all in one safe, ad-free environment.
           </p>
@@ -198,7 +198,7 @@ export default async function HomePage() {
               color: T.text, fontSize: 16, fontWeight: 700,
               textDecoration: "none",
             }}>
-              For parents
+              Family Hub
             </Link>
           </div>
 
@@ -531,8 +531,8 @@ export default async function HomePage() {
           <div style={{ fontSize: 12, fontWeight: 800, color: T.text, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>Portals</div>
           {[
             { href: "/child", label: "Child portal" },
-            { href: "/parent", label: "Parent hub" },
-            { href: "/teacher", label: "Teacher dashboard" },
+            { href: "/parent", label: "Family Hub" },
+            { href: "/teacher", label: "Classroom" },
           ].map(({ href, label }) => (
             <Link key={href} href={href} style={{ display: "block", fontSize: 13, color: T.muted, textDecoration: "none", marginBottom: 6 }}>
               {label}

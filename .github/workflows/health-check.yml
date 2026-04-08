@@ -1,0 +1,44 @@
+name: Production Health Check
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HEALTH_URL: https://wonderquest-learning.onrender.com/api/health
+    steps:
+      - name: Fetch production health
+        run: |
+          curl --fail --silent --show-error --location "$HEALTH_URL" --output health.json
+          cat health.json
+
+      - name: Validate health payload
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from "node:fs";
+
+          const raw = fs.readFileSync("health.json", "utf8");
+          const payload = JSON.parse(raw);
+
+          if (payload.ok !== true) {
+            console.error("Health check returned non-ok payload:", payload);
+            process.exit(1);
+          }
+
+          if (payload.status !== "ok") {
+            console.error("Health check returned degraded status:", payload);
+            process.exit(1);
+          }
+
+          if (payload.liveQuestionGenerationEnabled !== true) {
+            console.error("Live question generation is disabled:", payload);
+            process.exit(1);
+          }
+
+          console.log("Health payload validated.");
+          EOF

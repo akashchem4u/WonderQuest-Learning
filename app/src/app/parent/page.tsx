@@ -207,6 +207,7 @@ const DASHBOARD_NAV = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ParentAccessPage() {
+  const [showDemo, setShowDemo] = useState(false);
   const [accessMode, setAccessMode] = useState<ParentAccessMode>("signin");
   const [notifyWeekly, setNotifyWeekly] = useState(true);
   const [notifyMilestones, setNotifyMilestones] = useState(true);
@@ -660,7 +661,7 @@ export default function ParentAccessPage() {
                   margin: 0,
                 }}
               >
-                Your child&apos;s{" "}
+                Welcome to{" "}
                 <span
                   style={{
                     background: "linear-gradient(135deg, #9b72ff, #58e8c1)",
@@ -669,9 +670,8 @@ export default function ParentAccessPage() {
                     backgroundClip: "text",
                   }}
                 >
-                  learning adventure
-                </span>{" "}
-                — in your hands
+                  Family Hub
+                </span>
               </h1>
 
               <p
@@ -682,7 +682,7 @@ export default function ParentAccessPage() {
                   margin: 0,
                 }}
               >
-                See what your child is exploring, celebrate their progress, and gently support their growth — all in one place.
+                Track your child&apos;s learning progress, get weekly insights, and stay connected to their classroom.
               </p>
 
               {/* Trust badges */}
@@ -707,110 +707,102 @@ export default function ParentAccessPage() {
                 ))}
               </div>
 
-              {/* Preview card */}
-              <div
-                style={{
-                  background: C.surface,
-                  borderRadius: "20px",
-                  padding: "24px",
-                  border: `1px solid rgba(155,114,255,0.2)`,
-                  boxShadow: "0 4px 24px rgba(100,60,200,0.12)",
-                  marginTop: "8px",
-                  maxWidth: "440px",
-                }}
-              >
-                <div
-                  style={{
-                    font: "600 0.7rem system-ui",
-                    color: C.violet,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                    marginBottom: "4px",
-                  }}
+              {/* Sample preview — gated behind toggle */}
+              <div style={{ marginTop: "8px", maxWidth: "440px" }}>
+                <button
+                  onClick={() => setShowDemo((v) => !v)}
+                  style={{ background: "none", border: "none", color: C.muted, fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "system-ui" }}
                 >
-                  Preview — what you&apos;ll see
-                </div>
-                <div
-                  style={{
-                    font: "700 0.95rem system-ui",
-                    color: C.text,
-                    marginBottom: "16px",
-                  }}
-                >
-                  Maya&apos;s week at a glance
-                </div>
-
-                <div style={{ display: "flex", gap: "20px", marginBottom: "20px", flexWrap: "wrap" }}>
-                  {STUB_STATS.map((s) => (
-                    <div key={s.label}>
-                      <span
-                        style={{
-                          font: "700 1.2rem system-ui",
-                          color: C.text,
-                          display: "block",
-                        }}
-                      >
-                        {s.icon} {s.val}
-                      </span>
-                      <span
-                        style={{
-                          font: "400 0.68rem system-ui",
-                          color: C.muted,
-                        }}
-                      >
-                        {s.label}
-                      </span>
+                  {showDemo ? "Hide sample ▲" : "See what Family Hub looks like ▼"}
+                </button>
+                {showDemo && (
+                  <div style={{ marginTop: 16, opacity: 0.85, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, background: C.surface }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      📋 Sample preview — not your real data
                     </div>
-                  ))}
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {STUB_PREVIEW_SKILLS.map((skill) => (
                     <div
-                      key={skill.name}
-                      style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                      style={{
+                        font: "700 0.95rem system-ui",
+                        color: C.text,
+                        marginBottom: "16px",
+                      }}
                     >
-                      <span
-                        style={{
-                          font: "600 0.78rem system-ui",
-                          color: C.text,
-                          width: "110px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {skill.name}
-                      </span>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: "6px",
-                          background: "rgba(255,255,255,0.1)",
-                          borderRadius: "3px",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${skill.pct}%`,
-                            height: "100%",
-                            background: skill.color,
-                            borderRadius: "3px",
-                          }}
-                        />
-                      </div>
-                      <span
-                        style={{
-                          font: "600 0.7rem system-ui",
-                          color: C.muted,
-                          width: "30px",
-                          textAlign: "right",
-                        }}
-                      >
-                        {skill.pct}%
-                      </span>
+                      Maya&apos;s week at a glance
                     </div>
-                  ))}
-                </div>
+
+                    <div style={{ display: "flex", gap: "20px", marginBottom: "20px", flexWrap: "wrap" }}>
+                      {STUB_STATS.map((s) => (
+                        <div key={s.label}>
+                          <span
+                            style={{
+                              font: "700 1.2rem system-ui",
+                              color: C.text,
+                              display: "block",
+                            }}
+                          >
+                            {s.icon} {s.val}
+                          </span>
+                          <span
+                            style={{
+                              font: "400 0.68rem system-ui",
+                              color: C.muted,
+                            }}
+                          >
+                            {s.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {STUB_PREVIEW_SKILLS.map((skill) => (
+                        <div
+                          key={skill.name}
+                          style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                        >
+                          <span
+                            style={{
+                              font: "600 0.78rem system-ui",
+                              color: C.text,
+                              width: "110px",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {skill.name}
+                          </span>
+                          <div
+                            style={{
+                              flex: 1,
+                              height: "6px",
+                              background: "rgba(255,255,255,0.1)",
+                              borderRadius: "3px",
+                              overflow: "hidden",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: `${skill.pct}%`,
+                                height: "100%",
+                                background: skill.color,
+                                borderRadius: "3px",
+                              }}
+                            />
+                          </div>
+                          <span
+                            style={{
+                              font: "600 0.7rem system-ui",
+                              color: C.muted,
+                              width: "30px",
+                              textAlign: "right",
+                            }}
+                          >
+                            {skill.pct}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -835,7 +827,7 @@ export default function ParentAccessPage() {
                   marginBottom: "6px",
                 }}
               >
-                Parent Portal
+                Family Hub
               </div>
 
               {/* ── Tab bar (Sign In / Create Account) ── */}
