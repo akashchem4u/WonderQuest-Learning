@@ -390,6 +390,9 @@ export default function ParentAccountPage() {
     background: active ? VIOLET : "rgba(255,255,255,0.06)",
     color: active ? "#fff" : MUTED,
     fontFamily: "system-ui",
+    minHeight: 44,
+    touchAction: "manipulation",
+    WebkitTapHighlightColor: "transparent",
   });
 
   const inputStyle: React.CSSProperties = {
@@ -398,7 +401,7 @@ export default function ParentAccountPage() {
     border: `1.5px solid rgba(155,114,255,0.4)`,
     borderRadius: 8,
     padding: "6px 10px",
-    fontSize: 14,
+    fontSize: 16,
     color: TEXT,
     fontFamily: "system-ui",
     outline: "none",
@@ -410,7 +413,7 @@ export default function ParentAccountPage() {
     border: `1.5px solid rgba(155,114,255,0.4)`,
     borderRadius: 8,
     padding: "9px 12px",
-    fontSize: 14,
+    fontSize: 16,
     color: TEXT,
     fontFamily: "system-ui",
     outline: "none",
@@ -429,6 +432,9 @@ export default function ParentAccountPage() {
     color: "#fff",
     fontFamily: "system-ui",
     opacity: disabled ? 0.6 : 1,
+    minHeight: 44,
+    touchAction: "manipulation",
+    WebkitTapHighlightColor: "transparent",
   });
 
   // ── Derived values ────────────────────────────────────────────────────────
@@ -441,7 +447,7 @@ export default function ParentAccountPage() {
 
   return (
     <AppFrame audience="parent" currentPath="/parent/account">
-      <div style={{ background: BASE, minHeight: "100vh", padding: 32, overflowY: "auto" }}>
+      <div style={{ background: BASE, minHeight: "100vh", padding: 32, overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom, 32px)" }}>
         <h1 style={{ fontSize: 20, fontWeight: 900, color: TEXT, marginBottom: 20 }}>
           Account Settings
         </h1>
@@ -497,6 +503,8 @@ export default function ParentAccountPage() {
                     fontSize: 12, fontWeight: 700, color: RED, textDecoration: "none",
                     background: "rgba(248,81,73,0.08)", border: `1.5px solid rgba(248,81,73,0.3)`,
                     borderRadius: 8, padding: "5px 14px",
+                    display: "inline-flex", alignItems: "center",
+                    minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                   }}
                 >
                   Sign out
@@ -568,11 +576,13 @@ export default function ParentAccountPage() {
                     border: `1.5px solid rgba(155,114,255,0.4)`,
                     borderRadius: 8,
                     padding: "6px 10px",
-                    fontSize: 14,
+                    fontSize: 16,
                     color: TEXT,
                     fontFamily: "system-ui",
                     outline: "none",
                     cursor: "pointer",
+                    minHeight: 44,
+                    touchAction: "manipulation",
                   }}
                 >
                   <option value="Parent">Parent</option>
@@ -719,6 +729,7 @@ export default function ParentAccountPage() {
                         border: `1.5px solid rgba(155,114,255,0.3)`,
                         borderRadius: 8, fontSize: 12, fontWeight: 700,
                         color: VIOLET, cursor: "pointer", fontFamily: "system-ui",
+                        minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       🔑 Reset PIN
@@ -731,6 +742,7 @@ export default function ParentAccountPage() {
                         border: `1.5px solid rgba(255,209,102,0.25)`,
                         borderRadius: 8, fontSize: 12, fontWeight: 700,
                         color: GOLD, cursor: "pointer", fontFamily: "system-ui",
+                        minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       ✏️ Edit grade level
@@ -743,6 +755,8 @@ export default function ParentAccountPage() {
                         border: `1.5px solid rgba(255,255,255,0.1)`,
                         borderRadius: 8, fontSize: 12, fontWeight: 700,
                         color: MUTED, textDecoration: "none", fontFamily: "system-ui",
+                        display: "inline-flex", alignItems: "center",
+                        minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       Dashboard →
@@ -834,6 +848,8 @@ export default function ParentAccountPage() {
                       background: notifPrefs[item.key] ? VIOLET : "rgba(255,255,255,0.1)",
                       cursor: "pointer", position: "relative",
                       transition: "background 0.2s",
+                      touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                      minWidth: 44,
                     }}
                   >
                     <div style={{
@@ -983,6 +999,7 @@ export default function ParentAccountPage() {
                   border: `1.5px solid rgba(155,114,255,0.3)`, borderRadius: 8,
                   fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui",
                   flexShrink: 0, marginLeft: 12,
+                  minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                 }}>Request export</button>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0" }}>
@@ -995,6 +1012,7 @@ export default function ParentAccountPage() {
                   border: `1.5px solid rgba(248,81,73,0.35)`, borderRadius: 8,
                   fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui",
                   flexShrink: 0, marginLeft: 12,
+                  minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                 }}>Request deletion</button>
               </div>
             </div>
@@ -1017,6 +1035,7 @@ export default function ParentAccountPage() {
                   border: `1.5px solid rgba(248,81,73,0.35)`, borderRadius: 8,
                   fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui",
                   flexShrink: 0, marginLeft: 12,
+                  minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                 }}>Deactivate</button>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0" }}>
@@ -1074,6 +1093,7 @@ export default function ParentAccountPage() {
                       fontSize: 14, fontWeight: 700, fontFamily: "system-ui",
                       cursor: deleteChecked ? "pointer" : "not-allowed",
                       opacity: deleteChecked ? 1 : 0.6,
+                      minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                     }}
                   >Yes, delete my account</button>
                   <button
@@ -1082,6 +1102,7 @@ export default function ParentAccountPage() {
                       flex: 1, padding: 12, background: "rgba(255,255,255,0.06)",
                       color: MUTED, border: "none", borderRadius: 10,
                       fontSize: 14, fontWeight: 700, fontFamily: "system-ui", cursor: "pointer",
+                      minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                     }}
                   >Cancel</button>
                 </div>
@@ -1180,6 +1201,7 @@ export default function ParentAccountPage() {
                       fontSize: 14, fontWeight: 700, fontFamily: "system-ui",
                       cursor: pinResetValue.length === 4 ? "pointer" : "not-allowed",
                       opacity: pinResetSaving ? 0.6 : 1,
+                      minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                     }}
                   >
                     {pinResetSaving ? "Saving..." : "Set PIN"}
@@ -1190,6 +1212,7 @@ export default function ParentAccountPage() {
                       flex: 1, padding: 12, background: "rgba(255,255,255,0.06)",
                       color: MUTED, border: "none", borderRadius: 10,
                       fontSize: 14, fontWeight: 700, fontFamily: "system-ui", cursor: "pointer",
+                      minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                     }}
                   >Cancel</button>
                 </div>
@@ -1266,6 +1289,7 @@ export default function ParentAccountPage() {
                           borderRadius: 12, cursor: "pointer", textAlign: "left" as const,
                           fontFamily: "system-ui", width: "100%",
                           transition: "all 0.15s",
+                          minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                         }}
                       >
                         <div style={{
@@ -1300,6 +1324,7 @@ export default function ParentAccountPage() {
                       fontSize: 14, fontWeight: 800, fontFamily: "system-ui",
                       cursor: bandSaving ? "not-allowed" : "pointer",
                       opacity: bandSaving ? 0.6 : 1,
+                      minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                     }}
                   >
                     {bandSaving ? "Saving..." : "Save grade level"}
@@ -1310,6 +1335,7 @@ export default function ParentAccountPage() {
                       flex: 1, padding: 12, background: "rgba(255,255,255,0.06)",
                       color: MUTED, border: "none", borderRadius: 10,
                       fontSize: 14, fontWeight: 700, fontFamily: "system-ui", cursor: "pointer",
+                      minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                     }}
                   >Cancel</button>
                 </div>

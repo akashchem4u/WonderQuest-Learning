@@ -307,6 +307,10 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
         transition: "background 0.2s",
         flexShrink: 0,
         padding: 0,
+        minWidth: 44,
+        minHeight: 44,
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
       }}
     >
       <span
@@ -460,6 +464,10 @@ function NotifItem({
             padding: "4px 6px",
             borderRadius: 6,
             lineHeight: 1,
+            minWidth: 44,
+            minHeight: 44,
+            touchAction: "manipulation",
+            WebkitTapHighlightColor: "transparent",
           }}
           aria-label="Dismiss"
         >
@@ -763,6 +771,9 @@ function SettingsPanel() {
                   background: selected ? "rgba(155,114,255,0.1)" : SURFACE,
                   cursor: "pointer",
                   transition: "all 0.15s",
+                  touchAction: "manipulation",
+                  WebkitTapHighlightColor: "transparent",
+                  minHeight: 44,
                 }}
               >
                 <div
@@ -863,6 +874,9 @@ function FilterChip({
         cursor: "pointer",
         transition: "all 0.15s",
         whiteSpace: "nowrap",
+        minHeight: 44,
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
       }}
     >
       {label}
@@ -910,6 +924,9 @@ function TabBtn({
         whiteSpace: "nowrap",
         transition: "all 0.18s",
         borderRadius: "6px 6px 0 0",
+        minHeight: 44,
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
       }}
     >
       {label}
@@ -1053,6 +1070,11 @@ export default function ParentNotificationsPage() {
                 borderRadius: 10,
                 font: "600 0.85rem system-ui",
                 textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                minHeight: 44,
+                touchAction: "manipulation",
+                WebkitTapHighlightColor: "transparent",
               }}
             >
               View Maya&apos;s dashboard →
@@ -1067,6 +1089,9 @@ export default function ParentNotificationsPage() {
                 font: "600 0.82rem system-ui",
                 color: MUTED,
                 cursor: "pointer",
+                minHeight: 44,
+                touchAction: "manipulation",
+                WebkitTapHighlightColor: "transparent",
               }}
             >
               Notification settings
@@ -1088,7 +1113,7 @@ export default function ParentNotificationsPage() {
 
   return (
     <AppFrame audience="parent" currentPath="/parent/notifications">
-      <main style={{ background: BASE, minHeight: "100vh", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <main style={{ background: BASE, minHeight: "100vh", fontFamily: "system-ui, -apple-system, sans-serif", paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
         {/* ── Tab bar ── */}
         <div
           style={{
@@ -1161,6 +1186,9 @@ export default function ParentNotificationsPage() {
                         font: "600 0.78rem system-ui",
                         color: VIOLET,
                         cursor: "pointer",
+                        minHeight: 44,
+                        touchAction: "manipulation",
+                        WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       Mark all read
@@ -1176,6 +1204,9 @@ export default function ParentNotificationsPage() {
                       font: "600 0.78rem system-ui",
                       color: "#c4a8ff",
                       cursor: "pointer",
+                      minHeight: 44,
+                      touchAction: "manipulation",
+                      WebkitTapHighlightColor: "transparent",
                     }}
                   >
                     ⚙️ Notification settings

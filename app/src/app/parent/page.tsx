@@ -576,6 +576,7 @@ export default function ParentAccessPage() {
     background: "rgba(155,114,255,0.08)",
     outline: "none",
     fontFamily: "system-ui",
+    fontSize: 16,
   };
 
   const labelStyle: React.CSSProperties = {
@@ -596,6 +597,9 @@ export default function ParentAccessPage() {
     font: "700 0.95rem system-ui",
     cursor: "pointer",
     fontFamily: "system-ui",
+    minHeight: 44,
+    touchAction: "manipulation",
+    WebkitTapHighlightColor: "transparent",
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -713,7 +717,7 @@ export default function ParentAccessPage() {
               <div style={{ marginTop: "8px", maxWidth: "440px" }}>
                 <button
                   onClick={() => setShowDemo((v) => !v)}
-                  style={{ background: "none", border: "none", color: C.muted, fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "system-ui" }}
+                  style={{ background: "none", border: "none", color: C.muted, fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "system-ui", minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
                 >
                   {showDemo ? "Hide sample ▲" : "See what Family Hub looks like ▼"}
                 </button>
@@ -855,6 +859,9 @@ export default function ParentAccessPage() {
                           color: accessMode === tab ? C.violet : C.muted,
                           fontFamily: "system-ui",
                           transition: "all 0.15s",
+                          minHeight: 44,
+                          touchAction: "manipulation",
+                          WebkitTapHighlightColor: "transparent",
                         }}
                       >
                         {tab === "signin" ? "Sign In" : "Create Account"}
@@ -895,7 +902,7 @@ export default function ParentAccessPage() {
                   </button>
 
                   <div style={{ textAlign: "center" }}>
-                    <button type="button" onClick={() => { setAccessMode("forgot"); setError(""); }} style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.violet, fontFamily: "system-ui" }}>
+                    <button type="button" onClick={() => { setAccessMode("forgot"); setError(""); }} style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.violet, fontFamily: "system-ui", minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                       Forgot password?
                     </button>
                   </div>
@@ -979,7 +986,7 @@ export default function ParentAccessPage() {
                       { key: "weekly", label: "Weekly summaries", sub: "Time, insights, and next focus.", val: notifyWeekly, toggle: () => setNotifyWeekly((v) => !v) },
                       { key: "milestones", label: "Milestones", sub: "Badges, trophies, and level moments.", val: notifyMilestones, toggle: () => setNotifyMilestones((v) => !v) },
                     ].map((item) => (
-                      <button key={item.key} onClick={item.toggle} type="button" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 14px", borderRadius: "10px", cursor: "pointer", border: `1.5px solid ${item.val ? "rgba(155,114,255,0.3)" : C.border}`, background: item.val ? "rgba(155,114,255,0.1)" : C.surface, textAlign: "left", fontFamily: "system-ui" }}>
+                      <button key={item.key} onClick={item.toggle} type="button" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 14px", borderRadius: "10px", cursor: "pointer", border: `1.5px solid ${item.val ? "rgba(155,114,255,0.3)" : C.border}`, background: item.val ? "rgba(155,114,255,0.1)" : C.surface, textAlign: "left", fontFamily: "system-ui", minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                         <div>
                           <div style={{ font: "600 0.82rem system-ui", color: C.text }}>{item.label}</div>
                           <div style={{ font: "400 0.7rem system-ui", color: C.muted }}>{item.sub}</div>
@@ -1024,7 +1031,7 @@ export default function ParentAccessPage() {
                     {submitting ? "Looking up\u2026" : "Get recovery code \u2192"}
                   </button>
                   <div style={{ textAlign: "center" }}>
-                    <button type="button" onClick={() => { setAccessMode("signin"); setError(""); }} style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.muted, fontFamily: "system-ui" }}>
+                    <button type="button" onClick={() => { setAccessMode("signin"); setError(""); }} style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.muted, fontFamily: "system-ui", minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                       ← Back to Sign In
                     </button>
                   </div>
@@ -1060,7 +1067,7 @@ export default function ParentAccessPage() {
                     {submitting ? "Resetting\u2026" : "Reset Password \u2192"}
                   </button>
                   <div style={{ textAlign: "center" }}>
-                    <button type="button" onClick={() => { setAccessMode("forgot"); setError(""); setForgotToken(""); setForgotDisplayName(""); }} style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.muted, fontFamily: "system-ui" }}>
+                    <button type="button" onClick={() => { setAccessMode("forgot"); setError(""); setForgotToken(""); setForgotDisplayName(""); }} style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.muted, fontFamily: "system-ui", minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                       ← Back
                     </button>
                   </div>
@@ -1099,7 +1106,7 @@ export default function ParentAccessPage() {
           minHeight: "100vh",
           background: C.base,
           fontFamily: "system-ui",
-          paddingBottom: "80px",
+          paddingBottom: "env(safe-area-inset-bottom, 80px)",
         }}
       >
         {/* ── Top nav bar ───────────────────────────────────────────────────── */}
@@ -1159,6 +1166,9 @@ export default function ParentAccessPage() {
                   font: "600 0.78rem system-ui",
                   color: "rgba(195,170,255,0.8)",
                   textDecoration: "none",
+                  minHeight: 44,
+                  touchAction: "manipulation",
+                  WebkitTapHighlightColor: "transparent",
                 }}
               >
                 <span>{nav.icon}</span>
@@ -1225,6 +1235,8 @@ export default function ParentAccessPage() {
                         boxShadow: isActive ? "0 0 18px rgba(155,114,255,0.25)" : "none",
                         transition: "border-color 0.15s, box-shadow 0.15s",
                         flexShrink: 0,
+                        touchAction: "manipulation",
+                        WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       <div style={{ fontSize: "1.8rem", marginBottom: "6px" }}>{avatar}</div>
@@ -1380,6 +1392,9 @@ export default function ParentAccessPage() {
                     font: "600 0.78rem system-ui",
                     textDecoration: "none",
                     whiteSpace: "nowrap",
+                    minHeight: 44,
+                    touchAction: "manipulation",
+                    WebkitTapHighlightColor: "transparent",
                   }}
                 >
                   💡 Practice Ideas
@@ -1412,6 +1427,9 @@ export default function ParentAccessPage() {
                     font: "600 0.78rem system-ui",
                     cursor: "pointer",
                     whiteSpace: "nowrap",
+                    minHeight: 44,
+                    touchAction: "manipulation",
+                    WebkitTapHighlightColor: "transparent",
                   }}
                 >
                   🔑 Reset PIN
@@ -1504,6 +1522,9 @@ export default function ParentAccessPage() {
                         font: "600 0.85rem system-ui",
                         cursor: resetSubmitting ? "not-allowed" : "pointer",
                         opacity: resetSubmitting ? 0.7 : 1,
+                        minHeight: 44,
+                        touchAction: "manipulation",
+                        WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       {resetSubmitting ? "Saving…" : "Save"}
@@ -1524,6 +1545,9 @@ export default function ParentAccessPage() {
                         borderRadius: "10px",
                         font: "600 0.85rem system-ui",
                         cursor: "pointer",
+                        minHeight: 44,
+                        touchAction: "manipulation",
+                        WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       Cancel

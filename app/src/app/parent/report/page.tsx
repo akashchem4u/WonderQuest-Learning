@@ -649,6 +649,7 @@ function ParentWeeklyReportPageInner() {
           background: "linear-gradient(160deg, #100b2e 0%, #1a1248 55%, #0e1a38 100%)",
           fontFamily: "system-ui, -apple-system, sans-serif",
           color: "#f0f6ff",
+          paddingBottom: "env(safe-area-inset-bottom, 16px)",
         }}
       >
         {/* ── Top nav ────────────────────────────────────────────────────────── */}
@@ -674,6 +675,9 @@ function ParentWeeklyReportPageInner() {
                 background: "rgba(155,114,255,0.1)",
                 borderRadius: "8px",
                 border: "1px solid rgba(155,114,255,0.22)",
+                minHeight: 44,
+                touchAction: "manipulation",
+                WebkitTapHighlightColor: "transparent",
               }}
             >
               ← Home
@@ -693,6 +697,9 @@ function ParentWeeklyReportPageInner() {
                 borderRadius: "8px",
                 border: "1px solid rgba(255,209,102,0.2)",
                 marginLeft: "auto",
+                minHeight: 44,
+                touchAction: "manipulation",
+                WebkitTapHighlightColor: "transparent",
               }}
             >
               Practice Tips →
@@ -802,6 +809,9 @@ function ParentWeeklyReportPageInner() {
                       color: "#c4a8ff",
                       border: "1px solid rgba(155,114,255,0.25)",
                       cursor: "pointer",
+                      minHeight: 44,
+                      touchAction: "manipulation",
+                      WebkitTapHighlightColor: "transparent",
                     }}
                   >
                     ← Previous week
@@ -818,6 +828,9 @@ function ParentWeeklyReportPageInner() {
                         color: "#c4a8ff",
                         border: "1px solid rgba(155,114,255,0.25)",
                         cursor: "pointer",
+                        minHeight: 44,
+                        touchAction: "manipulation",
+                        WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       Next week →
@@ -1005,6 +1018,9 @@ function ParentWeeklyReportPageInner() {
                         ? "1px solid rgba(155,114,255,0.4)"
                         : "1px solid rgba(255,255,255,0.07)",
                       transition: "all 0.18s",
+                      minHeight: 44,
+                      touchAction: "manipulation",
+                      WebkitTapHighlightColor: "transparent",
                     } as React.CSSProperties}
                   >
                     {t.label}
