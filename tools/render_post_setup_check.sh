@@ -150,8 +150,10 @@ check_route_contains_any "/owner" "Owner gate loads" \
   "WQ Console" \
   "Good morning"
 check_route_contains_any "/teacher" "Teacher gate loads" \
+  "Sign in to Classroom" \
   "Sign in to teacher dashboard" \
   "Teacher access" \
+  "Enter your teacher access code" \
   "Enter your teacher username and password."
 
 section "Runtime Signal Checks"
