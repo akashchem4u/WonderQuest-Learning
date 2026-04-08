@@ -78,6 +78,8 @@ function formatDate(iso: string | null) {
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   // Invite form
   const [inviteEmail, setInviteEmail] = useState("");
@@ -105,6 +107,28 @@ export default function AdminsPage() {
       setAdmins(data.admins ?? []);
     } catch {
       setLoadError("Network error. Could not load admins.");
+    }
+  }
+
+  async function toggleActive(admin: AdminUser) {
+    setTogglingId(admin.id);
+    setToggleError(null);
+    try {
+      const res = await fetch(`/api/admin/admins/${admin.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !admin.isActive }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setToggleError(data.error ?? "Failed to update admin.");
+        return;
+      }
+      fetchAdmins();
+    } catch {
+      setToggleError("Network error. Please try again.");
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -207,6 +231,12 @@ export default function AdminsPage() {
             <div style={{ padding: "1rem", color: C.red, fontSize: "0.85rem" }}>{loadError}</div>
           )}
 
+          {toggleError && (
+            <div style={{ padding: "0.6rem 1rem", color: C.red, fontSize: "0.82rem", background: `${C.red}10`, borderBottom: `1px solid ${C.border}` }}>
+              {toggleError}
+            </div>
+          )}
+
           {!loadError && admins.length === 0 && (
             <div
               style={{
@@ -274,22 +304,24 @@ export default function AdminsPage() {
                 )}
               </div>
 
-              {/* Deactivate (coming soon) */}
+              {/* Deactivate / Reactivate */}
               <button
-                disabled
-                title="Coming soon"
+                disabled={togglingId === admin.id}
+                onClick={() => void toggleActive(admin)}
                 style={{
                   background: "transparent",
-                  border: `1px solid ${C.border}`,
+                  border: `1px solid ${admin.isActive ? C.red : C.green}55`,
                   borderRadius: 6,
-                  padding: "3px 8px",
-                  color: C.muted,
+                  padding: "3px 10px",
+                  color: admin.isActive ? C.red : C.green,
                   fontSize: "0.75rem",
-                  cursor: "not-allowed",
-                  opacity: 0.5,
+                  cursor: togglingId === admin.id ? "not-allowed" : "pointer",
+                  opacity: togglingId === admin.id ? 0.5 : 1,
+                  fontWeight: 500,
+                  transition: "opacity .15s",
                 }}
               >
-                Deactivate
+                {togglingId === admin.id ? "…" : admin.isActive ? "Deactivate" : "Reactivate"}
               </button>
             </div>
           ))}
