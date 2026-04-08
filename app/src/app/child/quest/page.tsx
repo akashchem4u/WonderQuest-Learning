@@ -105,7 +105,7 @@ export default function ChildQuestPage() {
             <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
             <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>Couldn&apos;t load quests</div>
             <div style={{ fontSize: 14, color: C.muted, marginBottom: 24 }}>Check your connection and try again.</div>
-            <button onClick={loadData} style={{ padding: "12px 28px", background: C.violet, border: "none", borderRadius: 12, color: "#fff", fontFamily: "'Nunito', system-ui", fontSize: 15, fontWeight: 900, cursor: "pointer" }}>
+            <button onClick={loadData} style={{ padding: "12px 28px", background: C.violet, border: "none", borderRadius: 12, color: "#fff", fontFamily: "'Nunito', system-ui", fontSize: 15, fontWeight: 900, cursor: "pointer", minHeight: 44, minWidth: 44, touchAction: "manipulation" }}>
               Retry
             </button>
           </div>
@@ -146,7 +146,7 @@ export default function ChildQuestPage() {
                           {isLocked && <div style={{ fontSize: 11, color: C.muted, fontWeight: 700 }}>Locked</div>}
                         </div>
                         {!isLocked && (
-                          <Link href="/play" style={{ padding: "8px 14px", background: isDone ? C.mint : C.violet, borderRadius: 10, color: isDone ? "#0a2a15" : "#fff", fontSize: 12, fontWeight: 900, textDecoration: "none", flexShrink: 0 }}>
+                          <Link href="/play" style={{ padding: "8px 14px", background: isDone ? C.mint : C.violet, borderRadius: 10, color: isDone ? "#0a2a15" : "#fff", fontSize: 12, fontWeight: 900, textDecoration: "none", flexShrink: 0, minHeight: 44, minWidth: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", touchAction: "manipulation" }}>
                             {isDone ? "Replay" : "Start →"}
                           </Link>
                         )}
@@ -177,7 +177,7 @@ export default function ChildQuestPage() {
                         <div style={{ fontSize: 14, fontWeight: 900, color: C.text, marginBottom: 2 }}>{m.displayName}</div>
                         <div style={{ fontSize: 11, color: "#ff9b72", fontWeight: 700 }}>{m.missCount} recent miss{m.missCount !== 1 ? "es" : ""}</div>
                       </div>
-                      <Link href={`/play?skill=${m.skillCode}`} style={{ padding: "8px 14px", background: "#7c4ddb", borderRadius: 10, color: "#fff", fontSize: 12, fontWeight: 900, textDecoration: "none", flexShrink: 0 }}>
+                      <Link href={`/play?skill=${m.skillCode}`} style={{ padding: "8px 14px", background: "#7c4ddb", borderRadius: 10, color: "#fff", fontSize: 12, fontWeight: 900, textDecoration: "none", flexShrink: 0, minHeight: 44, minWidth: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", touchAction: "manipulation" }}>
                         Practice →
                       </Link>
                     </div>
@@ -187,8 +187,8 @@ export default function ChildQuestPage() {
             </div>
 
             <div style={{ display: "flex", gap: 12, paddingTop: 4 }}>
-              <Link href="/child" style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none" }}>← Home</Link>
-              <Link href="/child/world" style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none" }}>World Map</Link>
+              <Link href="/child" style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none", minHeight: 44, minWidth: 44, display: "inline-flex", alignItems: "center", touchAction: "manipulation" }}>← Home</Link>
+              <Link href="/child/world" style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none", minHeight: 44, minWidth: 44, display: "inline-flex", alignItems: "center", touchAction: "manipulation" }}>World Map</Link>
             </div>
           </div>
         )}

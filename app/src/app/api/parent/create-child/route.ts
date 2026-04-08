@@ -3,6 +3,7 @@ import { requireParentAccessSession } from "@/lib/parent-access";
 import { createChildForParent } from "@/lib/prototype-service";
 import { db } from "@/lib/db";
 import { getRequestIpAddress, getRequestUserAgent } from "@/lib/child-access";
+import { track } from "@/lib/analytics";
 
 const CONSENT_TEXT =
   "I confirm that I am the parent or legal guardian of this child. I give WonderQuest Learning permission to create an educational account and collect the educational data described in the Privacy Policy on behalf of my child.";
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
       ],
     );
 
+    void track(guardianId, "child_account_created", { band: result.child.launchBandCode });
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(

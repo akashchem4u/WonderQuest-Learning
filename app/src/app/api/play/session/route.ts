@@ -4,6 +4,7 @@ import {
   requireChildAccessSession,
 } from "@/lib/child-access";
 import { createPlaySession } from "@/lib/prototype-service";
+import { track } from "@/lib/analytics";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,11 @@ export async function POST(request: NextRequest) {
     const result = await createPlaySession({
       studentId: accessSession.studentId,
       sessionMode: body.sessionMode,
+    });
+    void track(accessSession.studentId, "session_started", {
+      band: result.student.launchBandCode,
+      session_mode: body.sessionMode ?? "guided-quest",
+      level: result.progression.currentLevel,
     });
     return NextResponse.json(result);
   } catch (error) {

@@ -6,6 +6,7 @@ import {
 } from "@/lib/child-access";
 import { answerQuestion } from "@/lib/prototype-service";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { track } from "@/lib/analytics";
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +38,15 @@ export async function POST(request: NextRequest) {
       attempt: body.attempt,
       timeSpentMs: body.timeSpentMs,
     });
+    void track(accessSession.studentId, "question_answered", {
+      correct: result.correct,
+      hint_used: body.hintUsed ?? false,
+    });
+    if (result.sessionCompleted) {
+      void track(accessSession.studentId, "session_completed", {
+        points_earned: result.pointsEarned,
+      });
+    }
     return NextResponse.json(result);
   } catch (error) {
     const status = error instanceof ChildAccessSessionError ? 401 : 400;

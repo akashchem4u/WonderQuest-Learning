@@ -107,7 +107,7 @@ export default function ChildWorldPage() {
             <div style={{ textAlign: "center", padding: "40px 24px" }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
               <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>Couldn&apos;t load world map</div>
-              <button onClick={loadData} style={{ padding: "12px 28px", background: C.violet, border: "none", borderRadius: 12, color: "#fff", fontFamily: "'Nunito', system-ui", fontSize: 15, fontWeight: 900, cursor: "pointer" }}>
+              <button onClick={loadData} style={{ padding: "12px 28px", background: C.violet, border: "none", borderRadius: 12, color: "#fff", fontFamily: "'Nunito', system-ui", fontSize: 15, fontWeight: 900, cursor: "pointer", minHeight: 44, minWidth: 44, touchAction: "manipulation" }}>
                 Retry
               </button>
             </div>
@@ -186,14 +186,14 @@ export default function ChildWorldPage() {
 
               {/* CTA */}
               <Link href="/play" style={{ display: "block", textDecoration: "none" }}>
-                <button style={{ width: "100%", padding: "16px", background: `linear-gradient(135deg, ${C.violet}, #7c4ddb)`, border: "none", borderRadius: 14, color: "#fff", fontFamily: "'Nunito', system-ui", fontSize: 18, fontWeight: 900, cursor: "pointer", boxShadow: "0 6px 20px rgba(155,114,255,0.35)" }}>
+                <button style={{ width: "100%", padding: "16px", background: `linear-gradient(135deg, ${C.violet}, #7c4ddb)`, border: "none", borderRadius: 14, color: "#fff", fontFamily: "'Nunito', system-ui", fontSize: 18, fontWeight: 900, cursor: "pointer", boxShadow: "0 6px 20px rgba(155,114,255,0.35)", minHeight: 44, touchAction: "manipulation" }}>
                   Continue Quest →
                 </button>
               </Link>
 
               <div style={{ display: "flex", gap: 12 }}>
-                <Link href="/child" style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none" }}>← Home</Link>
-                <Link href="/child/quest" style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none" }}>Start Quest</Link>
+                <Link href="/child" style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none", minHeight: 44, minWidth: 44, display: "inline-flex", alignItems: "center", touchAction: "manipulation" }}>← Home</Link>
+                <Link href="/child/quest" style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none", minHeight: 44, minWidth: 44, display: "inline-flex", alignItems: "center", touchAction: "manipulation" }}>Start Quest</Link>
               </div>
             </>
           )}

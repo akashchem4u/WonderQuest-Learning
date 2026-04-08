@@ -56,7 +56,7 @@ function getAvatarSymbol(avatarKey: string) {
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="home-launcher">
+    <main className="home-launcher" style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
       <DegradedBanner />
       <div className="home-glow home-glow-violet" aria-hidden="true" />
       <div className="home-glow home-glow-teal" aria-hidden="true" />
@@ -66,11 +66,11 @@ function PageShell({ children }: { children: React.ReactNode }) {
           Wonder<span>Quest</span>
         </Link>
         <nav className="home-topbar-links" aria-label="Primary">
-          <Link href="/parent">For families</Link>
-          <Link href="/teacher">For teachers</Link>
+          <Link href="/parent" style={{ minHeight: 44, minWidth: 44, display: "inline-flex", alignItems: "center" }}>For families</Link>
+          <Link href="/teacher" style={{ minHeight: 44, minWidth: 44, display: "inline-flex", alignItems: "center" }}>For teachers</Link>
         </nav>
         <div className="home-topbar-actions">
-          <Link className="home-start-btn" href="/?manual=1">
+          <Link className="home-start-btn" href="/?manual=1" style={{ minHeight: 44, minWidth: 44, display: "inline-flex", alignItems: "center" }}>
             Home
           </Link>
           <button
@@ -81,6 +81,8 @@ function PageShell({ children }: { children: React.ReactNode }) {
               border: "1px solid rgba(255,255,255,0.1)",
               color: "rgba(255,255,255,0.5)",
               fontSize: 12, fontWeight: 600, cursor: "pointer",
+              minHeight: 44, minWidth: 44,
+              touchAction: "manipulation",
             }}
           >
             Sign out
@@ -148,6 +150,9 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
             boxShadow: "0 8px 32px rgba(155,114,255,0.4)",
             letterSpacing: "-0.2px",
             transition: "transform 0.15s, box-shadow 0.15s",
+            minHeight: 44,
+            minWidth: 44,
+            touchAction: "manipulation",
           }}
         >
           ▶ Continue Adventure
@@ -232,6 +237,8 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
               border: `1px solid ${item.color}30`,
               textDecoration: "none",
               gap: 6,
+              minHeight: 44,
+              touchAction: "manipulation",
             }}>
               <span style={{ fontSize: 32 }}>{item.emoji}</span>
               <span style={{ fontSize: 13, fontWeight: 800, color: "#e8e0ff" }}>{item.label}</span>
@@ -252,6 +259,9 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
             fontSize: 12, fontWeight: 700, color: "#9b8ec4",
             textDecoration: "none", padding: "6px 12px",
             borderRadius: 8, background: "rgba(255,255,255,0.04)",
+            minHeight: 44, minWidth: 44,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            touchAction: "manipulation",
           }}>
             {item.label}
           </a>
@@ -268,6 +278,11 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
             color: "rgba(255,255,255,0.3)",
             textDecoration: "none",
             transition: "color 0.15s",
+            minHeight: 44,
+            minWidth: 44,
+            display: "inline-flex",
+            alignItems: "center",
+            touchAction: "manipulation",
           }}
         >
           Switch child →
@@ -280,6 +295,11 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
             color: "rgba(255,255,255,0.3)",
             textDecoration: "none",
             transition: "color 0.15s",
+            minHeight: 44,
+            minWidth: 44,
+            display: "inline-flex",
+            alignItems: "center",
+            touchAction: "manipulation",
           }}
         >
           Sign out →
@@ -430,6 +450,9 @@ export default function ChildAccessPage() {
     fontWeight: 700,
     cursor: "pointer",
     transition: "background 0.1s",
+    minHeight: 44,
+    minWidth: 44,
+    touchAction: "manipulation",
   };
 
   // suppress unused variable warning
@@ -587,6 +610,8 @@ export default function ChildAccessPage() {
               boxShadow: submitting ? "none" : "0 8px 28px rgba(155,114,255,0.38)",
               letterSpacing: "-0.2px",
               transition: "all 0.15s",
+              minHeight: 44,
+              touchAction: "manipulation",
             }}
           >
             {submitting ? "Starting…" : "▶ Sign In & Play"}

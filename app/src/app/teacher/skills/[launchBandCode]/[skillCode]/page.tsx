@@ -224,7 +224,7 @@ export default function TeacherSkillDrilldownPage() {
               gap: 4,
             }}
           >
-            \u2190 Skills
+            ← Skills
           </Link>
           <span style={{ color: C.border, fontSize: 14 }}>|</span>
           <span style={{ fontSize: 12, color: C.muted }}>

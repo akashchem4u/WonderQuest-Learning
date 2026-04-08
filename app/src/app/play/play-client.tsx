@@ -1069,6 +1069,8 @@ const s = {
     minHeight: 72,
     justifyContent: "center" as const,
     fontFamily: "inherit",
+    touchAction: "manipulation" as const,
+    WebkitTapHighlightColor: "transparent",
   }),
   rail: {
     padding: "20px 16px",
@@ -1142,6 +1144,7 @@ const s = {
   },
   bottomBar: {
     padding: "10px 20px",
+    paddingBottom: "env(safe-area-inset-bottom, 20px)",
     background: C.surface,
     borderTop: `1px solid ${C.surface2}`,
     display: "flex",
@@ -1164,6 +1167,9 @@ const s = {
     display: "flex",
     alignItems: "center",
     gap: 6,
+    minHeight: 48,
+    minWidth: 48,
+    touchAction: "manipulation" as const,
   }),
   hintBtn: (highlighted: boolean) => ({
     background: "transparent",
@@ -1175,6 +1181,9 @@ const s = {
     fontWeight: 700,
     padding: "8px 14px",
     cursor: "pointer",
+    minHeight: 48,
+    minWidth: 48,
+    touchAction: "manipulation" as const,
   }),
   idkBtn: {
     background: "transparent",
@@ -1186,6 +1195,9 @@ const s = {
     fontWeight: 700,
     padding: "8px 14px",
     cursor: "pointer",
+    minHeight: 48,
+    minWidth: 48,
+    touchAction: "manipulation" as const,
   },
   // Correct answer panel
   correctPanel: {

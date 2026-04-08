@@ -901,12 +901,12 @@ export default function ParentAccessPage() {
                   </div>
                   <div style={{ textAlign: "center" }}>
                     <Link href="/child" style={{ font: "500 0.8rem system-ui", color: C.violet, textDecoration: "none" }}>
-                      Child access \u2192
+                      Child access →
                     </Link>
                   </div>
                   <div style={{ textAlign: "center", marginTop: 4 }}>
                     <Link href="/parent/onboarding" style={{ fontSize: 13, color: C.muted, textDecoration: "underline" }}>
-                      New to WonderQuest? Set up your family account \u2192
+                      New to WonderQuest? Set up your family account →
                     </Link>
                   </div>
                 </form>
@@ -965,7 +965,7 @@ export default function ParentAccessPage() {
                       value={regChildName}
                     />
                     {regChildNameAvailability === "checking" && (
-                      <div style={{ font: "500 0.75rem system-ui", marginTop: 4, color: C.muted }}>Checking\u2026</div>
+                      <div style={{ font: "500 0.75rem system-ui", marginTop: 4, color: C.muted }}>Checking…</div>
                     )}
                     {regChildNameMessage && regChildNameAvailability !== "checking" && (
                       <div style={{ font: "500 0.75rem system-ui", marginTop: 4, color: regChildNameAvailability === "available" ? C.mint : "#ff7b6b" }}>
@@ -1001,7 +1001,7 @@ export default function ParentAccessPage() {
                     {submitting ? "Creating account\u2026" : "Create Account \u2192"}
                   </button>
                   <div style={{ textAlign: "center" }}>
-                    <Link href="/child" style={{ font: "500 0.8rem system-ui", color: C.violet, textDecoration: "none" }}>Child access \u2192</Link>
+                    <Link href="/child" style={{ font: "500 0.8rem system-ui", color: C.violet, textDecoration: "none" }}>Child access →</Link>
                   </div>
                 </form>
               )}
@@ -1025,7 +1025,7 @@ export default function ParentAccessPage() {
                   </button>
                   <div style={{ textAlign: "center" }}>
                     <button type="button" onClick={() => { setAccessMode("signin"); setError(""); }} style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.muted, fontFamily: "system-ui" }}>
-                      \u2190 Back to Sign In
+                      ← Back to Sign In
                     </button>
                   </div>
                 </form>
@@ -1061,7 +1061,7 @@ export default function ParentAccessPage() {
                   </button>
                   <div style={{ textAlign: "center" }}>
                     <button type="button" onClick={() => { setAccessMode("forgot"); setError(""); setForgotToken(""); setForgotDisplayName(""); }} style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.muted, fontFamily: "system-ui" }}>
-                      \u2190 Back
+                      ← Back
                     </button>
                   </div>
                 </form>

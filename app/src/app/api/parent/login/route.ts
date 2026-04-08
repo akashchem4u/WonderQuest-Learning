@@ -7,6 +7,7 @@ import {
   getRequestUserAgent,
 } from "@/lib/parent-access";
 import { accessParent } from "@/lib/parent-service";
+import { track } from "@/lib/analytics";
 
 export async function POST(request: NextRequest) {
   const ipAddress = getRequestIpAddress(request);
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
       userAgent,
     });
 
+    void track(result.guardian.id, "parent_login", { method: "password" });
     const response = NextResponse.json(result);
     response.cookies.set({
       name: PARENT_SESSION_COOKIE_NAME,
