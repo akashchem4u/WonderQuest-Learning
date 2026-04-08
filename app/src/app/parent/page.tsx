@@ -203,6 +203,8 @@ const DASHBOARD_NAV = [
   { href: "/parent/link-health", label: "Link Health", icon: "🔗" },
   { href: "/parent/family", label: "Family Hub", icon: "👨‍👩‍👧" },
   { href: "/parent/benchmarks", label: "How it works", icon: "ℹ️" },
+  { href: "/parent/activity-log", label: "Activity Log", emoji: "📋", icon: "📋" },
+  { href: "/parent/account", label: "Settings", emoji: "⚙️", icon: "⚙️" },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -253,6 +255,8 @@ export default function ParentAccessPage() {
   const [addChildSubmitting, setAddChildSubmitting] = useState(false);
   const [addChildError, setAddChildError] = useState("");
   const [addChildSuccess, setAddChildSuccess] = useState("");
+  const [lastCreatedChildUsername, setLastCreatedChildUsername] = useState("");
+  const [lastCreatedChildDisplayName, setLastCreatedChildDisplayName] = useState("");
 
   // Join class state
   const [showJoinClass, setShowJoinClass] = useState(false);
@@ -536,6 +540,8 @@ export default function ParentAccessPage() {
       });
       const payload = (await response.json()) as { success?: boolean; child?: { displayName: string }; error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Could not create child account.");
+      setLastCreatedChildUsername(addChildForm.username);
+      setLastCreatedChildDisplayName(addChildForm.displayName || payload.child?.displayName || "your child");
       setAddChildSuccess(`${payload.child?.displayName ?? "Child"} account created! They can now sign in.`);
       setAddChildForm({ displayName: "", username: "", pin: "", birthYear: "", avatarKey: "bunny_purple", launchBandCode: "K1", coppaConsent: false });
       // Refresh dashboard data
@@ -1335,6 +1341,46 @@ export default function ParentAccessPage() {
                 </div>
               </div>
 
+              {/* Skill snapshot */}
+              {activeChildDashboard && (activeChildDashboard.strengths.length > 0 || activeChildDashboard.supportAreas.length > 0) && (
+                <div style={{ marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+                    Skill Snapshot
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {activeChildDashboard.strengths.slice(0, 2).map(s => (
+                      <div key={s.skillCode} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          ✅ {s.displayName}
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#58e8c1" }}>
+                          {Math.round(s.masteryRate * 100)}%
+                        </div>
+                        <div style={{ width: 60, height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2 }}>
+                          <div style={{ width: `${Math.round(s.masteryRate * 100)}%`, height: "100%", background: "#58e8c1", borderRadius: 2 }} />
+                        </div>
+                      </div>
+                    ))}
+                    {activeChildDashboard.supportAreas.slice(0, 2).map(s => (
+                      <div key={s.skillCode} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          📈 {s.displayName}
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#ffd166" }}>
+                          {Math.round(s.masteryRate * 100)}%
+                        </div>
+                        <div style={{ width: 60, height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2 }}>
+                          <div style={{ width: `${Math.round(s.masteryRate * 100)}%`, height: "100%", background: "#ffd166", borderRadius: 2 }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <a href="/parent/report" style={{ fontSize: 11, color: "#9b72ff", textDecoration: "none", marginTop: 8, display: "inline-block" }}>
+                    Full skill report →
+                  </a>
+                </div>
+              )}
+
               {/* CTAs */}
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <Link
@@ -1949,22 +1995,22 @@ export default function ParentAccessPage() {
                 </div>
 
                 {addChildSuccess ? (
-                  <div
-                    style={{
-                      padding: "14px 16px",
-                      borderRadius: "10px",
-                      background: "rgba(80,232,144,0.1)",
-                      border: "1px solid rgba(80,232,144,0.3)",
-                      color: "#50e890",
-                      font: "600 0.88rem system-ui",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    {addChildSuccess}
+                  <div style={{ background: "rgba(88,232,193,0.08)", border: "1px solid rgba(88,232,193,0.25)", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: "#58e8c1", marginBottom: 8 }}>
+                      ✅ {addChildSuccess}
+                    </div>
+                    <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.6 }}>
+                      <strong style={{ color: "rgba(255,255,255,0.8)" }}>Share these with {lastCreatedChildDisplayName}:</strong><br />
+                      Username: <code style={{ background: "rgba(255,255,255,0.08)", borderRadius: 4, padding: "1px 6px", color: "#f0f6ff" }}>{lastCreatedChildUsername}</code><br />
+                      PIN: <code style={{ background: "rgba(255,255,255,0.08)", borderRadius: 4, padding: "1px 6px", color: "#f0f6ff" }}>****</code> (the 4 digits you chose)
+                    </div>
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 8 }}>
+                      💡 They can sign in at the Child Portal with this username and PIN.
+                    </div>
                     <button
                       type="button"
                       onClick={() => { setShowAddChild(false); setAddChildSuccess(""); }}
-                      style={{ display: "block", marginTop: "8px", background: "none", border: "none", color: "rgba(80,232,144,0.7)", cursor: "pointer", font: "500 0.8rem system-ui", fontFamily: "system-ui", padding: 0 }}
+                      style={{ display: "block", marginTop: "12px", background: "none", border: "none", color: "rgba(88,232,193,0.7)", cursor: "pointer", font: "500 0.8rem system-ui", fontFamily: "system-ui", padding: 0 }}
                     >
                       Close
                     </button>
@@ -2037,9 +2083,14 @@ export default function ParentAccessPage() {
                     </div>
 
                     <div>
-                      <label style={{ display: "block", font: "600 0.78rem system-ui", color: "rgba(255,255,255,0.6)", marginBottom: "8px", fontFamily: "system-ui" }}>
-                        Learning band
-                      </label>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                        <label style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>
+                          Learning Band
+                        </label>
+                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                          💡 Enter birth year above to auto-select
+                        </span>
+                      </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                         {[
                           { code: "PREK", label: "🐣 Pre-K", sub: "Ages 2–5" },
@@ -2066,6 +2117,9 @@ export default function ParentAccessPage() {
                             <div style={{ font: "400 0.7rem system-ui", color: "rgba(255,255,255,0.35)", marginTop: "2px" }}>{band.sub}</div>
                           </button>
                         ))}
+                      </div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>
+                        Not sure? Choose by age — you can change this anytime in Settings.
                       </div>
                     </div>
 

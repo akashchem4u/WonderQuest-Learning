@@ -339,10 +339,25 @@ export default function ChildBadgesPage() {
             </div>
           ) : allBadges.length === 0 ? (
             <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-              <div style={{ fontSize: 64, marginBottom: 16 }}>🏅</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: "#e8e0ff", marginBottom: 8, fontFamily: "'Nunito', system-ui, sans-serif" }}>No badges yet!</div>
-              <div style={{ fontSize: 15, color: MUTED, marginBottom: 24, fontFamily: "'Nunito', system-ui, sans-serif" }}>Complete quests to earn your first badge.</div>
-              <a href="/play" style={{ padding: "12px 28px", borderRadius: 12, background: VIOLET, color: "#fff", fontWeight: 800, textDecoration: "none", fontFamily: "'Nunito', system-ui, sans-serif" }}>Start a quest →</a>
+              <div style={{
+                background: "rgba(155,114,255,0.08)", border: "1px solid rgba(155,114,255,0.2)",
+                borderRadius: 16, padding: "24px 20px", textAlign: "center", marginBottom: 20, maxWidth: 400, width: "100%",
+              }}>
+                <div style={{ fontSize: 48, marginBottom: 8 }}>🌟</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#f0f6ff", marginBottom: 6, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                  Your badge collection starts here!
+                </div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 16, lineHeight: 1.5, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                  Complete quests to earn your first badge. You&apos;re one quest away!
+                </div>
+                <a href="/child/quest" style={{
+                  display: "inline-block", background: VIOLET, color: "#fff",
+                  borderRadius: 10, padding: "10px 20px", fontWeight: 700,
+                  fontSize: 14, textDecoration: "none", fontFamily: "'Nunito', system-ui, sans-serif",
+                }}>
+                  Start a Quest →
+                </a>
+              </div>
             </div>
           ) : (
             <>
@@ -369,6 +384,29 @@ export default function ChildBadgesPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Empty earned state */}
+              {earned.length === 0 && (
+                <div style={{
+                  background: "rgba(155,114,255,0.08)", border: "1px solid rgba(155,114,255,0.2)",
+                  borderRadius: 16, padding: "24px 20px", textAlign: "center", marginBottom: 20,
+                }}>
+                  <div style={{ fontSize: 48, marginBottom: 8 }}>🌟</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#f0f6ff", marginBottom: 6, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                    Your badge collection starts here!
+                  </div>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 16, lineHeight: 1.5, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                    Complete quests to earn your first badge. You&apos;re one quest away!
+                  </div>
+                  <a href="/child/quest" style={{
+                    display: "inline-block", background: VIOLET, color: "#fff",
+                    borderRadius: 10, padding: "10px 20px", fontWeight: 700,
+                    fontSize: 14, textDecoration: "none", fontFamily: "'Nunito', system-ui, sans-serif",
+                  }}>
+                    Start a Quest →
+                  </a>
+                </div>
+              )}
 
               {/* Badge grid */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 16, marginBottom: 32 }}>

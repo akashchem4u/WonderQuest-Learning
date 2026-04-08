@@ -157,8 +157,13 @@ export default function ChildWorldPage() {
                         </div>
                       )}
                       {isFuture && (
-                        <div style={{ padding: "4px 10px", background: "#1a1540", border: `1px solid ${C.border}`, borderRadius: 20, fontSize: 11, fontWeight: 900, color: C.muted, flexShrink: 0 }}>
-                          🔒 Locked
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                          <div style={{ padding: "4px 10px", background: "#1a1540", border: `1px solid ${C.border}`, borderRadius: 20, fontSize: 11, fontWeight: 900, color: C.muted }}>
+                            🔒 Locked
+                          </div>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
+                            Keep playing to unlock! 🗝️
+                          </div>
                         </div>
                       )}
                     </div>

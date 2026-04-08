@@ -255,6 +255,19 @@ export default function ParentPrivacyPage() {
           )}
         </div>
 
+        {/* Data retention policy */}
+        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "16px", marginTop: 16, marginBottom: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.7)", marginBottom: 8 }}>
+            📋 Data Retention Policy
+          </div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
+            We retain your child&apos;s learning data for as long as your account is active.
+            Accounts with no activity for <strong style={{ color: "rgba(255,255,255,0.7)" }}>12 months</strong> are flagged for deletion.
+            You can request full deletion at any time using the button below —
+            all data is permanently removed within 30 days.
+          </div>
+        </div>
+
         {/* COPPA rights notice */}
         <div style={{ background: "rgba(155, 114, 255, 0.06)", border: `1px solid rgba(155, 114, 255, 0.18)`, borderRadius: 10, padding: "14px 18px", marginBottom: 24 }}>
           <p style={{ margin: 0, fontSize: 13, color: C.muted, lineHeight: 1.6 }}>

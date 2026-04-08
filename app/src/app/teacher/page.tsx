@@ -180,15 +180,18 @@ export default function TeacherPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPushed, setAiPushed] = useState<number | null>(null);
   const [isVirtualClassroom, setIsVirtualClassroom] = useState(false);
+  const [classCode, setClassCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchTeacherId().then(teacherId => {
       if (!teacherId) return;
       fetch(`/api/teacher/profile?teacherId=${teacherId}`)
         .then((r) => (r.ok ? r.json() : null))
-        .then((data: { profile?: { displayName: string; schoolName: string | null; isIncomplete?: boolean } } | null) => {
+        .then((data: { profile?: { displayName: string; schoolName: string | null; isIncomplete?: boolean; classCode?: string } } | null) => {
           if (data?.profile) {
             setTeacherName(data.profile.displayName === "Teacher" ? "" : data.profile.displayName);
+            if (data.profile.classCode) setClassCode(data.profile.classCode);
             if (data.profile.displayName === "Teacher") {
               setShowProfileSetup(true);
             } else if (data.profile.isIncomplete) {
@@ -557,6 +560,32 @@ export default function TeacherPage() {
           </p>
         </div>
 
+        {/* Class code banner */}
+        {classCode && (
+          <div style={{
+            background: "rgba(155,114,255,0.08)", border: "1px dashed rgba(155,114,255,0.3)",
+            borderRadius: 12, padding: "12px 16px", display: "flex",
+            alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16,
+            flexWrap: "wrap"
+          }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#9b72ff", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                Class Code — share with parents
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: "#fff", letterSpacing: "0.15em", marginTop: 2 }}>
+                {classCode}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { void navigator.clipboard.writeText(classCode); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+              style={{ background: "#9b72ff", border: "none", borderRadius: 8, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, padding: "8px 16px", minHeight: 36, touchAction: "manipulation" }}
+            >
+              {copied ? "Copied! ✓" : "📋 Copy"}
+            </button>
+          </div>
+        )}
+
         {/* Quick nav links */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20, marginTop: 16 }}>
           {[
@@ -811,6 +840,14 @@ export default function TeacherPage() {
               {/* Band coverage */}
               <Card>
                 <CardHeader title="🎯 Band coverage" />
+                {/* Band legend */}
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
+                  <span>Band guide:</span>
+                  <span>🌱 Pre-K = Ages 2–5</span>
+                  <span>⭐ K–1 = Ages 5–7</span>
+                  <span>🚀 G2–3 = Ages 7–9</span>
+                  <span>⚡ G4–5 = Ages 9–11</span>
+                </div>
                 {BANDS.map((b) => (
                   <div key={b.name} style={{
                     display: "flex", alignItems: "center", gap: 10,

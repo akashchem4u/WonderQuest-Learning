@@ -1953,10 +1953,10 @@ function PlayClientInner() {
                         lineHeight: 1.3,
                       }}>
                         {accuracy >= 70
-                          ? "Streak safe!"
+                          ? "Streak — keep it up!"
                           : accuracy >= 50
-                            ? "Streak shield used! Try again tomorrow to keep your streak."
-                            : "No worries — streaks restart tomorrow!"}
+                            ? "Streak protected! Play again tomorrow to keep your streak alive."
+                            : "No worries! Your streak restarts tomorrow. Come back soon!"}
                       </div>
                     </div>
                   </div>
@@ -2270,6 +2270,9 @@ function PlayClientInner() {
                   <div style={{ fontSize: 14, color: "#c4b0ff", fontWeight: 600 }}>
                     Coach Leo is preparing an explanation…
                   </div>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 8 }}>
+                    You&apos;ll get to try a new question right after! 💪
+                  </div>
                 </div>
               )}
 
@@ -2401,12 +2404,25 @@ function PlayClientInner() {
                     )}
 
                     {explainerPhase === "understood" && (
-                      <div style={{
-                        padding: "10px 14px", borderRadius: 10, textAlign: "center",
-                        background: "rgba(80,232,144,0.1)", border: "1px solid rgba(80,232,144,0.25)",
-                        fontSize: 13, fontWeight: 700, color: "#50e890",
-                      }}>
-                        🎉 You&apos;ve got it! Great work — moving to the next question…
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+                        <div style={{
+                          padding: "10px 14px", borderRadius: 10, textAlign: "center",
+                          background: "rgba(80,232,144,0.1)", border: "1px solid rgba(80,232,144,0.25)",
+                          fontSize: 13, fontWeight: 700, color: "#50e890", width: "100%",
+                        }}>
+                          🎉 You&apos;ve got it! Great work!
+                        </div>
+                        <button
+                          type="button"
+                          onClick={moveToNextQuestion}
+                          style={{
+                            padding: "10px 24px", borderRadius: 10, border: "none",
+                            background: "#50e890", color: "#0a1f15", fontSize: 13, fontWeight: 900,
+                            cursor: "pointer", fontFamily: "inherit",
+                          }}
+                        >
+                          Got it — next question! →
+                        </button>
                       </div>
                     )}
 

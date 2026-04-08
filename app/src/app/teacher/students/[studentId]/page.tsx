@@ -394,6 +394,28 @@ export default function TeacherStudentReportPage() {
           ))}
         </div>
 
+        {/* ── Teacher action buttons ── */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "12px 28px 0" }}>
+          <a
+            href={`/teacher/interventions/${studentId ?? ""}`}
+            style={{ background: "rgba(255,123,107,0.15)", border: "1px solid rgba(255,123,107,0.3)", borderRadius: 8, color: "#ff7b6b", fontSize: 12, fontWeight: 700, padding: "8px 14px", textDecoration: "none", minHeight: 36, display: "inline-flex", alignItems: "center", touchAction: "manipulation" }}
+          >
+            🎯 Flag for intervention
+          </a>
+          <a
+            href={`/teacher/messages?student=${studentId ?? ""}`}
+            style={{ background: "rgba(155,114,255,0.1)", border: "1px solid rgba(155,114,255,0.25)", borderRadius: 8, color: "#9b72ff", fontSize: 12, fontWeight: 700, padding: "8px 14px", textDecoration: "none", minHeight: 36, display: "inline-flex", alignItems: "center", touchAction: "manipulation" }}
+          >
+            💬 Message parent
+          </a>
+          <a
+            href={`/teacher/skill-drilldown/${studentId ?? ""}`}
+            style={{ background: "rgba(88,232,193,0.1)", border: "1px solid rgba(88,232,193,0.25)", borderRadius: 8, color: "#58e8c1", fontSize: 12, fontWeight: 700, padding: "8px 14px", textDecoration: "none", minHeight: 36, display: "inline-flex", alignItems: "center", touchAction: "manipulation" }}
+          >
+            📊 View skill breakdown
+          </a>
+        </div>
+
         {/* ── Content grid ── */}
         <div
           style={{

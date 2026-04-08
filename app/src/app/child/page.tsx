@@ -588,6 +588,9 @@ export default function ChildAccessPage() {
                   {recoveryHint}
                 </p>
               )}
+              <p style={{ marginTop: 8, marginBottom: 0, fontWeight: 500, color: "rgba(252,165,165,0.5)", fontSize: 12 }}>
+                Tip: Your username and PIN were set up by your parent.
+              </p>
             </div>
           )}
 
@@ -616,6 +619,16 @@ export default function ChildAccessPage() {
           >
             {submitting ? "Starting…" : "▶ Sign In & Play"}
           </button>
+
+          {/* Forgot username help */}
+          <div style={{ textAlign: "center", marginTop: 12 }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
+              Don&apos;t know your username?{" "}
+              <a href="/parent" style={{ color: "#9b72ff", textDecoration: "none", fontWeight: 600 }}>
+                Ask a parent →
+              </a>
+            </span>
+          </div>
 
           {/* Helper text */}
           <p

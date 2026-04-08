@@ -146,7 +146,7 @@ export default function AiCoachPage() {
                 Personalized next-step recommendations for every student, based on their current mastery and curriculum alignment.
               </p>
             </div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
               <button
                 onClick={fetchSuggestions}
                 disabled={loading}
@@ -158,20 +158,28 @@ export default function AiCoachPage() {
               >
                 ↻ Refresh
               </button>
-              <button
-                onClick={pushAll}
-                disabled={pushAllBusy || suggestions.length === 0}
-                style={{
-                  padding: "8px 18px", borderRadius: 8, border: "none",
-                  background: pushAllBusy ? "rgba(155,114,255,0.4)" : C.violet,
-                  color: "#fff", fontSize: 13, fontWeight: 600,
-                  cursor: (pushAllBusy || suggestions.length === 0) ? "default" : "pointer",
-                  opacity: suggestions.length === 0 ? 0.4 : 1,
-                  minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                }}
-              >
-                {pushAllBusy ? "Queuing…" : "Push All Sessions →"}
-              </button>
+              <div>
+                <button
+                  onClick={pushAll}
+                  disabled={pushAllBusy || suggestions.length === 0}
+                  style={{
+                    padding: "8px 18px", borderRadius: 8, border: "none",
+                    background: pushAllBusy ? "rgba(155,114,255,0.4)" : C.violet,
+                    color: "#fff", fontSize: 13, fontWeight: 600,
+                    cursor: (pushAllBusy || suggestions.length === 0) ? "default" : "pointer",
+                    opacity: suggestions.length === 0 ? 0.4 : 1,
+                    minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                    display: "block", width: "100%",
+                  }}
+                >
+                  {pushAllBusy ? "Queuing…" : "Push All Sessions →"}
+                </button>
+                {/* After the Push All Sessions button */}
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 4, lineHeight: 1.4 }}>
+                  Sends today&apos;s AI-recommended skill focus to each student&apos;s quest queue.
+                  Students see the new quest next time they log in.
+                </div>
+              </div>
             </div>
           </div>
           {pushAllResult && (
@@ -321,19 +329,24 @@ export default function AiCoachPage() {
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>{s.reason}</div>
 
                     {/* Push button */}
-                    <button
-                      onClick={() => pushSession(s)}
-                      disabled={isBusy || isPushed}
-                      style={{
-                        padding: "7px 16px", borderRadius: 7, border: "none", fontSize: 13, fontWeight: 600,
-                        cursor: (isBusy || isPushed) ? "default" : "pointer",
-                        background: isPushed ? "rgba(34,197,94,0.15)" : isBusy ? "rgba(155,114,255,0.3)" : C.violet,
-                        color: isPushed ? C.mint : "#fff",
-                        minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      {isPushed ? "✓ Session queued" : isBusy ? "Queuing…" : "Push Session →"}
-                    </button>
+                    <div>
+                      <button
+                        onClick={() => pushSession(s)}
+                        disabled={isBusy || isPushed}
+                        style={{
+                          padding: "7px 16px", borderRadius: 7, border: "none", fontSize: 13, fontWeight: 600,
+                          cursor: (isBusy || isPushed) ? "default" : "pointer",
+                          background: isPushed ? "rgba(34,197,94,0.15)" : isBusy ? "rgba(155,114,255,0.3)" : C.violet,
+                          color: isPushed ? C.mint : "#fff",
+                          minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                        }}
+                      >
+                        {isPushed ? "✓ Session queued" : isBusy ? "Queuing…" : "Push Session →"}
+                      </button>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+                        Assigns to their next session
+                      </div>
+                    </div>
                   </div>
                 </div>
               );

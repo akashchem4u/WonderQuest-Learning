@@ -143,7 +143,14 @@ export default function ChildQuestPage() {
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 900, color: isDone ? "#c0e8c0" : C.text, marginBottom: 2 }}>{a.title || a.skillCode}</div>
                           {isDone && <div style={{ fontSize: 11, color: C.mint, fontWeight: 700 }}>Completed ✓</div>}
-                          {isLocked && <div style={{ fontSize: 11, color: C.muted, fontWeight: 700 }}>Locked</div>}
+                          {isLocked && (
+                            <>
+                              <div style={{ fontSize: 11, color: C.muted, fontWeight: 700 }}>🔒 Locked</div>
+                              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+                                Complete other quests first
+                              </div>
+                            </>
+                          )}
                         </div>
                         {!isLocked && (
                           <Link href="/play" style={{ padding: "8px 14px", background: isDone ? C.mint : C.violet, borderRadius: 10, color: isDone ? "#0a2a15" : "#fff", fontSize: 12, fontWeight: 900, textDecoration: "none", flexShrink: 0, minHeight: 44, minWidth: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", touchAction: "manipulation" }}>
