@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, isDatabaseConnectionError } from "@/lib/db";
 import { requireAdminSession, generateInviteToken } from "@/lib/admin-auth";
+import { sendAdminInviteEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdminSession(request);
@@ -42,6 +43,16 @@ export async function POST(request: NextRequest) {
     );
 
     const inviteUrl = `/owner/accept-invite?token=${token}`;
+
+    // Fire-and-forget — email failure never blocks the response
+    void sendAdminInviteEmail({
+      toEmail: email,
+      toName: displayName,
+      inviteUrl,
+      invitedByName: auth.displayName,
+      role,
+    });
+
     return NextResponse.json({ inviteUrl, token });
   } catch (err) {
     if (isDatabaseConnectionError(err)) {

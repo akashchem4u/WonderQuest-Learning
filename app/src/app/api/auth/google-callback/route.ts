@@ -9,6 +9,7 @@ import {
 import { createTeacherDbSession, TEACHER_SESSION_COOKIE } from "@/lib/teacher-session";
 import { TEACHER_COOKIE_NAME, issueTeacherAccessToken } from "@/lib/teacher-access";
 import { track } from "@/lib/analytics";
+import { sendParentWelcomeEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +35,10 @@ export async function POST(request: NextRequest) {
         ipAddress,
         userAgent,
       });
-      void track(result.guardian.id, "parent_login", { method: "google" });
+      void track(result.guardian.id, "parent_login", { method: "google", isNew: result.isNew });
+      if (result.isNew) {
+        void sendParentWelcomeEmail({ toEmail: email, toName: result.guardian.displayName });
+      }
 
       const response = NextResponse.json({ ok: true, redirectTo: "/parent" });
       response.cookies.set({

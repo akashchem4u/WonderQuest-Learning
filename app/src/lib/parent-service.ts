@@ -1152,7 +1152,7 @@ export async function accessParentViaGoogle(
   googleId: string,
   email: string,
   displayName: string,
-): Promise<{ guardian: { id: string; username: string; displayName: string } }> {
+): Promise<{ guardian: { id: string; username: string; displayName: string }; isNew: boolean }> {
   // 1. Try to find by google_id
   const byGoogleId = await db.query<{ id: string; username: string; display_name: string }>(
     `SELECT id, username, display_name FROM public.guardian_profiles
@@ -1161,7 +1161,7 @@ export async function accessParentViaGoogle(
   );
   if (byGoogleId.rows.length > 0) {
     const g = byGoogleId.rows[0];
-    return { guardian: { id: g.id, username: g.username, displayName: g.display_name } };
+    return { guardian: { id: g.id, username: g.username, displayName: g.display_name }, isNew: false };
   }
 
   // 2. Try to find by email — link the google_id to an existing account
@@ -1176,7 +1176,7 @@ export async function accessParentViaGoogle(
       `UPDATE public.guardian_profiles SET google_id = $1, oauth_provider = 'google' WHERE id = $2`,
       [googleId, g.id]
     );
-    return { guardian: { id: g.id, username: g.username, displayName: g.display_name } };
+    return { guardian: { id: g.id, username: g.username, displayName: g.display_name }, isNew: false };
   }
 
   // 3. Create new guardian account (Google users have no PIN — store empty pin_hash)
@@ -1191,7 +1191,7 @@ export async function accessParentViaGoogle(
     [email, name, username, googleId]
   );
   const g = result.rows[0];
-  return { guardian: { id: g.id, username: g.username, displayName: g.display_name } };
+  return { guardian: { id: g.id, username: g.username, displayName: g.display_name }, isNew: true };
 }
 
 export async function accessTeacherViaGoogle(
