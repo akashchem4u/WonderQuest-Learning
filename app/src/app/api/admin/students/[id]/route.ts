@@ -89,3 +89,34 @@ export async function PATCH(
     return NextResponse.json({ error: "Internal error." }, { status: 500 });
   }
 }
+
+// DELETE /api/admin/students/[id] — hard delete (super_admin only)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireAdminSession(request);
+  if (!auth.ok) return auth.response;
+  if (auth.role !== "super_admin") {
+    return NextResponse.json({ error: "Super admin only." }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`DELETE FROM public.guardian_student_links WHERE student_id = $1`, [id]);
+    await client.query(`DELETE FROM public.teacher_student_roster WHERE student_id = $1`, [id]);
+    await client.query(`DELETE FROM public.student_profiles WHERE id = $1`, [id]);
+    await client.query("COMMIT");
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    if (isDatabaseConnectionError(err)) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+    console.error("[api/admin/students DELETE]", err);
+    return NextResponse.json({ error: "Internal error." }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}
