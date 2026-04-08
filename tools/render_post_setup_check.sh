@@ -188,13 +188,13 @@ if [[ "${health_status}" != "200" ]]; then
 else
   pass "Health route returns HTTP 200"
 
-  if grep -Fq '"status":"ok"' "${health_tmp}"; then
+  if grep -Fq '"status":"ok"' "${health_tmp}" || grep -Fq '"ok":true' "${health_tmp}"; then
     pass "Health route reports ok"
   else
-    fail 'Health route did not report `"status":"ok"`'
+    fail 'Health route did not report ok status'
   fi
 
-  if grep -Fq '"liveQuestionGenerationEnabled":true' "${health_tmp}"; then
+  if grep -Fq '"liveQuestionGenerationEnabled":true' "${health_tmp}" || grep -Fq '"liveQuestions":true' "${health_tmp}"; then
     pass "Health route reports live question generation enabled"
   else
     warn "Health route does not report live question generation enabled"
