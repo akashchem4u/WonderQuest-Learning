@@ -1,354 +1,556 @@
 import { getLaunchStatus } from "@/lib/server-launch-status";
 import Link from "next/link";
-import { DisplayModeToggle } from "@/components/display-mode-toggle";
 
 export const dynamic = "force-dynamic";
 
-// ─── Static data ──────────────────────────────────────────────────────────────
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const T = {
+  bg:        "#06071a",
+  surface:   "#0e1029",
+  card:      "#12152e",
+  border:    "rgba(255,255,255,0.07)",
+  borderHi:  "rgba(255,255,255,0.13)",
+  violet:    "#9b72ff",
+  teal:      "#2dd4bf",
+  gold:      "#fbbf24",
+  coral:     "#fb7185",
+  blue:      "#60a5fa",
+  text:      "#f1f5f9",
+  muted:     "rgba(241,245,249,0.52)",
+  dim:       "rgba(241,245,249,0.32)",
+} as const;
 
-const BAND_META: Record<string, { label: string; ages: string; icon: string; color: string }> = {
-  PREK: { label: "Pre-K",      ages: "Ages 2–5",  icon: "🌱", color: "#ffd166" },
-  K1:   { label: "K–1",       ages: "Ages 5–7",  icon: "🌟", color: "#9b72ff" },
-  G23:  { label: "Grades 2–3", ages: "Ages 7–9", icon: "🚀", color: "#58e8c1" },
-  G45:  { label: "Grades 4–5", ages: "Ages 9–11",icon: "⚡", color: "#38bdf8" },
-  G6:   { label: "Grade 6",    ages: "Ages 11+", icon: "🔬", color: "#ff7b6b" },
+// ─── Band metadata ─────────────────────────────────────────────────────────────
+const BANDS: Record<string, { label: string; ages: string; icon: string; color: string; bg: string }> = {
+  PREK: { label: "Pre-K",       ages: "Ages 2–5",   icon: "🌱", color: "#fbbf24", bg: "rgba(251,191,36,0.1)"  },
+  K1:   { label: "K–1",        ages: "Ages 5–7",   icon: "⭐", color: "#9b72ff", bg: "rgba(155,114,255,0.1)" },
+  G23:  { label: "Grades 2–3", ages: "Ages 7–9",   icon: "🚀", color: "#2dd4bf", bg: "rgba(45,212,191,0.1)"  },
+  G45:  { label: "Grades 4–5", ages: "Ages 9–11",  icon: "⚡", color: "#60a5fa", bg: "rgba(96,165,250,0.1)"  },
+  G6:   { label: "Grade 6",    ages: "Ages 11–12", icon: "🔬", color: "#fb7185", bg: "rgba(251,113,133,0.1)" },
 };
 
-const PROOF_ITEMS = [
-  { icon: "🧠", stat: "AI-adaptive",  label: "Every question adjusts to the child's pace, band, and mastery in real time" },
-  { icon: "🏆", stat: "3 000+",       label: "Questions across reading, math, phonics, science, logic & more" },
-  { icon: "🔒", stat: "COPPA-safe",   label: "No chat, no ads, no rankings — privacy-first from the ground up" },
-  { icon: "📱", stat: "Any device",   label: "Phone, tablet, and desktop — same seamless experience everywhere" },
+// ─── Feature grid ─────────────────────────────────────────────────────────────
+const FEATURES = [
+  { icon: "🧠", title: "AI-adaptive engine",   body: "Every question adjusts in real time to the child's pace, band, and current mastery level."      },
+  { icon: "🏆", title: "3 000+ questions",      body: "Reading, math, phonics, science, logic, geography — across all four learning bands."              },
+  { icon: "🎤", title: "Audio-first for Pre-K", body: "Every prompt can be read aloud. Early learners never need to read to start learning."              },
+  { icon: "🦁", title: "Coach Leo",             body: "When a child answers wrong twice, Coach Leo steps in with a scaffolded visual explanation."       },
+  { icon: "📊", title: "Parent weekly digest",  body: "Plain-language AI report every week — what happened, what improved, what to do next."              },
+  { icon: "🏫", title: "Teacher dashboard",     body: "Class mastery, intervention queue, AI archetypes, skill drilldown — no spreadsheets needed."     },
 ];
 
-const HOW_IT_WORKS = [
+// ─── Audience sections ────────────────────────────────────────────────────────
+const AUDIENCES = [
   {
-    num: "01",
-    title: "Set up in 60 seconds",
-    body: "A parent creates the family account, adds a child, and picks the right learning band. No long forms, no credit card.",
-  },
-  {
-    num: "02",
-    title: "Child starts a quest",
-    body: "Each session is a short quest — 5 to 8 adaptive questions with audio support, rewards, and Coach Leo's help when the child gets stuck.",
-  },
-  {
-    num: "03",
-    title: "Progress surfaces automatically",
-    body: "Parents get a plain-language weekly report. Teachers see class-wide mastery trends. Everyone always knows what's next.",
-  },
-];
-
-const AUDIENCE_CARDS = [
-  {
-    tone:  "tone-kid",
-    emoji: "🧒",
-    href:  "/child",
+    emoji: "🧒", href: "/child",
     label: "For children",
-    title: "Quests, rewards & adventure",
-    body:  "Short adaptive quests keep children engaged. Earn badges, level up, and unlock trophies — all without a single ad or leaderboard.",
-    cta:   "Start a quest",
-    chips: ["Audio-first for early learners", "Coach Leo explains mistakes", "Streaks & badges"],
+    title: "A quest, not a worksheet.",
+    body: "Every session is 5–8 adaptive questions wrapped in a short adventure. Earn points, level up, unlock trophies, and come back for more — without a single ad.",
+    accent: "#9b72ff",
+    accentBg: "rgba(155,114,255,0.08)",
+    accentBorder: "rgba(155,114,255,0.24)",
+    highlights: ["🎮 Gamified quests with rewards", "🦁 Coach Leo explains mistakes", "🔥 Daily streaks build habits", "🔊 Audio support at every step"],
+    cta: "Start a quest →",
   },
   {
-    tone:  "tone-parent",
-    emoji: "👨‍👩‍👧",
-    href:  "/parent",
+    emoji: "👨‍👩‍👧", href: "/parent",
     label: "For families",
-    title: "Clear progress, no homework stress",
-    body:  "A weekly AI digest tells you exactly what your child worked on, what's improving, and what to practice next — in plain language.",
-    cta:   "Open family hub",
-    chips: ["Weekly AI digest", "Multi-child households", "PIN-based child access"],
+    title: "Know exactly what happened — and what's next.",
+    body: "A weekly AI digest tells you what your child practiced, what's improving, and what to focus on at home. Multi-child households, PIN-based access, and full link health visibility.",
+    accent: "#2dd4bf",
+    accentBg: "rgba(45,212,191,0.08)",
+    accentBorder: "rgba(45,212,191,0.24)",
+    highlights: ["📬 Weekly AI learning digest", "👨‍👩‍👧 Multi-child household support", "🔐 PIN-based child access", "📈 Skill-level progress tracking"],
+    cta: "Open family hub →",
   },
   {
-    tone:  "tone-teacher",
-    emoji: "🏫",
-    href:  "/teacher",
+    emoji: "🏫", href: "/teacher",
     label: "For teachers",
-    title: "Class insights without extra work",
-    body:  "See who is on track, who needs support, and which skills are slipping — without building a single spreadsheet.",
-    cta:   "Open teacher dashboard",
-    chips: ["Intervention queue", "Mastery by skill", "AI archetype detection"],
+    title: "Class insights without the extra work.",
+    body: "See who is on track, who needs support, and which skills are slipping — all in one place. Intervention queue, mastery bars, AI student archetypes, and real win streaks.",
+    accent: "#60a5fa",
+    accentBg: "rgba(96,165,250,0.08)",
+    accentBorder: "rgba(96,165,250,0.24)",
+    highlights: ["🚨 Automatic intervention queue", "📐 Mastery by skill & band", "🤖 AI student archetype detection", "🏅 Recent wins feed"],
+    cta: "Open teacher dashboard →",
   },
-] as const;
-
-const SAFETY_ITEMS = [
-  "🔒 COPPA-compliant",
-  "📵 Zero ads",
-  "💬 No chat",
-  "👁️ No child rankings",
-  "🤖 No data sold",
-  "📱 Phone · tablet · desktop",
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default async function HomePage() {
   const status = await getLaunchStatus();
-  const isLive  = status.source === "supabase";
-
-  const bandList = status.bands.length > 0
-    ? status.bands
-    : [
-        { code: "PREK", theme: "Seedling Grove" },
-        { code: "K1",   theme: "Star Valley" },
-        { code: "G23",  theme: "Explorer Ridge" },
-        { code: "G45",  theme: "Lightning Peak" },
-      ];
+  const isLive = status.source === "supabase";
+  const bandList = status.bands.length > 0 ? status.bands : [
+    { code: "PREK", theme: "Seedling Grove" },
+    { code: "K1",   theme: "Star Valley"    },
+    { code: "G23",  theme: "Explorer Ridge" },
+    { code: "G45",  theme: "Lightning Peak" },
+  ];
 
   return (
-    <main className="landing-page">
-      <div className="landing-page-shell">
+    <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "inherit" }}>
 
-        {/* ── Nav ─────────────────────────────────────────────────────────── */}
-        <header className="landing-topbar">
-          <Link className="landing-brand" href="/">
-            Wonder<span>Quest</span>
-          </Link>
+      {/* ── Nav ───────────────────────────────────────────────────────────── */}
+      <header style={{
+        position: "sticky", top: 0, zIndex: 50,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 16, padding: "0 clamp(16px,4vw,48px)",
+        height: 64,
+        background: "rgba(6,7,26,0.85)",
+        backdropFilter: "blur(16px)",
+        borderBottom: `1px solid ${T.border}`,
+      }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none" }}>
+          <span style={{ fontSize: 22, fontWeight: 900, color: T.text, letterSpacing: "-0.03em" }}>
+            Wonder<span style={{ color: T.teal }}>Quest</span>
+          </span>
+        </Link>
 
-          <nav className="landing-topbar-center" aria-label="Primary">
-            <Link className="landing-mini-link" href="/parent">For families</Link>
-            <Link className="landing-mini-link" href="/teacher">For teachers</Link>
-            <Link className="landing-mini-link" href="/owner">Platform ops</Link>
-          </nav>
-
-          <div className="landing-topbar-actions">
-            <DisplayModeToggle />
-            <Link className="landing-topbar-cta" href="/child">
-              Start learning →
+        <nav style={{ display: "flex", gap: 4, alignItems: "center" }}>
+          {[
+            { href: "/parent",  label: "For families" },
+            { href: "/teacher", label: "For teachers"  },
+          ].map(({ href, label }) => (
+            <Link key={href} href={href} style={{
+              padding: "8px 14px", borderRadius: 10,
+              fontSize: 14, fontWeight: 600, color: T.muted,
+              textDecoration: "none",
+              transition: "color 0.15s",
+            }}>
+              {label}
             </Link>
-          </div>
-        </header>
+          ))}
+        </nav>
 
-        {/* ── Hero ────────────────────────────────────────────────────────── */}
-        <section className="landing-hero">
-          <div className="landing-hero-copy">
-            <span className="landing-eyebrow">
-              Early access · Ages 2–10 · {status.launchBandCount || bandList.length} live bands
+        <Link href="/child" style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "10px 20px", borderRadius: 12,
+          background: `linear-gradient(135deg, ${T.violet}, #6d4fc2)`,
+          color: "#fff", fontSize: 14, fontWeight: 800,
+          textDecoration: "none",
+          boxShadow: `0 4px 24px rgba(155,114,255,0.35)`,
+        }}>
+          Start learning →
+        </Link>
+      </header>
+
+      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      <section style={{
+        position: "relative", overflow: "hidden",
+        padding: "clamp(64px,10vw,120px) clamp(16px,4vw,48px) clamp(48px,8vw,96px)",
+        textAlign: "center",
+      }}>
+        {/* Background glows */}
+        <div aria-hidden="true" style={{
+          position: "absolute", inset: 0, pointerEvents: "none",
+          background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(155,114,255,0.18) 0%, transparent 70%)",
+        }} />
+        <div aria-hidden="true" style={{
+          position: "absolute", top: "30%", left: "5%", width: 400, height: 400,
+          borderRadius: "50%", background: "rgba(45,212,191,0.06)",
+          filter: "blur(80px)", pointerEvents: "none",
+        }} />
+        <div aria-hidden="true" style={{
+          position: "absolute", top: "20%", right: "5%", width: 300, height: 300,
+          borderRadius: "50%", background: "rgba(251,191,36,0.06)",
+          filter: "blur(80px)", pointerEvents: "none",
+        }} />
+
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 860, margin: "0 auto" }}>
+          {/* Badge */}
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "6px 14px", borderRadius: 999,
+            background: "rgba(155,114,255,0.12)",
+            border: `1px solid rgba(155,114,255,0.28)`,
+            fontSize: 13, fontWeight: 700, color: "#c4a8ff",
+            marginBottom: 28,
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.teal, display: "inline-block" }} aria-hidden="true" />
+            Early access · Ages 2–10 · {status.launchBandCount || bandList.length} live bands
+          </div>
+
+          {/* Headline */}
+          <h1 style={{
+            margin: "0 0 24px",
+            fontSize: "clamp(2.8rem, 7vw, 5.2rem)",
+            fontWeight: 950,
+            lineHeight: 1.0,
+            letterSpacing: "-0.04em",
+            color: T.text,
+          }}>
+            Learning that feels<br />
+            like an{" "}
+            <span style={{
+              background: `linear-gradient(135deg, ${T.violet}, ${T.teal})`,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}>
+              adventure.
             </span>
+          </h1>
 
-            <h1>
-              Learning that feels like an <em>adventure.</em>
-            </h1>
+          {/* Sub */}
+          <p style={{
+            margin: "0 auto 36px",
+            maxWidth: 620,
+            fontSize: "clamp(1rem, 2vw, 1.2rem)",
+            lineHeight: 1.7,
+            color: T.muted,
+          }}>
+            WonderQuest is an AI-powered adaptive learning platform for children aged 2–10.
+            Short quests, instant parent insights, and classroom-ready teacher tools —
+            all in one safe, ad-free environment.
+          </p>
 
-            <p>
-              WonderQuest is an AI-powered adaptive learning platform for children aged 2–10.
-              Short quests, real-time parent insights, and classroom-ready teacher tools —
-              all in one safe, ad-free environment.
+          {/* Feature chips */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 36 }}>
+            {["🎮 Gamified quests", "🤖 AI coaching", "📊 Real-time insights", "🔒 COPPA-safe"].map((chip) => (
+              <span key={chip} style={{
+                padding: "7px 14px", borderRadius: 999,
+                background: "rgba(255,255,255,0.06)",
+                border: `1px solid ${T.border}`,
+                fontSize: 13, fontWeight: 600, color: T.muted,
+              }}>
+                {chip}
+              </span>
+            ))}
+          </div>
+
+          {/* CTAs */}
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link href="/child" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "15px 32px", borderRadius: 14,
+              background: `linear-gradient(135deg, ${T.violet} 0%, ${T.teal} 100%)`,
+              color: "#fff", fontSize: 16, fontWeight: 800,
+              textDecoration: "none",
+              boxShadow: "0 8px 32px rgba(155,114,255,0.4)",
+            }}>
+              Start a free quest →
+            </Link>
+            <Link href="/parent" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "15px 28px", borderRadius: 14,
+              background: "rgba(255,255,255,0.06)",
+              border: `1px solid ${T.borderHi}`,
+              color: T.text, fontSize: 16, fontWeight: 700,
+              textDecoration: "none",
+            }}>
+              For parents
+            </Link>
+          </div>
+        </div>
+
+        {/* ── Band strip ── */}
+        <div style={{
+          display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap",
+          marginTop: 56,
+          position: "relative", zIndex: 1,
+        }}>
+          {bandList.slice(0, 4).map((band) => {
+            const m = BANDS[band.code];
+            if (!m) return null;
+            return (
+              <div key={band.code} style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "10px 18px", borderRadius: 14,
+                background: m.bg,
+                border: `1px solid ${m.color}30`,
+              }}>
+                <span style={{ fontSize: 18 }} aria-hidden="true">{m.icon}</span>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: m.color }}>{m.label}</div>
+                  <div style={{ fontSize: 11, color: T.dim }}>{m.ages}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ── Stats bar ─────────────────────────────────────────────────────── */}
+      <div style={{
+        display: "flex", flexWrap: "wrap", gap: 1,
+        borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`,
+        background: T.surface,
+      }}>
+        {[
+          { value: "3 000+",     label: "Practice questions"    },
+          { value: "4 bands",    label: "Grade-level paths"      },
+          { value: "AI-powered", label: "Adaptive engine"        },
+          { value: "COPPA",      label: "Fully compliant"        },
+        ].map((stat, i) => (
+          <div key={i} style={{
+            flex: "1 1 180px",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            padding: "28px 20px",
+            borderRight: i < 3 ? `1px solid ${T.border}` : "none",
+            gap: 4,
+          }}>
+            <span style={{ fontSize: "clamp(1.5rem,3vw,2rem)", fontWeight: 900, color: T.text, letterSpacing: "-0.03em" }}>{stat.value}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>{stat.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Features grid ─────────────────────────────────────────────────── */}
+      <section style={{ padding: "clamp(56px,8vw,96px) clamp(16px,4vw,48px)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 52 }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: T.teal, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>
+              WHAT MAKES IT DIFFERENT
             </p>
-
-            <div className="landing-chip-row">
-              <span className="landing-chip">🎮 Gamified quests</span>
-              <span className="landing-chip">🤖 AI coaching</span>
-              <span className="landing-chip">📊 Parent &amp; teacher insights</span>
-            </div>
-
-            <div className="landing-hero-actions">
-              <Link className="landing-primary-btn" href="/child">
-                Start a free quest →
-              </Link>
-              <Link className="landing-secondary-btn" href="/parent">
-                For parents
-              </Link>
-            </div>
+            <h2 style={{ margin: 0, fontSize: "clamp(1.8rem,4vw,2.8rem)", fontWeight: 900, letterSpacing: "-0.03em", color: T.text }}>
+              Built for real learning moments
+            </h2>
           </div>
 
-          {/* Right — product preview */}
-          <div className="landing-hero-visual">
-            <div className="landing-hero-visual-frame">
-              <div className="landing-hero-visual-top">
-                <span>Live platform</span>
-                <strong>Three audiences. One product.</strong>
-              </div>
-
-              <div className="landing-hero-visual-grid">
-                <div className="landing-hero-visual-card is-child">
-                  <span aria-hidden="true">🧒</span>
-                  <strong>Child</strong>
-                  <p>Quests · Badges · Coach Leo</p>
-                  <div className="landing-hero-visual-art" aria-hidden="true">
-                    <span className="is-one" />
-                    <span className="is-two" />
-                    <span className="is-three" />
-                    <span className="is-bar" />
-                  </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+            {FEATURES.map((f) => (
+              <div key={f.title} style={{
+                padding: "28px 24px",
+                borderRadius: 18,
+                background: T.card,
+                border: `1px solid ${T.border}`,
+                transition: "border-color 0.2s",
+              }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 14,
+                  background: "rgba(155,114,255,0.12)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 22, marginBottom: 16,
+                }}>
+                  {f.icon}
                 </div>
-
-                <div className="landing-hero-visual-card is-family">
-                  <span aria-hidden="true">👨‍👩‍👧</span>
-                  <strong>Family</strong>
-                  <p>Reports · Progress · Alerts</p>
-                  <div className="landing-hero-visual-art" aria-hidden="true">
-                    <span className="is-bar" />
-                    <span className="is-three" />
-                    <span className="is-two" />
-                    <span className="is-one" />
-                  </div>
-                </div>
-
-                <div className="landing-hero-visual-card is-ops">
-                  <span aria-hidden="true">🏫</span>
-                  <strong>Teacher</strong>
-                  <p>Roster · Mastery · Interventions</p>
-                  <div className="landing-hero-visual-art" aria-hidden="true">
-                    <span className="is-two" />
-                    <span className="is-bar" />
-                    <span className="is-one" />
-                    <span className="is-three" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="landing-hero-visual-strip">
-                {bandList.slice(0, 4).map((band) => {
-                  const meta = BAND_META[band.code];
-                  return (
-                    <span key={band.code} style={{ color: meta?.color }}>
-                      {meta?.icon ?? "📚"} {meta?.label ?? band.code}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Why WonderQuest ─────────────────────────────────────────────── */}
-        <section className="landing-proof-card">
-          <span className="landing-panel-label">Why WonderQuest</span>
-          <h2>Built for real learning moments</h2>
-          <div className="landing-proof-grid">
-            {PROOF_ITEMS.map((item) => (
-              <div className="landing-metric-card" key={item.stat}>
-                <span aria-hidden="true">{item.icon}</span>
-                <strong>{item.stat}</strong>
-                <p>{item.label}</p>
+                <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 800, color: T.text }}>{f.title}</h3>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: T.muted }}>{f.body}</p>
               </div>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ── Featured — child experience ──────────────────────────────────── */}
-        <section className="landing-featured-card tone-kid">
-          <div className="landing-featured-copy">
-            <span className="landing-featured-label">Child experience</span>
-            <h2>A quest, not a worksheet.</h2>
-            <p>
-              Every session is 5–8 adaptive questions wrapped in a short quest.
-              Children earn points, badges, and trophies. When they struggle,
-              Coach Leo steps in with a visual explanation — never a red X.
+      {/* ── Audience sections ─────────────────────────────────────────────── */}
+      <section style={{ padding: "0 clamp(16px,4vw,48px) clamp(56px,8vw,96px)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 52 }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: T.teal, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>
+              ONE PLATFORM, THREE AUDIENCES
             </p>
-            <div className="landing-chip-row">
-              <span className="landing-chip">Audio replay at any time</span>
-              <span className="landing-chip">Guided early-learner mode</span>
-              <span className="landing-chip">Daily streaks build habits</span>
-            </div>
-            <div className="landing-hero-actions">
-              <Link className="landing-primary-btn" href="/child">
-                Try a quest →
-              </Link>
-            </div>
+            <h2 style={{ margin: 0, fontSize: "clamp(1.8rem,4vw,2.8rem)", fontWeight: 900, letterSpacing: "-0.03em", color: T.text }}>
+              Every role has its own home.
+            </h2>
           </div>
-          <div className="landing-featured-action">
-            <div className="landing-route-icon-featured" aria-hidden="true">🧒</div>
-            <Link className="landing-route-link-featured" href="/child">
-              Open child home
-            </Link>
-          </div>
-        </section>
 
-        {/* ── How it works ─────────────────────────────────────────────────── */}
-        <section className="landing-proof-card">
-          <span className="landing-panel-label">How it works</span>
-          <h2>From setup to progress in three steps</h2>
-          <div className="landing-proof-grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
-            {HOW_IT_WORKS.map((step) => (
-              <div className="landing-metric-card" key={step.num}>
-                <span aria-hidden="true">{step.num}</span>
-                <strong style={{ fontSize: "1.05rem" }}>{step.title}</strong>
-                <p>{step.body}</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {AUDIENCES.map((a, i) => (
+              <div key={a.href} style={{
+                display: "grid",
+                gridTemplateColumns: i % 2 === 0 ? "1fr 380px" : "380px 1fr",
+                gap: 0,
+                borderRadius: 24,
+                overflow: "hidden",
+                border: `1px solid ${a.accentBorder}`,
+                background: a.accentBg,
+              }}>
+                {/* Text block */}
+                <div style={{
+                  padding: "clamp(28px,4vw,48px)",
+                  order: i % 2 === 0 ? 0 : 1,
+                }}>
+                  <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 800, color: a.accent, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                    {a.label}
+                  </p>
+                  <h3 style={{ margin: "0 0 16px", fontSize: "clamp(1.4rem,2.8vw,2rem)", fontWeight: 900, lineHeight: 1.15, letterSpacing: "-0.03em", color: T.text }}>
+                    {a.title}
+                  </h3>
+                  <p style={{ margin: "0 0 24px", fontSize: 15, lineHeight: 1.7, color: T.muted, maxWidth: 480 }}>
+                    {a.body}
+                  </p>
+                  <ul style={{ margin: "0 0 28px", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                    {a.highlights.map((h) => (
+                      <li key={h} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: T.muted }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: a.accent, flexShrink: 0 }} aria-hidden="true" />
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={a.href} style={{
+                    display: "inline-flex", alignItems: "center", gap: 8,
+                    padding: "12px 22px", borderRadius: 12,
+                    background: a.accentBg,
+                    border: `1px solid ${a.accentBorder}`,
+                    color: a.accent, fontSize: 14, fontWeight: 800,
+                    textDecoration: "none",
+                  }}>
+                    {a.cta}
+                  </Link>
+                </div>
+
+                {/* Visual block */}
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  padding: "32px",
+                  background: `linear-gradient(135deg, ${a.accentBg}, rgba(6,7,26,0.4))`,
+                  borderLeft: i % 2 === 0 ? `1px solid ${a.accentBorder}` : "none",
+                  borderRight: i % 2 !== 0 ? `1px solid ${a.accentBorder}` : "none",
+                  order: i % 2 === 0 ? 1 : 0,
+                  fontSize: "clamp(80px,12vw,110px)",
+                }}>
+                  {a.emoji}
+                </div>
               </div>
             ))}
           </div>
-        </section>
-
-        {/* ── Audience cards ───────────────────────────────────────────────── */}
-        <div className="landing-route-grid">
-          {AUDIENCE_CARDS.map((card) => (
-            <Link className={`landing-route-card ${card.tone}`} href={card.href} key={card.href}>
-              <div className="landing-route-icon" aria-hidden="true">{card.emoji}</div>
-              <div className="landing-route-copy">
-                <span>{card.label}</span>
-                <h2>{card.title}</h2>
-                <p>{card.body}</p>
-                <div className="landing-chip-row" style={{ marginTop: 6 }}>
-                  {card.chips.map((chip) => (
-                    <span className="landing-chip" key={chip} style={{ fontSize: "0.77rem", minHeight: 28 }}>
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <span className="landing-route-link">{card.cta} →</span>
-            </Link>
-          ))}
         </div>
+      </section>
 
-        {/* ── Learning bands ───────────────────────────────────────────────── */}
-        <section className="landing-status-strip">
-          <div className="landing-status-copy">
-            <span className="landing-panel-label">Learning bands</span>
-            <h2>One platform, every stage.</h2>
-            <p>
-              WonderQuest adapts to the child&apos;s grade band — not just their age.
-              Each band has its own skill ladder, question pool, and theme world.
+      {/* ── How it works ──────────────────────────────────────────────────── */}
+      <section style={{
+        padding: "clamp(56px,8vw,96px) clamp(16px,4vw,48px)",
+        background: T.surface,
+        borderTop: `1px solid ${T.border}`,
+        borderBottom: `1px solid ${T.border}`,
+      }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 52 }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: T.teal, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>
+              HOW IT WORKS
             </p>
+            <h2 style={{ margin: 0, fontSize: "clamp(1.8rem,4vw,2.8rem)", fontWeight: 900, letterSpacing: "-0.03em", color: T.text }}>
+              Setup to progress in 3 steps.
+            </h2>
           </div>
-          <div className="landing-band-row">
-            {bandList.slice(0, 4).map((band) => {
-              const meta = BAND_META[band.code] ?? { label: band.code, ages: "", icon: "📚", color: "#f0f6ff" };
-              return (
-                <div className="landing-band-pill" key={band.code}>
-                  <strong style={{ color: meta.color }}>{meta.icon} {meta.label}</strong>
-                  <span>{meta.ages}</span>
-                  <small>{band.theme}</small>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px,1fr))", gap: 2 }}>
+            {[
+              { num: "01", title: "Set up in 60 seconds",          body: "A parent creates the account, adds a child, and picks the right learning band. No long forms, no credit card." },
+              { num: "02", title: "Child starts a quest",           body: "5–8 adaptive questions, audio support, rewards, and Coach Leo when they get stuck. Feels like a game, builds real skills." },
+              { num: "03", title: "Progress surfaces automatically", body: "Weekly AI report for parents, class mastery for teachers, and live badges for kids. Everyone knows what's next." },
+            ].map((step, i) => (
+              <div key={step.num} style={{
+                padding: "36px 32px",
+                borderRadius: i === 0 ? "18px 0 0 18px" : i === 2 ? "0 18px 18px 0" : 0,
+                background: T.card,
+                border: `1px solid ${T.border}`,
+                borderLeft: i > 0 ? "none" : `1px solid ${T.border}`,
+              }}>
+                <div style={{
+                  fontSize: 12, fontWeight: 900, color: T.violet,
+                  letterSpacing: "0.1em", marginBottom: 18,
+                }}>
+                  {step.num}
                 </div>
-              );
-            })}
+                <h3 style={{ margin: "0 0 10px", fontSize: 18, fontWeight: 800, color: T.text }}>{step.title}</h3>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: T.muted }}>{step.body}</p>
+              </div>
+            ))}
           </div>
-        </section>
-
-        {/* ── Safety ───────────────────────────────────────────────────────── */}
-        <div className="landing-safety-row">
-          {SAFETY_ITEMS.map((item) => (
-            <span className="landing-safety-pill" key={item}>{item}</span>
-          ))}
         </div>
+      </section>
 
-        {/* ── Live status footer ───────────────────────────────────────────── */}
-        <div className="landing-trust-strip">
-          <span className="landing-trust-item">
-            <span className="landing-status-dot" aria-hidden="true" />
+      {/* ── Safety ────────────────────────────────────────────────────────── */}
+      <section style={{ padding: "clamp(56px,8vw,96px) clamp(16px,4vw,48px)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{
+            borderRadius: 24, overflow: "hidden",
+            border: `1px solid ${T.border}`,
+            background: `linear-gradient(135deg, rgba(45,212,191,0.06) 0%, rgba(155,114,255,0.06) 100%)`,
+            padding: "clamp(32px,5vw,56px)",
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: 32,
+            alignItems: "center",
+          }}>
+            <div>
+              <p style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 800, color: T.teal, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                BUILT SAFE FROM DAY ONE
+              </p>
+              <h2 style={{ margin: "0 0 14px", fontSize: "clamp(1.6rem,3vw,2.2rem)", fontWeight: 900, letterSpacing: "-0.03em", color: T.text }}>
+                Privacy-first. Always.
+              </h2>
+              <p style={{ margin: "0 0 24px", fontSize: 15, lineHeight: 1.7, color: T.muted, maxWidth: 520 }}>
+                WonderQuest was designed with children&apos;s safety at the core — not bolted on later.
+                No social features, no advertising, no data sold, ever.
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {["🔒 COPPA-compliant", "📵 Zero ads", "💬 No chat", "👁️ No child rankings", "🤖 No data sold", "📱 Any device"].map((item) => (
+                  <span key={item} style={{
+                    padding: "7px 14px", borderRadius: 999,
+                    background: "rgba(255,255,255,0.06)",
+                    border: `1px solid ${T.border}`,
+                    fontSize: 13, fontWeight: 600, color: T.muted,
+                  }}>
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div style={{ fontSize: 72, textAlign: "center" }} aria-hidden="true">🔒</div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Final CTA ─────────────────────────────────────────────────────── */}
+      <section style={{
+        padding: "clamp(56px,8vw,96px) clamp(16px,4vw,48px)",
+        textAlign: "center",
+        background: T.surface,
+        borderTop: `1px solid ${T.border}`,
+      }}>
+        <div style={{ maxWidth: 620, margin: "0 auto" }}>
+          <h2 style={{ margin: "0 0 16px", fontSize: "clamp(1.8rem,4vw,2.8rem)", fontWeight: 900, letterSpacing: "-0.03em", color: T.text }}>
+            Ready to start the adventure?
+          </h2>
+          <p style={{ margin: "0 0 36px", fontSize: 16, lineHeight: 1.7, color: T.muted }}>
+            Set up in 60 seconds. No credit card. No homework stress.
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link href="/child" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "16px 36px", borderRadius: 14,
+              background: `linear-gradient(135deg, ${T.violet} 0%, ${T.teal} 100%)`,
+              color: "#fff", fontSize: 16, fontWeight: 800,
+              textDecoration: "none",
+              boxShadow: "0 8px 32px rgba(155,114,255,0.4)",
+            }}>
+              Start a free quest →
+            </Link>
+            <Link href="/teacher" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "16px 28px", borderRadius: 14,
+              background: "rgba(255,255,255,0.06)",
+              border: `1px solid ${T.borderHi}`,
+              color: T.text, fontSize: 16, fontWeight: 700,
+              textDecoration: "none",
+            }}>
+              I&apos;m a teacher
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ────────────────────────────────────────────────────────── */}
+      <footer style={{
+        padding: "24px clamp(16px,4vw,48px)",
+        borderTop: `1px solid ${T.border}`,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexWrap: "wrap", gap: 12,
+      }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: T.dim }}>
+          Wonder<span style={{ color: T.teal }}>Quest</span> · Early Access
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: isLive ? T.teal : T.gold, display: "inline-block" }} aria-hidden="true" />
             {isLive ? "All systems operational" : "Fallback mode"}
           </span>
-          <span className="landing-trust-item">
-            {status.launchBandCount || bandList.length} bands live
-          </span>
-          {status.skillCount > 0 && (
-            <span className="landing-trust-item">{status.skillCount} skills tracked</span>
-          )}
-          <span className="landing-trust-item">
-            {status.templateCount >= 8 ? "Full question bank" : "Question bank active"}
-          </span>
+          <Link href="/owner" style={{ fontSize: 13, color: T.dim, textDecoration: "none" }}>Platform ops</Link>
         </div>
+      </footer>
 
-        {status.source === "fallback" && (
-          <p className="landing-fallback-note">
-            Live data temporarily unavailable — showing fallback values.
-          </p>
-        )}
-
-      </div>
-    </main>
+    </div>
   );
 }
