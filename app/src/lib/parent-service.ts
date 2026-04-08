@@ -1146,21 +1146,82 @@ export async function markParentNotificationRead(
   };
 }
 
-// ─── Google OAuth stub (not yet implemented) ─────────────────────────────────
+// ─── Google OAuth ─────────────────────────────────────────────────────────────
 
-/**
- * Future integration point for Sign in with Google.
- * guardian_profiles already has google_id and oauth_provider columns
- * (migration 20260409_000017_parent_email_auth.sql).
- *
- * @throws Always — Google OAuth is not yet implemented.
- */
 export async function accessParentViaGoogle(
-  _googleId: string,
-  _email: string,
-  _displayName: string,
-): Promise<never> {
-  throw new Error("Google OAuth not yet implemented — coming soon");
+  googleId: string,
+  email: string,
+  displayName: string,
+): Promise<{ guardian: { id: string; username: string; displayName: string } }> {
+  // 1. Try to find by google_id
+  const byGoogleId = await db.query<{ id: string; username: string; display_name: string }>(
+    `SELECT id, username, display_name FROM public.guardian_profiles
+     WHERE google_id = $1 AND is_active = true LIMIT 1`,
+    [googleId]
+  );
+  if (byGoogleId.rows.length > 0) {
+    const g = byGoogleId.rows[0];
+    return { guardian: { id: g.id, username: g.username, displayName: g.display_name } };
+  }
+
+  // 2. Try to find by email — link the google_id to an existing account
+  const byEmail = await db.query<{ id: string; username: string; display_name: string }>(
+    `SELECT id, username, display_name FROM public.guardian_profiles
+     WHERE email = $1 AND is_active = true LIMIT 1`,
+    [email]
+  );
+  if (byEmail.rows.length > 0) {
+    const g = byEmail.rows[0];
+    await db.query(
+      `UPDATE public.guardian_profiles SET google_id = $1, oauth_provider = 'google' WHERE id = $2`,
+      [googleId, g.id]
+    );
+    return { guardian: { id: g.id, username: g.username, displayName: g.display_name } };
+  }
+
+  // 3. Create new guardian account
+  const username = email.split("@")[0].replace(/[^a-z0-9_]/gi, "").toLowerCase().slice(0, 24) + "_" + Math.random().toString(36).slice(2, 6);
+  const result = await db.query<{ id: string; username: string; display_name: string }>(
+    `INSERT INTO public.guardian_profiles (email, display_name, username, password_hash, google_id, oauth_provider, is_active)
+     VALUES ($1, $2, $3, '', $4, 'google', true)
+     RETURNING id, username, display_name`,
+    [email, displayName || email.split("@")[0], username, googleId]
+  );
+  const g = result.rows[0];
+  return { guardian: { id: g.id, username: g.username, displayName: g.display_name } };
+}
+
+export async function accessTeacherViaGoogle(
+  googleId: string,
+  email: string,
+  displayName: string,
+): Promise<{ teacher: { id: string; username: string; displayName: string } } | null> {
+  // Teachers must already exist — Google OAuth links to an existing teacher account
+  // Match by google_id first, then by email
+  const byGoogleId = await db.query<{ id: string; username: string; display_name: string }>(
+    `SELECT id, username, display_name FROM public.teacher_profiles
+     WHERE google_id = $1 AND is_active = true LIMIT 1`,
+    [googleId]
+  );
+  if (byGoogleId.rows.length > 0) {
+    const t = byGoogleId.rows[0];
+    return { teacher: { id: t.id, username: t.username, displayName: t.display_name } };
+  }
+  const byEmail = await db.query<{ id: string; username: string; display_name: string }>(
+    `SELECT id, username, display_name FROM public.teacher_profiles
+     WHERE email = $1 AND is_active = true LIMIT 1`,
+    [email]
+  );
+  if (byEmail.rows.length > 0) {
+    const t = byEmail.rows[0];
+    await db.query(
+      `UPDATE public.teacher_profiles SET google_id = $1, oauth_provider = 'google' WHERE id = $2`,
+      [googleId, t.id]
+    );
+    return { teacher: { id: t.id, username: t.username, displayName: t.display_name } };
+  }
+  void displayName; // Teachers must be registered by admin first
+  return null;
 }
 
 export async function markAllParentNotificationsRead(

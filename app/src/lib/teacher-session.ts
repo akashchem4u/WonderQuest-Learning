@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hasTeacherAccess } from "@/lib/teacher-access";
@@ -78,4 +78,22 @@ export async function requireTeacherSession(
   }
 
   return { ok: true, teacherId };
+}
+
+const SESSION_TTL_HOURS = 8;
+const ACCESS_TYPE_TEACHER = "teacher";
+
+export async function createTeacherDbSession(
+  teacherId: string,
+  ipAddress: string | null,
+  userAgent: string | null,
+): Promise<{ token: string; expiresAt: Date }> {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + SESSION_TTL_HOURS * 60 * 60 * 1000);
+  await db.query(
+    `INSERT INTO public.access_sessions (access_type, student_id, token_hash, ip_address, user_agent, expires_at)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [ACCESS_TYPE_TEACHER, teacherId, hashToken(token), ipAddress, userAgent, expiresAt],
+  );
+  return { token, expiresAt };
 }
