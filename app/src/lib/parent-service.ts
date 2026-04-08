@@ -1156,7 +1156,7 @@ export async function accessParentViaGoogle(
   // 1. Try to find by google_id
   const byGoogleId = await db.query<{ id: string; username: string; display_name: string }>(
     `SELECT id, username, display_name FROM public.guardian_profiles
-     WHERE google_id = $1 AND is_active = true LIMIT 1`,
+     WHERE google_id = $1 LIMIT 1`,
     [googleId]
   );
   if (byGoogleId.rows.length > 0) {
@@ -1167,7 +1167,7 @@ export async function accessParentViaGoogle(
   // 2. Try to find by email — link the google_id to an existing account
   const byEmail = await db.query<{ id: string; username: string; display_name: string }>(
     `SELECT id, username, display_name FROM public.guardian_profiles
-     WHERE email = $1 AND is_active = true LIMIT 1`,
+     WHERE email = $1 LIMIT 1`,
     [email]
   );
   if (byEmail.rows.length > 0) {
@@ -1179,13 +1179,16 @@ export async function accessParentViaGoogle(
     return { guardian: { id: g.id, username: g.username, displayName: g.display_name } };
   }
 
-  // 3. Create new guardian account
-  const username = email.split("@")[0].replace(/[^a-z0-9_]/gi, "").toLowerCase().slice(0, 24) + "_" + Math.random().toString(36).slice(2, 6);
+  // 3. Create new guardian account (Google users have no PIN — store empty pin_hash)
+  const base = email.split("@")[0].replace(/[^a-z0-9_]/gi, "").toLowerCase().slice(0, 24);
+  const username = (base || "user") + "_" + Math.random().toString(36).slice(2, 6);
+  const name = displayName || email.split("@")[0];
   const result = await db.query<{ id: string; username: string; display_name: string }>(
-    `INSERT INTO public.guardian_profiles (email, display_name, username, password_hash, google_id, oauth_provider, is_active)
-     VALUES ($1, $2, $3, '', $4, 'google', true)
+    `INSERT INTO public.guardian_profiles
+       (email, display_name, username, pin_hash, password_hash, google_id, oauth_provider, email_verified)
+     VALUES ($1, $2, $3, '', '', $4, 'google', true)
      RETURNING id, username, display_name`,
-    [email, displayName || email.split("@")[0], username, googleId]
+    [email, name, username, googleId]
   );
   const g = result.rows[0];
   return { guardian: { id: g.id, username: g.username, displayName: g.display_name } };
@@ -1194,22 +1197,22 @@ export async function accessParentViaGoogle(
 export async function accessTeacherViaGoogle(
   googleId: string,
   email: string,
-  displayName: string,
+  _displayName: string,
 ): Promise<{ teacher: { id: string; username: string; displayName: string } } | null> {
   // Teachers must already exist — Google OAuth links to an existing teacher account
   // Match by google_id first, then by email
   const byGoogleId = await db.query<{ id: string; username: string; display_name: string }>(
     `SELECT id, username, display_name FROM public.teacher_profiles
-     WHERE google_id = $1 AND is_active = true LIMIT 1`,
+     WHERE google_id = $1 LIMIT 1`,
     [googleId]
   );
   if (byGoogleId.rows.length > 0) {
     const t = byGoogleId.rows[0];
-    return { teacher: { id: t.id, username: t.username, displayName: t.display_name } };
+    return { teacher: { id: t.id, username: t.username ?? "", displayName: t.display_name } };
   }
   const byEmail = await db.query<{ id: string; username: string; display_name: string }>(
     `SELECT id, username, display_name FROM public.teacher_profiles
-     WHERE email = $1 AND is_active = true LIMIT 1`,
+     WHERE email = $1 LIMIT 1`,
     [email]
   );
   if (byEmail.rows.length > 0) {
@@ -1218,10 +1221,9 @@ export async function accessTeacherViaGoogle(
       `UPDATE public.teacher_profiles SET google_id = $1, oauth_provider = 'google' WHERE id = $2`,
       [googleId, t.id]
     );
-    return { teacher: { id: t.id, username: t.username, displayName: t.display_name } };
+    return { teacher: { id: t.id, username: t.username ?? "", displayName: t.display_name } };
   }
-  void displayName; // Teachers must be registered by admin first
-  return null;
+  return null; // Teacher must be registered by admin first
 }
 
 export async function markAllParentNotificationsRead(
