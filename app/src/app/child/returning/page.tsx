@@ -1,1209 +1,230 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
 import { AppFrame } from "@/components/app-frame";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+const C = {
+  base: "#100b2e",
+  violet: "#9b72ff",
+  mint: "#50e890",
+  gold: "#ffd166",
+  text: "#e8e0ff",
+  muted: "#9b8ec4",
+  surface: "#1a1540",
+  border: "#2a2060",
+} as const;
 
-type ReturnScreenType = "same-day" | "two-day" | "seven-day" | "comeback";
-
-type SessionData = {
-  student: {
-    displayName: string;
-    launchBandCode: string;
-  };
-  progression: {
-    totalPoints: number;
-    currentLevel: number;
-    badgeCount: number;
-    trophyCount: number;
-  };
+type ChildStats = {
+  displayName: string;
+  streakDays: number;
+  totalPoints: number;
+  lastSession: { startedAt: string; endedAt: string } | null;
 };
 
-// ─── Stub data ────────────────────────────────────────────────────────────────
-
-const RETURN_LABELS: Record<ReturnScreenType, string> = {
-  "same-day": "Same Day",
-  "two-day": "2-Day Gap",
-  "seven-day": "7-Day Gap",
-  comeback: "30-Day Return",
-};
-
-const TABS: ReturnScreenType[] = ["same-day", "two-day", "seven-day", "comeback"];
-
-// ─── Shared style tokens ──────────────────────────────────────────────────────
-
-const BASE_BG = "#100b2e";
-const VIOLET = "#9b72ff";
-const GOLD = "#ffd166";
-const MINT = "#50e890";
-const MUTED = "#9b8ec4";
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function MascotRow({
-  emoji,
-  gradFrom,
-  gradTo,
-  name,
-  sub,
-}: {
-  emoji: string;
-  gradFrom: string;
-  gradTo: string;
-  name: string;
-  sub: string;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 24,
-        marginBottom: 32,
-        width: "100%",
-        maxWidth: 680,
-      }}
-    >
-      <div
-        style={{
-          width: 100,
-          height: 100,
-          borderRadius: "50%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 52,
-          flexShrink: 0,
-          background: `radial-gradient(circle at 35% 35%, ${gradFrom}, ${gradTo})`,
-          boxShadow: "0 4px 20px rgba(155,114,255,0.35)",
-          animation: "mascotFloat 2.5s ease-in-out infinite",
-        }}
-      >
-        {emoji}
-      </div>
-      <div>
-        <div
-          style={{
-            fontSize: 28,
-            fontWeight: 900,
-            color: "#fff",
-            marginBottom: 4,
-            fontFamily: "'Nunito', system-ui, sans-serif",
-          }}
-        >
-          {name}
-        </div>
-        <div
-          style={{
-            fontSize: 16,
-            color: "#b8a0e8",
-            fontWeight: 700,
-            fontFamily: "'Nunito', system-ui, sans-serif",
-          }}
-        >
-          {sub}
-        </div>
-      </div>
-    </div>
-  );
+function getGapMs(lastSession: ChildStats["lastSession"]): number {
+  if (!lastSession) return Infinity;
+  return Date.now() - new Date(lastSession.startedAt).getTime();
 }
 
-function WorldResumeCard({
-  label,
-  labelColor,
-  worldName,
-  progress,
-  progressGrad,
-  metaLeft,
-  metaRight,
-  metaColor,
-  btnText,
-  btnStyle,
-  borderColor,
-  bgGrad,
-}: {
-  label: string;
-  labelColor?: string;
-  worldName: string;
-  progress: number;
-  progressGrad?: string;
-  metaLeft: string;
-  metaRight: string;
-  metaColor?: string;
-  btnText: string;
-  btnStyle?: React.CSSProperties;
-  borderColor?: string;
-  bgGrad?: string;
-}) {
-  return (
-    <div
-      style={{
-        background: bgGrad ?? "linear-gradient(135deg, #1a1060 0%, #2a1880 100%)",
-        border: `2px solid ${borderColor ?? "#4a30b0"}`,
-        borderRadius: 20,
-        padding: 24,
-        marginBottom: 16,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 900,
-          color: labelColor ?? VIOLET,
-          textTransform: "uppercase",
-          letterSpacing: 1,
-          marginBottom: 6,
-          fontFamily: "'Nunito', system-ui, sans-serif",
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 26,
-          fontWeight: 900,
-          color: "#fff",
-          marginBottom: 12,
-          fontFamily: "'Nunito', system-ui, sans-serif",
-        }}
-      >
-        {worldName}
-      </div>
-      <div
-        style={{
-          height: 12,
-          background: "#2a1880",
-          borderRadius: 7,
-          overflow: "hidden",
-          marginBottom: 6,
-        }}
-      >
-        <div
-          style={{
-            height: "100%",
-            width: `${progress}%`,
-            borderRadius: 7,
-            background: progressGrad ?? "linear-gradient(90deg, #9b72ff, #c4a0ff)",
-          }}
-        />
-      </div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          fontSize: 12,
-          fontWeight: 700,
-          color: metaColor ?? VIOLET,
-          marginBottom: 16,
-          fontFamily: "'Nunito', system-ui, sans-serif",
-        }}
-      >
-        <span>{metaLeft}</span>
-        <span>{metaRight}</span>
-      </div>
-      <Link href="/play" style={{ textDecoration: "none", display: "block" }}>
-        <button
-          style={{
-            width: "100%",
-            padding: 14,
-            borderRadius: 14,
-            border: "none",
-            background: "linear-gradient(135deg, #9b72ff, #7c4ddb)",
-            color: "#fff",
-            fontFamily: "'Nunito', system-ui, sans-serif",
-            fontSize: 18,
-            fontWeight: 900,
-            cursor: "pointer",
-            boxShadow: "0 6px 20px rgba(155,114,255,0.4)",
-            ...btnStyle,
-          }}
-        >
-          {btnText}
-        </button>
-      </Link>
-    </div>
-  );
-}
-
-function AltWorldBtn() {
-  return (
-    <button
-      style={{
-        width: "100%",
-        padding: 12,
-        borderRadius: 12,
-        border: "2px solid #2a2060",
-        background: "#1a1060",
-        color: VIOLET,
-        fontFamily: "'Nunito', system-ui, sans-serif",
-        fontSize: 14,
-        fontWeight: 900,
-        cursor: "pointer",
-      }}
-    >
-      Try a Different World 🌍
-    </button>
-  );
-}
-
-function StarSafe({ text }: { text: string }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        background: "#1a2a15",
-        border: "2px solid #50e890",
-        borderRadius: 12,
-        padding: "12px 16px",
-        marginBottom: 16,
-      }}
-    >
-      <span style={{ fontSize: 22 }}>⭐</span>
-      <span
-        style={{
-          fontSize: 13,
-          fontWeight: 700,
-          color: MINT,
-          fontFamily: "'Nunito', system-ui, sans-serif",
-        }}
-      >
-        {text}
-      </span>
-    </div>
-  );
-}
-
-function RPanel({
-  title,
-  children,
-  borderColor,
-}: {
-  title: string;
-  children: React.ReactNode;
-  borderColor?: string;
-}) {
-  return (
-    <div
-      style={{
-        background: "#1a1060",
-        border: `1px solid ${borderColor ?? "#2a2060"}`,
-        borderRadius: 16,
-        padding: 16,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 900,
-          color: borderColor ?? VIOLET,
-          textTransform: "uppercase",
-          letterSpacing: 1,
-          marginBottom: 12,
-          fontFamily: "'Nunito', system-ui, sans-serif",
-        }}
-      >
-        {title}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function WinRow({
-  icon,
-  text,
-  time,
-  color,
-}: {
-  icon: string;
-  text: string;
-  time: string;
-  color?: string;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "7px 0",
-        borderBottom: "1px solid #2a2060",
-        fontSize: 13,
-        fontWeight: 700,
-        color: color ?? "#c4a0ff",
-        fontFamily: "'Nunito', system-ui, sans-serif",
-      }}
-    >
-      {icon} {text}
-      <span
-        style={{
-          marginLeft: "auto",
-          fontSize: 10,
-          color: "#5a4080",
-        }}
-      >
-        {time}
-      </span>
-    </div>
-  );
-}
-
-// ─── Screen components ────────────────────────────────────────────────────────
-
-function SameDayScreen({ session }: { session: SessionData | null }) {
-  const displayName = session?.student.displayName ?? "Explorer";
-  const streakCount = 0;
-  const nodes = [
-    { emoji: "🌟", status: "done" },
-    { emoji: "🔮", status: "done" },
-    { emoji: "💎", status: "done" },
-    { emoji: "🗝️", status: "done" },
-    { emoji: "🌈", status: "done" },
-    { emoji: "🔥", status: "done" },
-    { emoji: "🏔️", status: "active" },
-    { emoji: "🌙", status: "locked" },
-  ];
-
-  return (
-    <div
-      style={{
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: "48px 32px 64px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
-      <MascotRow
-        emoji="🦋"
-        gradFrom="#c4a0ff"
-        gradTo="#9b72ff"
-        name={`Welcome back, ${displayName}! ✨`}
-        sub="You were just here — ready to keep going?"
-      />
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 340px",
-          gap: 20,
-          width: "100%",
-          maxWidth: 860,
-        }}
-      >
-        <div>
-          <WorldResumeCard
-            label="Continue Where You Left Off"
-            worldName="Crystal Caverns 💎"
-            progress={58}
-            metaLeft="Node 7 of 12"
-            metaRight="58% explored"
-            btnText="▶ Continue Adventure"
-          />
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 900,
-              color: VIOLET,
-              textTransform: "uppercase",
-              letterSpacing: 1,
-              marginBottom: 10,
-              fontFamily: "'Nunito', system-ui, sans-serif",
-            }}
-          >
-            {"Today's Nodes"}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              marginBottom: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            {nodes.map((n, i) => (
-              <div
-                key={i}
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 14,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 24,
-                  border:
-                    n.status === "done"
-                      ? "2px solid #50e890"
-                      : n.status === "active"
-                      ? "2px solid #9b72ff"
-                      : "2px solid #2a2060",
-                  background:
-                    n.status === "done"
-                      ? "#0a2a15"
-                      : n.status === "active"
-                      ? "#2a1880"
-                      : "#1a1060",
-                  opacity: n.status === "locked" ? 0.35 : 1,
-                  position: "relative",
-                  cursor: n.status === "locked" ? "default" : "pointer",
-                  animation: n.status === "active" ? "ndPulse 1.5s ease-in-out infinite" : undefined,
-                }}
-              >
-                {n.emoji}
-                {n.status === "done" && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: -4,
-                      right: -4,
-                      width: 16,
-                      height: 16,
-                      background: MINT,
-                      borderRadius: "50%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 9,
-                      color: "#0a2a15",
-                      fontWeight: 900,
-                    }}
-                  >
-                    ✓
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <AltWorldBtn />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <RPanel title="Quest Streak 🔥">
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 36 }}>🔥</span>
-              <div>
-                <div
-                  style={{
-                    fontSize: 32,
-                    fontWeight: 900,
-                    color: GOLD,
-                    lineHeight: 1,
-                    fontFamily: "'Nunito', system-ui, sans-serif",
-                  }}
-                >
-                  {streakCount}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "#b8a0e8",
-                    fontWeight: 700,
-                    fontFamily: "'Nunito', system-ui, sans-serif",
-                  }}
-                >
-                  days strong
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-              {[true, true, true, true, true, false, false].map((lit, i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: "50%",
-                    background: lit ? GOLD : "#2a2060",
-                    boxShadow: lit ? `0 0 6px ${GOLD}` : undefined,
-                  }}
-                />
-              ))}
-            </div>
-          </RPanel>
-          <RPanel title="Recent Wins 🎉">
-            <WinRow icon="⭐" text="Earned 3 stars" time="today" />
-            <WinRow icon="🏅" text="New badge!" time="today" />
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "7px 0",
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#c4a0ff",
-                fontFamily: "'Nunito', system-ui, sans-serif",
-              }}
-            >
-              🗝️ Node 6 done
-              <span style={{ marginLeft: "auto", fontSize: 10, color: "#5a4080" }}>yesterday</span>
-            </div>
-          </RPanel>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TwoDayScreen({ session }: { session: SessionData | null }) {
-  const displayName = session?.student.displayName ?? "Explorer";
-  const totalPoints = session?.progression.totalPoints ?? 0;
-
-  const weekDays = [
-    { label: "Mon", status: "played", sub: "✓" },
-    { label: "Tue", status: "played", sub: "✓" },
-    { label: "Wed", status: "gap", sub: "—" },
-    { label: "Thu", status: "gap", sub: "—" },
-    { label: "Fri", status: "today", sub: "NOW" },
-  ];
-
-  return (
-    <div
-      style={{
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: "48px 32px 64px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
-      <MascotRow
-        emoji="🦁"
-        gradFrom="#ffb060"
-        gradTo="#ff8020"
-        name={`${displayName} is back! Let's quest! 🚀`}
-        sub="Your world has been waiting for you"
-      />
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 340px",
-          gap: 20,
-          width: "100%",
-          maxWidth: 860,
-        }}
-      >
-        <div>
-          <StarSafe text={`Your ${totalPoints} stars are safe — they never go away!`} />
-          <WorldResumeCard
-            label="Right Where You Left Off"
-            worldName="Crystal Caverns 💎"
-            progress={58}
-            metaLeft="Node 7 — still yours"
-            metaRight="58%"
-            btnText="⚡ Jump Back In"
-          />
-          <AltWorldBtn />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <RPanel title="Your Week">
-            <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-              {weekDays.map((d, i) => (
-                <div
-                  key={i}
-                  style={{
-                    flex: 1,
-                    height: 36,
-                    borderRadius: 6,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 10,
-                    fontWeight: 900,
-                    fontFamily: "'Nunito', system-ui, sans-serif",
-                    background:
-                      d.status === "played"
-                        ? "#1a2a15"
-                        : d.status === "gap"
-                        ? "#1e1a40"
-                        : "#2a1880",
-                    border:
-                      d.status === "played"
-                        ? "1px solid #50e890"
-                        : d.status === "gap"
-                        ? "1px dashed #4a30b0"
-                        : "1px solid #9b72ff",
-                    color:
-                      d.status === "played"
-                        ? "#50e890"
-                        : d.status === "gap"
-                        ? "#5a4080"
-                        : "#c4a0ff",
-                    animation: d.status === "today" ? "todayGlow 1.5s ease-in-out infinite" : undefined,
-                    textAlign: "center",
-                    flexDirection: "column" as const,
-                  }}
-                >
-                  {d.label}
-                  <br />
-                  {d.sub}
-                </div>
-              ))}
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: VIOLET,
-                marginTop: 8,
-                fontFamily: "'Nunito', system-ui, sans-serif",
-              }}
-            >
-              Play today to keep going!
-            </div>
-          </RPanel>
-          <RPanel title="Still Yours ⭐">
-            <WinRow icon="⭐" text={`${totalPoints} stars collected`} time="safe" />
-            <WinRow icon="🏅" text={`${session?.progression.badgeCount ?? 0} badges earned`} time="safe" />
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "7px 0",
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#c4a0ff",
-                fontFamily: "'Nunito', system-ui, sans-serif",
-              }}
-            >
-              💎 Crystal Caverns · Node 7
-              <span style={{ marginLeft: "auto", fontSize: 10, color: "#5a4080" }}>waiting</span>
-            </div>
-          </RPanel>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function BonusChips({
-  chips,
-}: {
-  chips: { label: string; variant: "gold" | "green" | "violet" }[];
-}) {
-  const styles: Record<string, React.CSSProperties> = {
-    gold: { background: "#2a2010", border: "2px solid #ffd166", color: GOLD },
-    green: { background: "#0a2a15", border: "2px solid #50e890", color: MINT },
-    violet: { background: "#1a1060", border: "2px solid #9b72ff", color: "#c4a0ff" },
-  };
-
-  return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-      {chips.map((c, i) => (
-        <div
-          key={i}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            borderRadius: 20,
-            padding: "8px 14px",
-            fontSize: 14,
-            fontWeight: 900,
-            fontFamily: "'Nunito', system-ui, sans-serif",
-            animation: `chipPop 0.4s cubic-bezier(0.34,1.56,0.64,1) ${0.1 + i * 0.1}s both`,
-            ...styles[c.variant],
-          }}
-        >
-          {c.label}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SevenDayScreen({ session }: { session: SessionData | null }) {
-  const displayName = session?.student.displayName ?? "Explorer";
-  const totalPoints = session?.progression.totalPoints ?? 0;
-
-  return (
-    <div
-      style={{
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: "48px 32px 64px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
-      <MascotRow
-        emoji="🐉"
-        gradFrom="#80d0ff"
-        gradTo="#2080c0"
-        name={`${displayName} returns! The dragons waited! 🐉`}
-        sub="Great news — your streak is restored!"
-      />
-      <BonusChips
-        chips={[
-          { label: "⭐ +1 star — return bonus", variant: "gold" },
-          { label: "✨ +30 XP — streak restored", variant: "green" },
-          { label: "🎉 Welcome back!", variant: "violet" },
-        ]}
-      />
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 340px",
-          gap: 20,
-          width: "100%",
-          maxWidth: 860,
-        }}
-      >
-        <div>
-          <StarSafe text={`All ${totalPoints} stars kept safe while you were away — nothing lost!`} />
-          <WorldResumeCard
-            label="Still Right There For You"
-            worldName="Crystal Caverns 💎"
-            progress={58}
-            metaLeft="Node 7 — unchanged"
-            metaRight="58%"
-            btnText="🔥 Start New Streak"
-          />
-          <AltWorldBtn />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <RPanel title="Fresh Streak Start 🔥">
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 36 }}>🔥</span>
-              <div>
-                <div
-                  style={{
-                    fontSize: 32,
-                    fontWeight: 900,
-                    color: GOLD,
-                    lineHeight: 1,
-                    fontFamily: "'Nunito', system-ui, sans-serif",
-                  }}
-                >
-                  Day 1
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "#b8a0e8",
-                    fontWeight: 700,
-                    fontFamily: "'Nunito', system-ui, sans-serif",
-                  }}
-                >
-                  brand new streak!
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-              {[true, false, false, false, false, false, false].map((lit, i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: "50%",
-                    background: lit ? GOLD : "#2a2060",
-                    boxShadow: lit ? `0 0 6px ${GOLD}` : undefined,
-                  }}
-                />
-              ))}
-            </div>
-          </RPanel>
-          <RPanel title="All Still Yours ⭐">
-            <WinRow icon="⭐" text={`${totalPoints} stars → ${totalPoints + 1} now!`} time="+1 bonus" />
-            <WinRow icon="🏅" text={`${session?.progression.badgeCount ?? 0} badges`} time="safe" />
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "7px 0",
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#c4a0ff",
-                fontFamily: "'Nunito', system-ui, sans-serif",
-              }}
-            >
-              💎 Node 7 waiting
-              <span style={{ marginLeft: "auto", fontSize: 10, color: "#5a4080" }}>ready</span>
-            </div>
-          </RPanel>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ComebackScreen({ session }: { session: SessionData | null }) {
-  const displayName = session?.student.displayName ?? "Explorer";
-  const totalPoints = session?.progression.totalPoints ?? 0;
-
-  return (
-    <div
-      style={{
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: "48px 32px 64px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
-      {/* Gold comeback banner */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 860,
-          background: "linear-gradient(135deg, #2a2010 0%, #1a1460 100%)",
-          border: `2px solid ${GOLD}`,
-          borderRadius: 20,
-          padding: "24px 28px",
-          display: "flex",
-          alignItems: "center",
-          gap: 20,
-          marginBottom: 24,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 56,
-            flexShrink: 0,
-            animation: "trophyBounce 2s ease-in-out infinite",
-          }}
-        >
-          🏆
-        </span>
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 900,
-              color: GOLD,
-              marginBottom: 4,
-              fontFamily: "'Nunito', system-ui, sans-serif",
-            }}
-          >
-            LEGENDARY COMEBACK, {displayName.toUpperCase()}! 🎉
-          </div>
-          <div
-            style={{
-              fontSize: 14,
-              color: "#b8a0a0",
-              fontWeight: 700,
-              fontFamily: "'Nunito', system-ui, sans-serif",
-            }}
-          >
-            You earned +2 stars + 100 XP + the Legend Badge just for coming back!
-          </div>
-        </div>
-        <Link href="/play" style={{ textDecoration: "none", flexShrink: 0 }}>
-          <button
-            style={{
-              padding: "12px 24px",
-              borderRadius: 12,
-              border: "none",
-              background: `linear-gradient(135deg, ${GOLD}, #e09000)`,
-              color: "#1a1000",
-              fontFamily: "'Nunito', system-ui, sans-serif",
-              fontSize: 16,
-              fontWeight: 900,
-              cursor: "pointer",
-              boxShadow: "0 4px 16px rgba(255,209,102,0.3)",
-            }}
-          >
-            {"I'm Back! 🚀"}
-          </button>
-        </Link>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 340px",
-          gap: 20,
-          width: "100%",
-          maxWidth: 860,
-        }}
-      >
-        <div>
-          <StarSafe text={`Every star you ever earned is still here — ${totalPoints} stars, all waiting!`} />
-          <BonusChips
-            chips={[
-              { label: "⭐ +2 stars", variant: "gold" },
-              { label: "✨ +100 XP", variant: "green" },
-              { label: "🏅 Legend Badge", variant: "violet" },
-            ]}
-          />
-          <WorldResumeCard
-            label="Your World Is Still Here"
-            labelColor={GOLD}
-            worldName="Crystal Caverns 💎"
-            progress={58}
-            progressGrad={`linear-gradient(90deg, ${GOLD}, #ffb020)`}
-            metaLeft="Node 7 — untouched"
-            metaRight="58%"
-            metaColor={GOLD}
-            btnText="Continue Legendary Quest 🏆"
-            borderColor={GOLD}
-            bgGrad="linear-gradient(135deg, #2a2010, #1a1060)"
-            btnStyle={{
-              background: `linear-gradient(135deg, ${GOLD}, #e09000)`,
-              color: "#1a1000",
-              boxShadow: "0 6px 20px rgba(255,209,102,0.35)",
-            }}
-          />
-          <AltWorldBtn />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <RPanel title="Legend Status 🏆" borderColor={GOLD}>
-            <WinRow icon="🏅" text="Legend Badge earned" time="now" color={GOLD} />
-            <WinRow icon="⭐" text={`Stars: ${totalPoints} → ${totalPoints + 2}`} time="+2" />
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "7px 0",
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#c4a0ff",
-                fontFamily: "'Nunito', system-ui, sans-serif",
-              }}
-            >
-              ✨ XP boost +100
-              <span style={{ marginLeft: "auto", fontSize: 10, color: "#5a4080" }}>now</span>
-            </div>
-          </RPanel>
-          <RPanel title="All Still Yours ⭐">
-            <WinRow icon="⭐" text={`${totalPoints + 2} stars (kept all!)`} time="safe" />
-            <WinRow icon="🏅" text={`${(session?.progression.badgeCount ?? 0) + 1} badges total`} time="safe" />
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "7px 0",
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#c4a0ff",
-                fontFamily: "'Nunito', system-ui, sans-serif",
-              }}
-            >
-              💎 Crystal Caverns ready
-              <span style={{ marginLeft: "auto", fontSize: 10, color: "#5a4080" }}>waiting</span>
-            </div>
-          </RPanel>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+const HOUR = 1000 * 60 * 60;
+const DAY = HOUR * 24;
 
 export default function ChildReturningPage() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ReturnScreenType>("same-day");
-  const [session, setSession] = useState<SessionData | null>(null);
+  const [stats, setStats] = useState<ChildStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [countdown, setCountdown] = useState(3);
-  const [authed, setAuthed] = useState(false);
-  const timerRef = useRef<number | null>(null);
+  const [error, setError] = useState(false);
 
-  // Auth check + session load
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/child/session")
+  const loadData = useCallback(() => {
+    setLoading(true);
+    setError(false);
+    fetch("/api/child/stats")
       .then((r) => {
-        if (!r.ok) throw new Error("no session");
+        if (!r.ok) throw new Error("failed");
         return r.json();
       })
-      .then((data: SessionData) => {
-        if (!cancelled) {
-          setSession(data);
-          setAuthed(true);
-          setLoading(false);
-        }
+      .then((data: ChildStats) => {
+        setStats(data);
+        setLoading(false);
       })
       .catch(() => {
-        if (!cancelled) {
-          router.replace("/child");
-        }
+        setError(true);
+        setLoading(false);
       });
-    return () => { cancelled = true; };
-  }, [router]);
+  }, []);
 
-  // Auto-redirect countdown (3 s after auth)
   useEffect(() => {
-    if (!authed || loading) return;
-    const interval = setInterval(() => {
-      setCountdown((c) => {
-        if (c <= 1) {
-          clearInterval(interval);
-          router.push("/play");
-          return 0;
-        }
-        return c - 1;
-      });
-    }, 1000);
-    timerRef.current = interval as unknown as number;
-    return () => clearInterval(interval);
-  }, [authed, loading, router]);
+    loadData();
+  }, [loadData]);
 
-  function cancelAutoRedirect() {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setCountdown(0);
+  const font: React.CSSProperties = { fontFamily: "'Nunito', system-ui, sans-serif" };
+
+  const wrapper: React.CSSProperties = {
+    ...font,
+    minHeight: "100vh",
+    background: C.base,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "24px 16px",
+  };
+
+  if (loading) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={wrapper}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", border: `4px solid ${C.violet}`, borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
+            <div style={{ color: C.muted, fontSize: 16, fontWeight: 700 }}>Loading...</div>
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </AppFrame>
+    );
   }
 
-  return (
-    <AppFrame audience="kid" currentPath="/child">
-      <style>{`
-        @keyframes mascotFloat {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
-        }
-        @keyframes ndPulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.5); }
-          50% { box-shadow: 0 0 0 8px rgba(155,114,255,0); }
-        }
-        @keyframes todayGlow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.4); }
-          50% { box-shadow: 0 0 0 5px rgba(155,114,255,0); }
-        }
-        @keyframes chipPop {
-          from { transform: scale(0.5); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        @keyframes trophyBounce {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.06); }
-        }
-      `}</style>
-
-      <div
-        style={{
-          background: BASE_BG,
-          minHeight: "100vh",
-          fontFamily: "'Nunito', system-ui, sans-serif",
-          color: "#fff",
-        }}
-      >
-        {/* Nav */}
-        <div
-          style={{
-            maxWidth: 900,
-            margin: "0 auto",
-            padding: "20px 32px 0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Link
-            href="/child"
-            style={{
-              color: MUTED,
-              fontWeight: 900,
-              fontSize: 14,
-              textDecoration: "none",
-              fontFamily: "'Nunito', system-ui, sans-serif",
-            }}
-          >
-            ← Home
-          </Link>
-          {/* Dev tab switcher */}
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  padding: "6px 12px",
-                  background: activeTab === tab ? VIOLET : "#1e1a40",
-                  border: `2px solid ${activeTab === tab ? VIOLET : "#2e2a50"}`,
-                  borderRadius: 8,
-                  color: activeTab === tab ? "#fff" : "#aaa",
-                  fontFamily: "'Nunito', system-ui, sans-serif",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {RETURN_LABELS[tab]}
-              </button>
-            ))}
+  if (error || !stats) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={wrapper}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 8 }}>Something went wrong</div>
+            <div style={{ fontSize: 14, color: C.muted, marginBottom: 24 }}>We couldn&apos;t load your profile.</div>
+            <button onClick={loadData} style={{ ...font, padding: "12px 28px", background: C.violet, border: "none", borderRadius: 12, color: "#fff", fontSize: 15, fontWeight: 900, cursor: "pointer" }}>
+              Retry
+            </button>
           </div>
         </div>
+      </AppFrame>
+    );
+  }
 
-        {/* Auto-redirect banner */}
-        {!loading && countdown > 0 && (
-          <div
-            style={{
-              maxWidth: 900,
-              margin: "16px auto 0",
-              padding: "0 32px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                background: "rgba(155,114,255,0.10)",
-                border: "1.5px solid rgba(155,114,255,0.28)",
-                borderRadius: 12,
-                padding: "10px 16px",
-                fontSize: 13,
-                fontWeight: 700,
-                color: VIOLET,
-                fontFamily: "'Nunito', system-ui, sans-serif",
-              }}
-            >
-              <span>Continuing to play in {countdown}s…</span>
-              <button
-                type="button"
-                onClick={cancelAutoRedirect}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: MUTED,
-                  fontFamily: "'Nunito', system-ui, sans-serif",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                Cancel ✕
-              </button>
+  const gapMs = getGapMs(stats.lastSession);
+  const name = stats.displayName || "Explorer";
+  const streak = stats.streakDays ?? 0;
+  const points = stats.totalPoints ?? 0;
+
+  // No prior session
+  if (!stats.lastSession) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <style>{`@keyframes mascotFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }`}</style>
+        <div style={wrapper}>
+          <div style={{ ...font, maxWidth: 480, width: "100%", background: "linear-gradient(135deg, #1a1060, #140e50)", border: `2px solid ${C.border}`, borderRadius: 24, padding: "36px 32px", textAlign: "center" }}>
+            <div style={{ fontSize: 80, marginBottom: 16, display: "block", animation: "mascotFloat 2.5s ease-in-out infinite" }}>🚀</div>
+            <div style={{ fontSize: 30, fontWeight: 900, color: C.text, marginBottom: 8, lineHeight: 1.2 }}>
+              Ready for your first adventure?
             </div>
+            <div style={{ fontSize: 16, color: "#b8a0e8", fontWeight: 700, marginBottom: 28 }}>
+              Your quest is about to begin!
+            </div>
+            <Link href="/child/quickstart" style={{ ...font, display: "block", padding: "16px", borderRadius: 16, background: `linear-gradient(135deg, ${C.violet}, #7c4ddb)`, color: "#fff", fontSize: 20, fontWeight: 900, textDecoration: "none", boxShadow: "0 6px 20px rgba(155,114,255,0.4)" }}>
+              Begin your quest →
+            </Link>
           </div>
-        )}
+        </div>
+      </AppFrame>
+    );
+  }
 
-        {/* Loading state */}
-        {loading && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "80px 0",
-              color: MUTED,
-              fontFamily: "'Nunito', system-ui, sans-serif",
-              fontSize: 16,
-              fontWeight: 700,
-            }}
-          >
-            Loading your adventure...
+  // Less than 2 hours
+  if (gapMs < 2 * HOUR) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <style>{`@keyframes mascotFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }`}</style>
+        <div style={wrapper}>
+          <div style={{ ...font, maxWidth: 480, width: "100%", background: "linear-gradient(135deg, #0e2a10, #1a3a20)", border: `2px solid ${C.mint}`, borderRadius: 24, padding: "36px 32px", textAlign: "center" }}>
+            <div style={{ fontSize: 80, marginBottom: 16, display: "inline-block", animation: "mascotFloat 2.5s ease-in-out infinite" }}>👋</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: C.text, marginBottom: 8, lineHeight: 1.2 }}>
+              Welcome back, {name}!
+            </div>
+            <div style={{ fontSize: 16, color: "#b8e8c0", fontWeight: 700, marginBottom: 24 }}>
+              You&apos;re on a <span style={{ color: C.gold, fontWeight: 900 }}>{streak} day streak</span>! Keep it up.
+            </div>
+            <Link href="/play" style={{ ...font, display: "block", padding: "16px", borderRadius: 16, background: `linear-gradient(135deg, ${C.mint}, #3ab870)`, color: "#0a2a15", fontSize: 20, fontWeight: 900, textDecoration: "none", boxShadow: "0 6px 20px rgba(80,232,144,0.35)" }}>
+              Continue where you left off →
+            </Link>
           </div>
-        )}
+        </div>
+      </AppFrame>
+    );
+  }
 
-        {/* Screen content */}
-        {!loading && activeTab === "same-day" && <SameDayScreen session={session} />}
-        {!loading && activeTab === "two-day" && <TwoDayScreen session={session} />}
-        {!loading && activeTab === "seven-day" && <SevenDayScreen session={session} />}
-        {!loading && activeTab === "comeback" && <ComebackScreen session={session} />}
+  // 2–24 hours
+  if (gapMs < DAY) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <style>{`@keyframes mascotFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }`}</style>
+        <div style={wrapper}>
+          <div style={{ ...font, maxWidth: 480, width: "100%", background: "linear-gradient(135deg, #1a1060, #140e50)", border: `2px solid ${C.violet}`, borderRadius: 24, padding: "36px 32px", textAlign: "center" }}>
+            <div style={{ fontSize: 80, marginBottom: 16, display: "inline-block", animation: "mascotFloat 2.5s ease-in-out infinite" }}>⭐</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: C.text, marginBottom: 8, lineHeight: 1.2 }}>
+              Great to see you, {name}!
+            </div>
+            <div style={{ fontSize: 16, color: "#b8a0e8", fontWeight: 700, marginBottom: 20 }}>
+              Ready for today&apos;s quest?
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 24 }}>
+              <div style={{ background: "#2a2010", border: `2px solid ${C.gold}`, borderRadius: 16, padding: "12px 18px", textAlign: "center" }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: C.gold }}>{streak}🔥</div>
+                <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, marginTop: 2 }}>Day Streak</div>
+              </div>
+              <div style={{ background: "#1a2060", border: `2px solid ${C.violet}`, borderRadius: 16, padding: "12px 18px", textAlign: "center" }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: C.violet }}>⭐ {points}</div>
+                <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, marginTop: 2 }}>Total Points</div>
+              </div>
+            </div>
+            <Link href="/play" style={{ ...font, display: "block", padding: "16px", borderRadius: 16, background: `linear-gradient(135deg, ${C.violet}, #7c4ddb)`, color: "#fff", fontSize: 20, fontWeight: 900, textDecoration: "none", boxShadow: "0 6px 20px rgba(155,114,255,0.4)" }}>
+              Start today&apos;s quest →
+            </Link>
+          </div>
+        </div>
+      </AppFrame>
+    );
+  }
+
+  // 1–7 days
+  const daysAway = Math.floor(gapMs / DAY);
+  if (gapMs < 7 * DAY) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <style>{`@keyframes mascotFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }`}</style>
+        <div style={wrapper}>
+          <div style={{ ...font, maxWidth: 480, width: "100%", background: "linear-gradient(135deg, #2a1a10, #1a1008)", border: `2px solid ${C.gold}`, borderRadius: 24, padding: "36px 32px", textAlign: "center" }}>
+            <div style={{ fontSize: 80, marginBottom: 16, display: "inline-block", animation: "mascotFloat 2.5s ease-in-out infinite" }}>🌟</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: C.text, marginBottom: 8, lineHeight: 1.2 }}>
+              You&apos;ve been away {daysAway} day{daysAway !== 1 ? "s" : ""}, {name}
+            </div>
+            <div style={{ fontSize: 16, color: "#e8c880", fontWeight: 700, marginBottom: 24 }}>
+              Let&apos;s get back on track! Your streak reset but you can start fresh.
+            </div>
+            <Link href="/play" style={{ ...font, display: "block", padding: "16px", borderRadius: 16, background: `linear-gradient(135deg, ${C.gold}, #e6a800)`, color: "#1a1000", fontSize: 20, fontWeight: 900, textDecoration: "none", boxShadow: "0 6px 20px rgba(255,209,102,0.35)" }}>
+              Rebuild your streak →
+            </Link>
+          </div>
+        </div>
+      </AppFrame>
+    );
+  }
+
+  // More than 7 days
+  return (
+    <AppFrame audience="kid" currentPath="/child">
+      <style>{`@keyframes mascotFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }`}</style>
+      <div style={wrapper}>
+        <div style={{ ...font, maxWidth: 480, width: "100%", background: "linear-gradient(135deg, #1a1060, #2a1060)", border: `2px solid ${C.violet}`, borderRadius: 24, padding: "36px 32px", textAlign: "center" }}>
+          <div style={{ fontSize: 80, marginBottom: 16, display: "inline-block", animation: "mascotFloat 2.5s ease-in-out infinite" }}>🎉</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: C.text, marginBottom: 8, lineHeight: 1.2 }}>
+            Welcome back, {name}!
+          </div>
+          <div style={{ fontSize: 16, color: "#b8a0e8", fontWeight: 700, marginBottom: 24 }}>
+            It&apos;s been a while — let&apos;s restart your adventure!
+          </div>
+          <Link href="/play" style={{ ...font, display: "block", padding: "16px", borderRadius: 16, background: `linear-gradient(135deg, ${C.violet}, #7c4ddb)`, color: "#fff", fontSize: 20, fontWeight: 900, textDecoration: "none", boxShadow: "0 6px 20px rgba(155,114,255,0.4)" }}>
+            Start fresh →
+          </Link>
+        </div>
       </div>
     </AppFrame>
   );

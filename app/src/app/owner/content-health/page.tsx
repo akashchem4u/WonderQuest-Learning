@@ -1,5 +1,3 @@
-"use client";
-
 import { AppFrame } from "@/components/app-frame";
 import ContentHealthClient from "./content-health-client";
 

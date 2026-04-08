@@ -1,5 +1,6 @@
 import { getLaunchStatus } from "@/lib/server-launch-status";
 import Link from "next/link";
+import { HomeNav } from "@/components/home-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -91,48 +92,7 @@ export default async function HomePage() {
     <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "inherit" }}>
 
       {/* ── Nav ───────────────────────────────────────────────────────────── */}
-      <header style={{
-        position: "sticky", top: 0, zIndex: 50,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        gap: 16, padding: "0 clamp(16px,4vw,48px)",
-        height: 64,
-        background: "rgba(6,7,26,0.85)",
-        backdropFilter: "blur(16px)",
-        borderBottom: `1px solid ${T.border}`,
-      }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none" }}>
-          <span style={{ fontSize: 22, fontWeight: 900, color: T.text, letterSpacing: "-0.03em" }}>
-            Wonder<span style={{ color: T.teal }}>Quest</span>
-          </span>
-        </Link>
-
-        <nav style={{ display: "flex", gap: 4, alignItems: "center" }}>
-          {[
-            { href: "/parent",  label: "For families" },
-            { href: "/teacher", label: "For teachers"  },
-          ].map(({ href, label }) => (
-            <Link key={href} href={href} style={{
-              padding: "8px 14px", borderRadius: 10,
-              fontSize: 14, fontWeight: 600, color: T.muted,
-              textDecoration: "none",
-              transition: "color 0.15s",
-            }}>
-              {label}
-            </Link>
-          ))}
-        </nav>
-
-        <Link href="/child" style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          padding: "10px 20px", borderRadius: 12,
-          background: `linear-gradient(135deg, ${T.violet}, #6d4fc2)`,
-          color: "#fff", fontSize: 14, fontWeight: 800,
-          textDecoration: "none",
-          boxShadow: `0 4px 24px rgba(155,114,255,0.35)`,
-        }}>
-          Start learning →
-        </Link>
-      </header>
+      <HomeNav />
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section style={{
@@ -240,6 +200,23 @@ export default async function HomePage() {
             }}>
               For parents
             </Link>
+          </div>
+
+          {/* Already signed up */}
+          <div style={{ marginTop: 16, display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 13, color: T.dim }}>Already have an account?</span>
+            {[
+              { href: "/child", label: "Child login" },
+              { href: "/parent", label: "Parent login" },
+              { href: "/teacher", label: "Teacher login" },
+            ].map(({ href, label }) => (
+              <Link key={href} href={href} style={{
+                fontSize: 13, fontWeight: 700, color: T.muted,
+                textDecoration: "underline", textUnderlineOffset: 3,
+              }}>
+                {label}
+              </Link>
+            ))}
           </div>
         </div>
 
@@ -534,20 +511,33 @@ export default async function HomePage() {
 
       {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer style={{
-        padding: "24px clamp(16px,4vw,48px)",
+        padding: "32px clamp(16px,4vw,48px) 24px",
         borderTop: `1px solid ${T.border}`,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        flexWrap: "wrap", gap: 12,
+        display: "flex", flexWrap: "wrap", gap: 24,
+        justifyContent: "space-between", alignItems: "flex-start",
       }}>
-        <span style={{ fontSize: 14, fontWeight: 800, color: T.dim }}>
-          Wonder<span style={{ color: T.teal }}>Quest</span> · Early Access
-        </span>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: T.dim }}>
+            Wonder<span style={{ color: T.teal }}>Quest</span> · Early Access
+          </span>
           <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: isLive ? T.teal : T.gold, display: "inline-block" }} aria-hidden="true" />
             {isLive ? "All systems operational" : "Fallback mode"}
           </span>
           <Link href="/owner" style={{ fontSize: 13, color: T.dim, textDecoration: "none" }}>Platform ops</Link>
+        </div>
+
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: T.text, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>Portals</div>
+          {[
+            { href: "/child", label: "Child portal" },
+            { href: "/parent", label: "Parent hub" },
+            { href: "/teacher", label: "Teacher dashboard" },
+          ].map(({ href, label }) => (
+            <Link key={href} href={href} style={{ display: "block", fontSize: 13, color: T.muted, textDecoration: "none", marginBottom: 6 }}>
+              {label}
+            </Link>
+          ))}
         </div>
       </footer>
 

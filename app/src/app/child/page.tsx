@@ -71,6 +71,18 @@ function PageShell({ children }: { children: React.ReactNode }) {
           <Link className="home-start-btn" href="/?manual=1">
             Home
           </Link>
+          <button
+            onClick={() => { fetch("/api/child/logout").then(() => { window.location.href = "/child"; }); }}
+            style={{
+              padding: "6px 12px", borderRadius: 8,
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              color: "rgba(255,255,255,0.5)",
+              fontSize: 12, fontWeight: 600, cursor: "pointer",
+            }}
+          >
+            Sign out
+          </button>
         </div>
       </header>
 

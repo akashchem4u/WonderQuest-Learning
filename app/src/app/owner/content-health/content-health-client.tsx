@@ -1,294 +1,330 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
-const BASE    = "#100b2e";
-const SURFACE = "#161b22";
-const BORDER  = "rgba(255,255,255,0.06)";
-const BORDER2 = "rgba(255,255,255,0.04)";
-const SHELL   = "#0d1117";
-const SHELL2  = "#010409";
-const TEXT    = "#f0f6ff";
-const MUTED   = "rgba(255,255,255,0.3)";
-const MUTED2  = "rgba(255,255,255,0.25)";
-const MUTED3  = "rgba(255,255,255,0.5)";
-const MUTED4  = "rgba(255,255,255,0.4)";
-const MINT    = "#50e890";
-const AMBER   = "#f59e0b";
-const RED     = "#f85149";
-const GOLD    = "#ffd166";
+const BG      = "#06071a";
+const SURFACE = "#0e1029";
+const CARD    = "#12152e";
+const BORDER  = "rgba(255,255,255,0.07)";
+const BORDER_HI = "rgba(255,255,255,0.13)";
 const VIOLET  = "#9b72ff";
-const TEAL    = "#58e8c1";
-const CORAL   = "#ff7b6b";
+const TEAL    = "#2dd4bf";
+const GOLD    = "#fbbf24";
+const CORAL   = "#fb7185";
+const TEXT    = "#f1f5f9";
+const MUTED   = "rgba(241,245,249,0.52)";
+const DIM     = "rgba(241,245,249,0.32)";
+const GREEN   = "#4ade80";
+const AMBER   = "#fbbf24";
+const RED     = "#fb7185";
 
-// ── Stub Data ─────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-const STATS = [
-  { n: "284", label: "Total Skills",    delta: "↑12 this month",       deltaGood: true  },
-  { n: "278", label: "Published Live",  delta: "97.9%",                deltaGood: true  },
-  { n: "3",   label: "Under Review",    delta: "↑2 vs last month",     deltaGood: false },
-  { n: "3",   label: "Blocked",         delta: "Locked from delivery", deltaGood: false },
-  { n: "14",  label: "Error Reports",   delta: "7d rolling",           deltaGood: false },
-];
-
-const BANDS = [
-  { id: "p0", label: "P0 Pre-K", color: GOLD,   skills: 42, chips: [{ text: "41 Live", type: "pass" }, { text: "1 Review", type: "warn" }] },
-  { id: "p1", label: "P1 K–1",  color: VIOLET, skills: 68, chips: [{ text: "66 Live", type: "pass" }, { text: "2 Review", type: "warn" }] },
-  { id: "p2", label: "P2 G2–3", color: TEAL,   skills: 96, chips: [{ text: "93 Live", type: "pass" }, { text: "3 Blocked", type: "fail" }] },
-  { id: "p3", label: "P3 G4–5", color: CORAL,  skills: 78, chips: [{ text: "78 Live", type: "pass" }] },
-];
-
-const REVIEW_QUEUE = [
-  { prio: "HIGH", title: "Fractions: Mixed Numbers — wrong answer marked correct",              meta: "Reported by: Teacher, Maplewood School · 2d ago · 8 teacher reports + auto-flag", band: "P2 G2–3", bandColor: TEAL,  bandBg: "rgba(88,232,193,.12)",  status: "Blocked", statusType: "fail" as const },
-  { prio: "HIGH", title: "Division: Remainders — unclear question wording",                     meta: "Reported by: 3 teachers, multiple schools · 5d ago",                               band: "P2 G2–3", bandColor: TEAL,  bandBg: "rgba(88,232,193,.12)",  status: "Blocked", statusType: "fail" as const },
-  { prio: "MED",  title: "Phonics: Consonant Blends — image asset broken on iOS",               meta: "Auto-detected: asset 404 · CDN issue · 1d ago",                                    band: "P1 K–1",  bandColor: VIOLET,bandBg: "rgba(155,114,255,.12)", status: "Review",  statusType: "warn" as const },
-  { prio: "MED",  title: "Subtraction: Borrowing — difficulty calibration off (skip rate 78%)", meta: "Auto-flag: skip rate >60% threshold triggered · 3d ago",                           band: "P0 Pre-K",bandColor: GOLD,  bandBg: "rgba(255,209,102,.15)", status: "Review",  statusType: "warn" as const },
-  { prio: "MED",  title: "Reading Comprehension: Main Idea — locked per release gate warning",  meta: "Release gate: v2.5 warning item. Locked at launch. Curriculum review pending.",    band: "P1 K–1",  bandColor: VIOLET,bandBg: "rgba(155,114,255,.12)", status: "Blocked", statusType: "fail" as const },
-];
-
-const ERROR_BARS = [
-  { label: "Mathematics", pct: 68, n: "8 reports", color: RED   },
-  { label: "Reading",     pct: 25, n: "3 reports", color: AMBER },
-  { label: "Phonics",     pct: 20, n: "2 reports", color: AMBER },
-  { label: "Vocabulary",  pct: 8,  n: "1 report",  color: MINT  },
-  { label: "Spelling",    pct: 0,  n: "0 reports", color: MINT  },
-];
-
-const CONTENT_STATUS = [
-  { label: "Published live",            val: "278", valColor: MINT  },
-  { label: "Under review (skill live)", val: "3",   valColor: AMBER },
-  { label: "Blocked (delivery locked)", val: "3",   valColor: RED   },
-  { label: "Draft / unreleased",        val: "32",  valColor: TEXT  },
-  { label: "Total in catalogue",        val: "316", valColor: TEXT  },
-];
-
-const RECENT_ACTIONS = [
-  { title: "Fractions: Equivalent — Review resolved, published",  meta: "3d ago · Curriculum team" },
-  { title: "Addition: 3-digit — New skill published",             meta: "5d ago · v2.5 release"    },
-  { title: "Phonics: Long Vowels — Asset update (image replaced)", meta: "6d ago · Content team"   },
-];
-
-const THRESHOLDS = [
-  { label: "Skip rate",                  val: "> 60%"        },
-  { label: "Wrong-as-correct",           val: "> 2 reports"  },
-  { label: "Asset 404",                  val: "Instant"      },
-  { label: "Avg session abort mid-skill",val: "> 40%"        },
-];
-
-const SKILLS_TABLE = [
-  { name: "Fractions: Mixed Numbers",  band: "P2 G2–3", bandColor: TEAL,  subject: "Maths",      sessions: "1,240", skipRate: "12%", skipBad: false, errors: "8 reports", errorsBad: true,  status: "Blocked",      statusType: "blocked" as const },
-  { name: "Division: Remainders",      band: "P2 G2–3", bandColor: TEAL,  subject: "Maths",      sessions: "880",   skipRate: "18%", skipBad: false, errors: "3 reports", errorsBad: true,  status: "Blocked",      statusType: "blocked" as const },
-  { name: "Reading: Main Idea",        band: "P1 K–1",  bandColor: VIOLET,subject: "Reading",    sessions: "—",     skipRate: "—",   skipBad: false, errors: "0",         errorsBad: false, status: "Blocked",      statusType: "blocked" as const },
-  { name: "Phonics: Consonant Blends", band: "P1 K–1",  bandColor: VIOLET,subject: "Phonics",    sessions: "460",   skipRate: "9%",  skipBad: false, errors: "2 reports", errorsBad: true,  status: "Under Review", statusType: "review" as const  },
-  { name: "Subtraction: Borrowing",    band: "P0 Pre-K",bandColor: GOLD,  subject: "Maths",      sessions: "320",   skipRate: "78%", skipBad: true,  errors: "1 report",  errorsBad: false, status: "Under Review", statusType: "review" as const  },
-  { name: "Vocabulary: Context Clues", band: "P3 G4–5", bandColor: CORAL, subject: "Vocabulary", sessions: "580",   skipRate: "35%", skipBad: false, errors: "1 report",  errorsBad: false, status: "Under Review", statusType: "review" as const  },
-];
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function chipStyle(type: "pass" | "warn" | "fail"): { background: string; color: string } {
-  if (type === "pass") return { background: "rgba(80,232,144,.12)",  color: MINT  };
-  if (type === "warn") return { background: "rgba(245,158,11,.12)",  color: AMBER };
-  return                      { background: "rgba(248,81,73,.12)",   color: RED   };
+interface ContentHealthData {
+  summary: {
+    totalSkills: number;
+    publishedSkills: number;
+    inactiveSkills: number;
+    totalQuestions: number;
+    skillsWithQuestions: number;
+    skillsWithoutQuestions: number;
+  };
+  byBand: { bandCode: string; skillCount: number }[];
+  bySubject: { subject: string; skillCount: number }[];
+  skillGaps: { code: string; displayName: string; bandCode: string }[];
+  highMissRate: {
+    code: string;
+    displayName: string;
+    bandCode: string;
+    totalAttempts: number;
+    misses: number;
+    missRatePct: number;
+  }[];
 }
 
-function statusStyle(type: "blocked" | "review"): { background: string; color: string } {
-  if (type === "blocked") return { background: "rgba(248,81,73,.12)",  color: RED   };
-  return                         { background: "rgba(245,158,11,.12)", color: AMBER };
+// ── Skeleton helpers ──────────────────────────────────────────────────────────
+
+function SkeletonBar({ w = "100%", h = 14 }: { w?: string | number; h?: number }) {
+  return (
+    <div style={{
+      width: w, height: h, borderRadius: 4,
+      background: "rgba(255,255,255,0.07)",
+      animation: "pulse 1.6s ease-in-out infinite",
+    }} />
+  );
+}
+
+function SummaryCardSkeleton() {
+  return (
+    <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+      <SkeletonBar w="50%" h={26} />
+      <SkeletonBar w="70%" h={11} />
+      <SkeletonBar w="40%" h={11} />
+    </div>
+  );
+}
+
+// ── Miss rate color ───────────────────────────────────────────────────────────
+
+function missColor(pct: number) {
+  if (pct < 30) return GREEN;
+  if (pct <= 60) return AMBER;
+  return RED;
+}
+
+// ── Band color map ────────────────────────────────────────────────────────────
+
+const BAND_COLORS: Record<string, string> = {
+  P0: GOLD, p0: GOLD,
+  P1: VIOLET, p1: VIOLET,
+  P2: TEAL, p2: TEAL,
+  P3: CORAL, p3: CORAL,
+};
+function bandColor(code: string) {
+  return BAND_COLORS[code] ?? BAND_COLORS[code?.slice(0, 2)] ?? MUTED;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ContentHealthClient() {
-  const [tab, setTab] = useState<"overview" | "skills">("overview");
+  const [data, setData] = useState<ContentHealthData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/owner/content-health");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      setData(json);
+      setRefreshedAt(new Date());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const maxBandCount = data ? Math.max(...data.byBand.map(b => b.skillCount), 1) : 1;
+  const maxSubjectCount = data ? Math.max(...data.bySubject.map(b => b.skillCount), 1) : 1;
 
   return (
-    <div style={{ fontFamily: "system-ui,-apple-system,sans-serif", background: BASE, minHeight: "100vh", padding: "24px", color: TEXT }}>
+    <>
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
+      <div style={{ fontFamily: "system-ui,-apple-system,sans-serif", background: BG, minHeight: "100vh", padding: "16px", color: TEXT }}>
 
-      {/* Tab Bar */}
-      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "24px", maxWidth: "1100px" }}>
-        {(["overview", "skills"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 18px", borderRadius: "20px", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: 600, fontFamily: "system-ui", background: tab === t ? "#2563eb" : "rgba(255,255,255,0.08)", color: tab === t ? "#fff" : "rgba(255,255,255,0.55)", transition: "all .18s" }}>
-            {t === "overview" ? "Content Health" : "Skills Table"}
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: TEXT }}>Content Health</h1>
+            {refreshedAt && (
+              <p style={{ margin: 0, fontSize: 11, color: DIM, marginTop: 2 }}>
+                Last refreshed {refreshedAt.toLocaleTimeString()}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={load}
+            disabled={loading}
+            style={{
+              padding: "6px 14px", borderRadius: 8, border: `1px solid ${BORDER_HI}`,
+              background: SURFACE, color: loading ? DIM : TEXT, fontSize: 12, fontWeight: 600,
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
+          >
+            {loading ? "Loading…" : "Refresh"}
           </button>
-        ))}
-      </div>
+        </div>
 
-      {/* ── Overview Tab ── */}
-      {tab === "overview" && (
-        <div style={{ maxWidth: "1100px" }}>
-          <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#8a7a6a", marginBottom: "16px" }}>Owner content health — overview</p>
+        {/* Error banner */}
+        {error && (
+          <div style={{ background: "rgba(251,113,133,0.12)", border: `1px solid rgba(251,113,133,0.3)`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <span style={{ color: RED, fontSize: 13, fontWeight: 600 }}>Failed to load: {error}</span>
+            <button onClick={load} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${RED}`, background: "transparent", color: RED, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Retry</button>
+          </div>
+        )}
 
-          <div style={{ background: SHELL, borderRadius: "16px", overflow: "hidden", border: `1px solid ${BORDER}` }}>
-
-            {/* Shell header */}
-            <div style={{ background: SHELL2, padding: "0 24px", height: "52px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${BORDER}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                <span style={{ fontSize: "14px", fontWeight: 800, color: TEXT }}>📚 Content Health</span>
-                <span style={{ fontSize: "11px", color: MUTED }}>Skills · Questions · Reviews</span>
+        {/* Summary cards */}
+        {loading && !data ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 12, marginBottom: 16 }}>
+            {Array.from({ length: 4 }).map((_, i) => <SummaryCardSkeleton key={i} />)}
+          </div>
+        ) : data ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 12, marginBottom: 16 }}>
+            {[
+              { label: "Total Skills",    value: data.summary.totalSkills,           accent: VIOLET },
+              { label: "Published",       value: data.summary.publishedSkills,       accent: GREEN  },
+              { label: "No Questions",    value: data.summary.skillsWithoutQuestions,accent: data.summary.skillsWithoutQuestions > 0 ? AMBER : GREEN },
+              { label: "Total Q&A",       value: data.summary.totalQuestions,        accent: TEAL   },
+            ].map(card => (
+              <div key={card.label} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
+                <div style={{ fontSize: 26, fontWeight: 900, color: card.accent, lineHeight: 1 }}>{card.value.toLocaleString()}</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>{card.label}</div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: AMBER, cursor: "pointer" }}>3 Under Review</span>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: MINT, cursor: "pointer" }}>↓ Export</span>
+            ))}
+          </div>
+        ) : null}
+
+        {/* By Band + By Subject */}
+        {loading && !data ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            {[0, 1].map(i => (
+              <div key={i} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
+                <SkeletonBar w="40%" h={12} />
+                <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {Array.from({ length: 4 }).map((_, j) => <SkeletonBar key={j} h={18} />)}
+                </div>
               </div>
+            ))}
+          </div>
+        ) : data ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            {/* By Band */}
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>By Band</div>
+              {data.byBand.length === 0 ? (
+                <p style={{ fontSize: 12, color: DIM }}>No data.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {data.byBand.map(b => (
+                    <div key={b.bandCode} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 70, fontSize: 11, fontWeight: 700, color: bandColor(b.bandCode), flexShrink: 0 }}>{b.bandCode}</div>
+                      <div style={{ flex: 1, height: 8, borderRadius: 4, background: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
+                        <div style={{ width: `${(b.skillCount / maxBandCount) * 100}%`, height: "100%", borderRadius: 4, background: bandColor(b.bandCode), opacity: 0.7 }} />
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: TEXT, width: 28, textAlign: "right", flexShrink: 0 }}>{b.skillCount}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Stats row */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "1px", background: BORDER, borderBottom: `1px solid ${BORDER}` }}>
-              {STATS.map((s) => (
-                <div key={s.label} style={{ background: SHELL, padding: "16px 20px" }}>
-                  <div style={{ fontSize: "20px", fontWeight: 900, color: TEXT }}>{s.n}</div>
-                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: MUTED, marginTop: "2px" }}>{s.label}</div>
-                  <div style={{ fontSize: "11px", fontWeight: 700, marginTop: "4px", color: s.deltaGood ? MINT : AMBER }}>{s.delta}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Body */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 340px" }}>
-
-              {/* Main column */}
-              <div style={{ padding: "20px 24px", borderRight: `1px solid ${BORDER}` }}>
-
-                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: MUTED, marginBottom: "12px", paddingBottom: "6px", borderBottom: `1px solid ${BORDER}` }}>Content Health by Band</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px", marginBottom: "14px" }}>
-                  {BANDS.map((b) => (
-                    <div key={b.id} style={{ background: SURFACE, borderRadius: "10px", padding: "12px 14px", border: `1px solid ${BORDER}` }}>
-                      <div style={{ fontSize: "10px", fontWeight: 800, textTransform: "uppercase", letterSpacing: ".06em", color: b.color, marginBottom: "6px" }}>{b.label}</div>
-                      <div style={{ fontSize: "18px", fontWeight: 900, color: TEXT }}>{b.skills}</div>
-                      <div style={{ fontSize: "9px", color: MUTED, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Skills</div>
-                      <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap" }}>
-                        {b.chips.map((c) => {
-                          const cs = chipStyle(c.type as "pass" | "warn" | "fail");
-                          return <span key={c.text} style={{ fontSize: "9px", fontWeight: 700, padding: "1px 5px", borderRadius: "3px", ...cs }}>{c.text}</span>;
-                        })}
+            {/* By Subject */}
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>By Subject</div>
+              {data.bySubject.length === 0 ? (
+                <p style={{ fontSize: 12, color: DIM }}>No data.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {data.bySubject.map(s => (
+                    <div key={s.subject} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 100, fontSize: 11, color: MUTED, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.subject}</div>
+                      <div style={{ flex: 1, height: 8, borderRadius: 4, background: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
+                        <div style={{ width: `${(s.skillCount / maxSubjectCount) * 100}%`, height: "100%", borderRadius: 4, background: VIOLET, opacity: 0.65 }} />
                       </div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: TEXT, width: 28, textAlign: "right", flexShrink: 0 }}>{s.skillCount}</div>
                     </div>
                   ))}
                 </div>
-
-                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: MUTED, marginBottom: "12px", paddingBottom: "6px", borderBottom: `1px solid ${BORDER}` }}>Content Review Queue</div>
-                <div style={{ background: SURFACE, borderRadius: "12px", padding: "16px 18px", marginBottom: "14px", border: "1px solid rgba(255,255,255,.05)" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", color: MUTED2, letterSpacing: ".06em", marginBottom: "12px" }}>Items requiring review (curriculum team)</div>
-                  {REVIEW_QUEUE.map((item, i) => {
-                    const ss = chipStyle(item.statusType);
-                    return (
-                      <div key={i} style={{ display: "flex", gap: "10px", padding: "8px 0", borderBottom: i < REVIEW_QUEUE.length - 1 ? `1px solid ${BORDER2}` : "none" }}>
-                        <span style={{ fontSize: "9px", fontWeight: 800, padding: "2px 6px", borderRadius: "3px", flexShrink: 0, marginTop: "1px", background: item.prio === "HIGH" ? "rgba(248,81,73,.15)" : "rgba(245,158,11,.12)", color: item.prio === "HIGH" ? RED : AMBER }}>{item.prio}</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,.7)" }}>{item.title}</div>
-                          <div style={{ fontSize: "10px", color: MUTED, marginTop: "1px" }}>{item.meta}</div>
-                          <span style={{ fontSize: "9px", fontWeight: 700, padding: "1px 5px", borderRadius: "3px", display: "inline-block", marginTop: "2px", background: item.bandBg, color: item.bandColor }}>{item.band}</span>
-                        </div>
-                        <span style={{ fontSize: "9px", fontWeight: 700, padding: "1px 5px", borderRadius: "3px", flexShrink: 0, alignSelf: "flex-start", marginTop: "2px", ...ss }}>{item.status}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: MUTED, marginBottom: "12px", paddingBottom: "6px", borderBottom: `1px solid ${BORDER}` }}>Error Rate by Subject Area</div>
-                <div style={{ background: SURFACE, borderRadius: "12px", padding: "16px 18px", border: "1px solid rgba(255,255,255,.05)" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", color: MUTED2, letterSpacing: ".06em", marginBottom: "12px" }}>Skip rate / error report density by subject (7d)</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {ERROR_BARS.map((b) => (
-                      <div key={b.label} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <div style={{ fontSize: "11px", color: MUTED3, width: "140px" }}>{b.label}</div>
-                        <div style={{ flex: 1, background: "rgba(255,255,255,.07)", borderRadius: "3px", height: "6px" }}>
-                          <div style={{ width: `${b.pct}%`, height: "6px", borderRadius: "3px", background: b.color }} />
-                        </div>
-                        <div style={{ fontSize: "10px", fontWeight: 700, color: b.color }}>{b.n}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Sidebar */}
-              <div style={{ padding: "18px 20px" }}>
-                <div style={{ background: SURFACE, borderRadius: "10px", padding: "14px 16px", marginBottom: "12px", border: "1px solid rgba(255,255,255,.05)" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", color: MUTED, letterSpacing: ".06em", marginBottom: "10px" }}>Content Status Summary</div>
-                  {CONTENT_STATUS.map((row, i) => (
-                    <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "11px", borderBottom: i < CONTENT_STATUS.length - 1 ? `1px solid ${BORDER2}` : "none" }}>
-                      <span style={{ color: MUTED4 }}>{row.label}</span>
-                      <span style={{ color: row.valColor, fontWeight: 600 }}>{row.val}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ background: SURFACE, borderRadius: "10px", padding: "14px 16px", marginBottom: "12px", border: "1px solid rgba(255,255,255,.05)" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", color: MUTED, letterSpacing: ".06em", marginBottom: "10px" }}>Recent Content Actions</div>
-                  {RECENT_ACTIONS.map((a, i) => (
-                    <div key={i} style={{ padding: "5px 0", borderBottom: i < RECENT_ACTIONS.length - 1 ? `1px solid ${BORDER2}` : "none" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 700, color: "rgba(255,255,255,.7)" }}>{a.title}</div>
-                      <div style={{ fontSize: "10px", color: MUTED, marginTop: "1px" }}>{a.meta}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ background: SURFACE, borderRadius: "10px", padding: "14px 16px", border: "1px solid rgba(255,255,255,.05)" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", color: MUTED, letterSpacing: ".06em", marginBottom: "10px" }}>Auto-Flag Thresholds</div>
-                  {THRESHOLDS.map((t, i) => (
-                    <div key={t.label} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "11px", borderBottom: i < THRESHOLDS.length - 1 ? `1px solid ${BORDER2}` : "none" }}>
-                      <span style={{ color: MUTED4 }}>{t.label}</span>
-                      <span style={{ color: TEXT, fontWeight: 600 }}>{t.val}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
+              )}
             </div>
           </div>
-        </div>
-      )}
+        ) : null}
 
-      {/* ── Skills Table Tab ── */}
-      {tab === "skills" && (
-        <div style={{ maxWidth: "1100px" }}>
-          <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#8a7a6a", marginBottom: "16px" }}>Owner content health — full skills table (filtered to flagged)</p>
-          <div style={{ background: SHELL, borderRadius: "16px", overflow: "hidden", border: `1px solid ${BORDER}` }}>
-            <div style={{ background: SHELL2, padding: "0 24px", height: "52px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${BORDER}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                <span style={{ fontSize: "14px", fontWeight: 800, color: TEXT }}>📚 Skills — Flagged / Blocked</span>
-                <span style={{ fontSize: "11px", color: MUTED }}>Showing 6 of 284</span>
-              </div>
-              <div style={{ display: "flex", gap: "12px" }}>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: MINT, cursor: "pointer" }}>Show All Skills</span>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: MINT, cursor: "pointer" }}>↓ Export CSV</span>
-              </div>
+        {/* Skills Missing Questions */}
+        {loading && !data ? (
+          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+            <SkeletonBar w="30%" h={12} />
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+              {Array.from({ length: 3 }).map((_, i) => <SkeletonBar key={i} h={16} />)}
             </div>
-            <div style={{ padding: "20px 24px" }}>
+          </div>
+        ) : data ? (
+          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>
+              Skills Missing Questions
+              {data.skillGaps.length > 0 && (
+                <span style={{ marginLeft: 8, padding: "1px 6px", borderRadius: 4, background: "rgba(251,191,36,0.15)", color: AMBER, fontSize: 10 }}>{data.skillGaps.length}{data.skillGaps.length === 20 ? "+" : ""}</span>
+              )}
+            </div>
+            {data.skillGaps.length === 0 ? (
+              <p style={{ fontSize: 13, color: GREEN, margin: 0 }}>All skills have questions</p>
+            ) : (
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    {["Skill", "Band", "Subject", "Sessions (7d)", "Skip rate", "Error reports", "Status"].map((h) => (
-                      <th key={h} style={{ fontSize: "9px", fontWeight: 700, textTransform: "uppercase", color: MUTED2, padding: "5px 10px", textAlign: "left", borderBottom: `1px solid ${BORDER}` }}>{h}</th>
+                    {["Code", "Name", "Band"].map(h => (
+                      <th key={h} style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: DIM, padding: "4px 8px", textAlign: "left", borderBottom: `1px solid ${BORDER}` }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {SKILLS_TABLE.map((row, i) => {
-                    const isBlock = row.statusType === "blocked";
-                    const ss = statusStyle(row.statusType);
+                  {data.skillGaps.map((g, i) => (
+                    <tr key={g.code} style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)" }}>
+                      <td style={{ padding: "5px 8px", fontSize: 11, fontWeight: 700, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>{g.code}</td>
+                      <td style={{ padding: "5px 8px", fontSize: 12, color: TEXT, borderBottom: `1px solid ${BORDER}` }}>{g.displayName}</td>
+                      <td style={{ padding: "5px 8px", fontSize: 11, fontWeight: 700, color: bandColor(g.bandCode), borderBottom: `1px solid ${BORDER}` }}>{g.bandCode}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        ) : null}
+
+        {/* High Miss Rate */}
+        {loading && !data ? (
+          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
+            <SkeletonBar w="35%" h={12} />
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+              {Array.from({ length: 4 }).map((_, i) => <SkeletonBar key={i} h={16} />)}
+            </div>
+          </div>
+        ) : data ? (
+          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>
+              High Miss Rate
+              <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 400, color: DIM, textTransform: "none", letterSpacing: 0 }}>last 30 days, min 5 attempts</span>
+            </div>
+            {data.highMissRate.length === 0 ? (
+              <p style={{ fontSize: 13, color: GREEN, margin: 0 }}>No high-miss-rate skills yet.</p>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    {["Skill", "Band", "Attempts", "Misses", "Miss Rate"].map(h => (
+                      <th key={h} style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: DIM, padding: "4px 8px", textAlign: "left", borderBottom: `1px solid ${BORDER}` }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.highMissRate.map((row, i) => {
+                    const mc = missColor(row.missRatePct);
                     return (
-                      <tr key={i} style={{ background: isBlock ? "rgba(248,81,73,.04)" : "rgba(245,158,11,.03)" }}>
-                        <td style={{ padding: "7px 10px", borderBottom: `1px solid ${BORDER2}`, verticalAlign: "middle" }}><span style={{ fontSize: "11px", fontWeight: 700, color: TEXT }}>{row.name}</span></td>
-                        <td style={{ padding: "7px 10px", borderBottom: `1px solid ${BORDER2}`, verticalAlign: "middle" }}><span style={{ fontSize: "9px", fontWeight: 700, color: row.bandColor }}>{row.band}</span></td>
-                        <td style={{ fontSize: "11px", padding: "7px 10px", borderBottom: `1px solid ${BORDER2}`, verticalAlign: "middle", color: "rgba(255,255,255,.6)" }}>{row.subject}</td>
-                        <td style={{ fontSize: "11px", padding: "7px 10px", borderBottom: `1px solid ${BORDER2}`, verticalAlign: "middle", color: "rgba(255,255,255,.5)" }}>{row.sessions}</td>
-                        <td style={{ fontSize: "11px", padding: "7px 10px", borderBottom: `1px solid ${BORDER2}`, verticalAlign: "middle", color: row.skipBad ? AMBER : "rgba(255,255,255,.5)", fontWeight: row.skipBad ? 700 : 400 }}>{row.skipRate}</td>
-                        <td style={{ fontSize: "11px", padding: "7px 10px", borderBottom: `1px solid ${BORDER2}`, verticalAlign: "middle", color: row.errorsBad ? AMBER : "rgba(255,255,255,.6)", fontWeight: row.errorsBad ? 700 : 400 }}>{row.errors}</td>
-                        <td style={{ padding: "7px 10px", borderBottom: `1px solid ${BORDER2}`, verticalAlign: "middle" }}><span style={{ fontSize: "10px", fontWeight: 800, padding: "2px 7px", borderRadius: "4px", ...ss }}>{row.status}</span></td>
+                      <tr key={row.code} style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)" }}>
+                        <td style={{ padding: "5px 8px", fontSize: 12, color: TEXT, borderBottom: `1px solid ${BORDER}` }}>{row.displayName}</td>
+                        <td style={{ padding: "5px 8px", fontSize: 11, fontWeight: 700, color: bandColor(row.bandCode), borderBottom: `1px solid ${BORDER}` }}>{row.bandCode}</td>
+                        <td style={{ padding: "5px 8px", fontSize: 12, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>{row.totalAttempts.toLocaleString()}</td>
+                        <td style={{ padding: "5px 8px", fontSize: 12, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>{row.misses.toLocaleString()}</td>
+                        <td style={{ padding: "5px 8px", borderBottom: `1px solid ${BORDER}` }}>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: mc, padding: "2px 7px", borderRadius: 5, background: `${mc}18` }}>
+                            {row.missRatePct}%
+                          </span>
+                        </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-            </div>
+            )}
           </div>
-        </div>
-      )}
+        ) : null}
 
-    </div>
+      </div>
+    </>
   );
 }

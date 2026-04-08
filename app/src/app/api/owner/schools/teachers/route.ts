@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireOwnerSession } from "@/lib/owner-session";
 
 export async function GET(request: NextRequest) {
-  const auth = requireOwnerSession(request);
+  const auth = await requireOwnerSession(request);
 
   if (!auth.ok) {
     return auth.response;
