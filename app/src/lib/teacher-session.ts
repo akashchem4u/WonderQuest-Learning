@@ -50,7 +50,7 @@ export async function requireTeacherSession(
      SET last_seen_at = now()
      WHERE access_type = 'teacher' AND token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
        AND (last_seen_at IS NULL OR last_seen_at > now() - ($2 * interval '1 minute'))
-     RETURNING student_id`,
+     RETURNING teacher_id`,
     [hashToken(token), TEACHER_IDLE_TIMEOUT_MINUTES],
   );
 
@@ -64,7 +64,7 @@ export async function requireTeacherSession(
     };
   }
 
-  const teacherId = result.rows[0].student_id as string;
+  const teacherId = result.rows[0].teacher_id as string;
 
   // 3. If a specific teacher was requested, verify it matches the session
   if (requestedTeacherId?.trim() && requestedTeacherId.trim() !== teacherId) {
@@ -91,7 +91,7 @@ export async function createTeacherDbSession(
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_TTL_HOURS * 60 * 60 * 1000);
   await db.query(
-    `INSERT INTO public.access_sessions (access_type, student_id, token_hash, ip_address, user_agent, expires_at)
+    `INSERT INTO public.access_sessions (access_type, teacher_id, token_hash, ip_address, user_agent, expires_at)
      VALUES ($1, $2, $3, $4, $5, $6)`,
     [ACCESS_TYPE_TEACHER, teacherId, hashToken(token), ipAddress, userAgent, expiresAt],
   );

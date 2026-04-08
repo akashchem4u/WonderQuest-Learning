@@ -31,7 +31,7 @@ export async function createAdminSession(adminId: string): Promise<string> {
   const expiresAt = new Date(Date.now() + SESSION_TTL_HOURS * 60 * 60 * 1000);
 
   await db.query(
-    `INSERT INTO public.access_sessions (access_type, student_id, token_hash, expires_at)
+    `INSERT INTO public.access_sessions (access_type, admin_id, token_hash, expires_at)
      VALUES ('admin', $1, $2, $3)`,
     [adminId, tokenHash, expiresAt],
   );
@@ -55,12 +55,12 @@ export async function getAdminFromSession(
     `UPDATE public.access_sessions
      SET last_seen_at = now()
      WHERE access_type = 'admin' AND token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
-     RETURNING student_id`,
+     RETURNING admin_id`,
     [tokenHash],
   );
 
   if (!sessionResult.rowCount) return null;
-  const adminId = sessionResult.rows[0].student_id as string;
+  const adminId = sessionResult.rows[0].admin_id as string;
 
   const adminResult = await db.query(
     `SELECT id, role, display_name FROM public.admin_users WHERE id = $1 AND is_active = true`,
