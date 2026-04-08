@@ -1,0 +1,70 @@
+-- Enable RLS on all 32 public tables and grant full access to service_role only.
+-- The app uses server-side DB connections exclusively (no client-side Supabase SDK).
+-- The anon role gets zero direct table access — all data flows through Next.js API routes.
+
+ALTER TABLE public.access_attempts           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.access_sessions           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_users               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.assignment_students       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.assignments               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.challenge_sessions        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.content_templates         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.coppa_consents            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.example_items             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.explainer_assets          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feedback_items            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feedback_triage           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guardian_profiles         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guardian_pushed_activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guardian_student_links    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.intervention_resolution_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.launch_bands              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notification_preferences  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.password_reset_tokens     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.progression_states        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.session_results           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.skills                    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_notifications     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_profiles          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_skill_mastery     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subjects                  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teacher_interventions     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teacher_notes             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teacher_profiles          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teacher_pushed_sessions   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teacher_student_roster    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.theme_families            ENABLE ROW LEVEL SECURITY;
+
+-- Service role bypass policies (server-side Next.js API has full access)
+CREATE POLICY "server_access_only" ON public.access_attempts           TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.access_sessions           TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.admin_users               TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.assignment_students       TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.assignments               TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.challenge_sessions        TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.content_templates         TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.coppa_consents            TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.example_items             TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.explainer_assets          TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.feedback_items            TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.feedback_triage           TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.guardian_profiles         TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.guardian_pushed_activities TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.guardian_student_links    TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.intervention_resolution_feedback TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.launch_bands              TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.notification_preferences  TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.password_reset_tokens     TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.progression_states        TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.session_results           TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.skills                    TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.student_notifications     TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.student_profiles          TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.student_skill_mastery     TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.subjects                  TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.teacher_interventions     TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.teacher_notes             TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.teacher_profiles          TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.teacher_pushed_sessions   TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.teacher_student_roster    TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "server_access_only" ON public.theme_families            TO service_role USING (true) WITH CHECK (true);
