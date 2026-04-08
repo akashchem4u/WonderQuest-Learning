@@ -27,7 +27,7 @@ type Family = {
 };
 
 type SearchResult = { id: string; display_name: string; email?: string | null; username: string; child_count?: number; age_label?: string | null; launch_band_code?: string | null };
-type LinkedChild = { id: string; display_name: string; username: string; age_label: string | null; relationship_label: string };
+type LinkedChild = { id: string; display_name: string; username: string; age_label: string | null };
 type LinkedGuardian = { guardian_id: string; display_name: string; email: string | null; username: string };
 
 function fmtDate(iso: string | null | undefined) {
@@ -416,7 +416,6 @@ function StudentsTab() {
                                       <div>
                                         <span style={{ color: C.text, fontSize: 13, fontWeight: 600 }}>{g.display_name}</span>
                                         {g.email && <span style={{ color: C.muted, fontSize: 11, marginLeft: 6 }}>{g.email}</span>}
-                                        <span style={{ color: C.muted, fontSize: 11, marginLeft: 6 }}>({g.relationship_label})</span>
                                       </div>
                                       <button style={{ ...bC, padding: "3px 9px", fontSize: 11 }} onClick={() => void unlink(s.id, g.guardian_id)}>Unlink</button>
                                     </div>
