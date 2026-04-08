@@ -27,7 +27,7 @@ async function createTeacherAccessSession(
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_TTL_HOURS * 60 * 60 * 1000);
   await db.query(
-    `INSERT INTO public.access_sessions (access_type, student_id, token_hash, ip_address, user_agent, expires_at)
+    `INSERT INTO public.access_sessions (access_type, teacher_id, token_hash, ip_address, user_agent, expires_at)
      VALUES ($1, $2, $3, $4, $5, $6)`,
     [ACCESS_TYPE_TEACHER, teacherId, hashToken(token), ipAddress, userAgent, expiresAt],
   );

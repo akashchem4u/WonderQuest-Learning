@@ -654,15 +654,8 @@ export async function accessTeacherWithCredentials(input: {
     return { ok: true, teacherId: row.id as string, isNew: false };
   }
 
-  // Self-register new teacher
-  const inserted = await db.query(
-    `insert into public.teacher_profiles (display_name, username, password_hash, tester_flag)
-     values ($1, $2, $3, false)
-     returning id`,
-    [username, username, hashTeacherPassword(password, username)],
-  );
-
-  return { ok: true, teacherId: inserted.rows[0].id as string, isNew: true };
+  // No self-registration — teachers must be created by an admin
+  return { ok: false, teacherId: "", isNew: false, error: "No teacher account found. Contact your school admin." };
 }
 
 // ── Class Code Functions ──────────────────────────────────────────────────────

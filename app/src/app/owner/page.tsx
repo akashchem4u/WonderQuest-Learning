@@ -677,6 +677,12 @@ export default function OwnerPage() {
               <Link href="/owner/admins" style={{ fontSize: "12px", fontWeight: 700, color: C.violet, textDecoration: "none" }}>
                 Admin users
               </Link>
+              <Link href="/owner/users" style={{ fontSize: "12px", fontWeight: 700, color: C.violet, textDecoration: "none" }}>
+                Users
+              </Link>
+              <Link href="/owner/teachers" style={{ fontSize: "12px", fontWeight: 700, color: C.violet, textDecoration: "none" }}>
+                Teachers
+              </Link>
             </div>
           </div>
         </div>
