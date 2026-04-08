@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
 import OwnerGate from "../owner-gate";
+import ReviewQueueClient from "./review-queue-client";
 
 export const dynamic = "force-dynamic";
 
@@ -426,6 +427,43 @@ export default async function OwnerContentPage() {
                     </span>
                   </div>
                 ))}
+              </div>
+
+              {/* Live review queue (miss-rate driven, from DB) */}
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: C.muted,
+                  marginBottom: "12px",
+                  marginTop: "6px",
+                  paddingBottom: "6px",
+                  borderBottom: `1px solid ${C.border}`,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <span>QA Review Queue</span>
+                <span
+                  style={{
+                    fontSize: "9px",
+                    fontWeight: 700,
+                    padding: "1px 6px",
+                    borderRadius: "3px",
+                    background: "rgba(155,114,255,0.12)",
+                    color: C.violet,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Live Data
+                </span>
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <ReviewQueueClient />
               </div>
 
               {/* Error rate by subject */}
