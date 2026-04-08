@@ -10,11 +10,17 @@ export async function GET() {
     new Promise<false>((resolve) => setTimeout(() => resolve(false), 3000)),
   ]);
 
+  const liveQuestionGenerationEnabled = isLiveQuestionGenerationEnabled();
+
   return NextResponse.json(
     {
+      // Legacy fields — kept for smoke check + backward compat
+      status: dbCheck ? "ok" : "degraded",
+      liveQuestionGenerationEnabled,
+      // Enhanced fields
       ok: dbCheck,
       db: dbCheck ? "connected" : "unavailable",
-      liveQuestions: isLiveQuestionGenerationEnabled(),
+      liveQuestions: liveQuestionGenerationEnabled,
       ts: new Date().toISOString(),
       responseTimeMs: Date.now() - startedAt,
     },
