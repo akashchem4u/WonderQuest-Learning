@@ -7,8 +7,10 @@
 import { Resend } from "resend";
 
 const apiKey = process.env.RESEND_API_KEY ?? "";
+// Default to Resend's sandbox sender until a custom domain is verified.
+// Override by setting RESEND_FROM_EMAIL=WonderQuest <noreply@yourdomain.com>
 const fromEmail =
-  process.env.RESEND_FROM_EMAIL ?? "WonderQuest <noreply@wonderquest.app>";
+  process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
 
 function client() {
   if (!apiKey) return null;
