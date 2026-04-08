@@ -18,7 +18,7 @@ function buildRedirectUrl(request: NextRequest, path: string): string {
 
 /** GET /api/parent/logout — clears the parent session cookie and redirects to login. */
 export async function GET(request: NextRequest) {
-  const loginUrl = buildRedirectUrl(request, "/parent");
+  const loginUrl = buildRedirectUrl(request, "/");
   const response = NextResponse.redirect(loginUrl);
 
   response.cookies.set({

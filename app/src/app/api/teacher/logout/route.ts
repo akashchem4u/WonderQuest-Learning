@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       )
       .catch(() => {});
   }
-  const loginUrl = buildRedirectUrl(request, "/teacher");
+  const loginUrl = buildRedirectUrl(request, "/");
   const response = NextResponse.redirect(loginUrl);
   response.cookies.set(TEACHER_SESSION_COOKIE, "", { maxAge: 0, path: "/" });
   response.cookies.set(TEACHER_COOKIE_NAME, "", { maxAge: 0, path: "/" });

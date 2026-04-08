@@ -21,8 +21,8 @@ function clearAndRedirect(token: string | undefined, redirectUrl: string) {
 }
 
 const loginUrl = () => process.env.NEXT_PUBLIC_APP_URL
-  ? `${process.env.NEXT_PUBLIC_APP_URL}/owner/login`
-  : "http://localhost:3000/owner/login";
+  ? process.env.NEXT_PUBLIC_APP_URL
+  : "http://localhost:3000";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
