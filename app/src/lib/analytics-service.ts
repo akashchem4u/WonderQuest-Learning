@@ -140,7 +140,7 @@ export async function getOwnerOverview() {
   const dailyActivity = await db.query(
     `
       select
-        date_trunc('day', started_at)::date as day,
+        date_trunc('day', started_at)::date::text as day,
         count(*) as sessions,
         count(*) filter (where ended_at is not null) as completed
       from public.challenge_sessions
@@ -543,7 +543,7 @@ export async function getTeacherSkillTrends(
         sk.code as skill_code,
         sk.display_name,
         sk.launch_band_code,
-        date_trunc('day', cs.started_at)::date as day,
+        date_trunc('day', cs.started_at)::date::text as day,
         count(sr.id) as attempts,
         count(*) filter (where sr.correct) as correct_attempts
       from public.session_results sr

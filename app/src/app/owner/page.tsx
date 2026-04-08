@@ -664,7 +664,7 @@ export default function OwnerPage() {
             )}
 
             {/* Footer nav */}
-            <div style={{ display: "flex", gap: "14px", paddingTop: "4px", borderTop: `1px solid ${C.border}` }}>
+            <div style={{ display: "flex", gap: "14px", paddingTop: "4px", borderTop: `1px solid ${C.border}`, flexWrap: "wrap" }}>
               <Link href="/owner/content" style={{ fontSize: "12px", fontWeight: 700, color: C.mint, textDecoration: "none" }}>
                 Content Health
               </Link>
@@ -673,6 +673,9 @@ export default function OwnerPage() {
               </Link>
               <Link href="/parent" style={{ fontSize: "12px", fontWeight: 700, color: C.muted, textDecoration: "none" }}>
                 Parent hub
+              </Link>
+              <Link href="/owner/admins" style={{ fontSize: "12px", fontWeight: 700, color: C.violet, textDecoration: "none" }}>
+                Admin users
               </Link>
             </div>
           </div>
