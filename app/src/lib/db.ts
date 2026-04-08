@@ -68,7 +68,7 @@ function getPool(): pg.Pool {
   return global.__wonderquestPool;
 }
 
-function isConnectionError(err: unknown): boolean {
+export function isDatabaseConnectionError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message.toLowerCase() : "";
   return (
     msg.includes("timeout") ||
@@ -88,7 +88,7 @@ export async function queryWithRetry(
   try {
     return await getPool().query(sql, params as pg.QueryConfigValues<unknown[]>);
   } catch (firstErr) {
-    if (!isConnectionError(firstErr)) throw firstErr;
+    if (!isDatabaseConnectionError(firstErr)) throw firstErr;
     // Connection was stale — reset the pool and try once more
     console.warn("WonderQuest DB connection error, resetting pool and retrying…", firstErr instanceof Error ? firstErr.message : firstErr);
     resetPool();
@@ -108,7 +108,7 @@ export const db = new Proxy({} as pg.Pool, {
         try {
           return await (value as (...a: unknown[]) => Promise<unknown>).apply(pool, args);
         } catch (firstErr) {
-          if (!isConnectionError(firstErr)) throw firstErr;
+          if (!isDatabaseConnectionError(firstErr)) throw firstErr;
           console.warn(
             "WonderQuest DB stale connection — resetting pool and retrying once:",
             firstErr instanceof Error ? firstErr.message : firstErr,

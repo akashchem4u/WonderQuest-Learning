@@ -7,6 +7,7 @@ import {
   recordTeacherAccessAttempt,
 } from "@/lib/teacher-access";
 import { getRequestIpAddress, getRequestUserAgent } from "@/lib/child-access";
+import { isDatabaseConnectionError } from "@/lib/db";
 import { accessTeacherWithCredentials } from "@/lib/teacher-service";
 
 export const TEACHER_ID_COOKIE_NAME = "wonderquest-teacher-id";
@@ -57,9 +58,18 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    const status = error instanceof TeacherAccessThrottleError ? 429 : 400;
+    const status = error instanceof TeacherAccessThrottleError
+      ? 429
+      : isDatabaseConnectionError(error)
+        ? 503
+        : 400;
+    const message = isDatabaseConnectionError(error)
+      ? "WonderQuest could not reach the learning database. Try again shortly."
+      : error instanceof Error
+        ? error.message
+        : "Teacher access failed.";
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Teacher access failed." },
+      { error: message },
       { status },
     );
   }

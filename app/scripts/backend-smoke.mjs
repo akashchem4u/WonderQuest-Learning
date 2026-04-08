@@ -39,6 +39,24 @@ function assert(condition, message) {
   }
 }
 
+async function assertHealthyDatabase(baseUrl) {
+  const health = await requestJson(baseUrl, "/api/health");
+
+  if (!health.ok) {
+    throw new Error(
+      `/api/health failed (${health.status}): ${health.payload.error ?? "Health check failed."}`,
+    );
+  }
+
+  assert(health.payload.status === "ok", "health route should report ok");
+  assert(
+    health.payload.database === "reachable",
+    "health route should report a reachable database",
+  );
+
+  return health.payload;
+}
+
 async function resolveBaseUrl() {
   if (process.env.WONDERQUEST_SMOKE_BASE_URL?.trim()) {
     return process.env.WONDERQUEST_SMOKE_BASE_URL.trim();
@@ -287,6 +305,7 @@ async function main() {
   const parentUsername = `${runKey}-parent`;
 
   try {
+    const initialHealth = await assertHealthyDatabase(baseUrl);
     const childAccess = await requestJson(baseUrl, "/api/child/access", {
       method: "POST",
       body: {
@@ -642,6 +661,9 @@ async function main() {
       JSON.stringify(
         {
           baseUrl,
+          initialHealthStatus: initialHealth.status,
+          initialHealthDatabase: initialHealth.database,
+          initialHealthResponseTimeMs: initialHealth.responseTimeMs ?? null,
           teacherId,
           guardianId,
           studentId,

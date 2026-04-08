@@ -6,6 +6,7 @@ import {
   getRequestIpAddress,
   getRequestUserAgent,
 } from "@/lib/child-access";
+import { isDatabaseConnectionError } from "@/lib/db";
 import { accessChild } from "@/lib/prototype-service";
 
 export async function POST(request: NextRequest) {
@@ -36,9 +37,18 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    const status = error instanceof ChildAccessThrottleError ? 429 : 400;
+    const status = error instanceof ChildAccessThrottleError
+      ? 429
+      : isDatabaseConnectionError(error)
+        ? 503
+        : 400;
+    const message = isDatabaseConnectionError(error)
+      ? "WonderQuest could not reach the learning database. Try again shortly."
+      : error instanceof Error
+        ? error.message
+        : "Child access failed.";
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Child access failed." },
+      { error: message },
       { status },
     );
   }

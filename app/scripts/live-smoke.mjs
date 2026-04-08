@@ -1,4 +1,7 @@
 import process from "node:process";
+import { loadEnvLocal } from "./load-env-local.mjs";
+
+loadEnvLocal();
 
 const runKey = `qa-${Date.now()}`;
 const cookieJar = new Map();
@@ -64,36 +67,65 @@ function buildCookieHeader() {
     .join("; ");
 }
 
-async function postJson(baseUrl, path, body) {
-  const headers = {
-    "Content-Type": "application/json",
-  };
+async function requestJson(baseUrl, path, { method = "GET", body } = {}) {
+  const headers = {};
   const cookieHeader = buildCookieHeader();
 
   if (cookieHeader) {
     headers.Cookie = cookieHeader;
   }
 
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const response = await fetch(`${baseUrl}${path}`, {
-    method: "POST",
+    method,
     headers,
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   mergeCookies(response);
   const rawBody = await response.text();
   const payload = rawBody ? JSON.parse(rawBody) : {};
 
-  if (!response.ok) {
-    throw new Error(`${path} failed (${response.status}): ${payload.error ?? response.statusText}`);
+  return { payload, status: response.status, ok: response.ok };
+}
+
+async function postJson(baseUrl, path, body) {
+  const result = await requestJson(baseUrl, path, {
+    method: "POST",
+    body,
+  });
+
+  if (!result.ok) {
+    throw new Error(`${path} failed (${result.status}): ${result.payload.error ?? "Request failed."}`);
   }
 
-  return { payload, status: response.status };
+  return { payload: result.payload, status: result.status };
 }
 
 function assert(condition, message) {
   if (!condition) {
     throw new Error(`Smoke assertion failed: ${message}`);
   }
+}
+
+async function assertHealthyDatabase(baseUrl) {
+  const health = await requestJson(baseUrl, "/api/health");
+
+  if (!health.ok) {
+    throw new Error(
+      `/api/health failed (${health.status}): ${health.payload.error ?? "Health check failed."}`,
+    );
+  }
+
+  assert(health.payload.status === "ok", "health route should report ok");
+  assert(
+    health.payload.database === "reachable",
+    "health route should report a reachable database",
+  );
+
+  return health.payload;
 }
 
 function assertQuestionSkillOrder(session, expectedSkills, label) {
@@ -113,9 +145,30 @@ function assertQuestionSkillOrder(session, expectedSkills, label) {
 
 async function main() {
   const baseUrl = await resolveBaseUrl();
+  const ownerCode = process.env.OWNER_ACCESS_CODE?.trim() ?? "";
   const childUsername = `${runKey}-child`;
   const prekUsername = `${runKey}-prek`;
   const parentUsername = `${runKey}-parent`;
+
+  assert(ownerCode, "OWNER_ACCESS_CODE should be present for owner smoke coverage");
+  const initialHealth = await assertHealthyDatabase(baseUrl);
+
+  // ── Owner APIs should reject unauthenticated access ───────────────────────
+
+  const ownerOverviewUnauthorized = await requestJson(baseUrl, "/api/owner/overview");
+  assert(
+    ownerOverviewUnauthorized.status === 401,
+    `/api/owner/overview should reject unauthenticated access (got ${ownerOverviewUnauthorized.status})`,
+  );
+
+  const ownerFeedbackUnauthorized = await requestJson(
+    baseUrl,
+    "/api/owner/feedback?limit=1",
+  );
+  assert(
+    ownerFeedbackUnauthorized.status === 401,
+    `/api/owner/feedback should reject unauthenticated access (got ${ownerFeedbackUnauthorized.status})`,
+  );
 
   // ── Child access + play session ───────────────────────────────────────────
 
@@ -248,10 +301,27 @@ async function main() {
   assert(feedback.feedbackId, "feedbackId should be present");
   assert(feedback.triage?.category, "triage category should be present");
 
+  // ── Owner access + gated owner APIs ───────────────────────────────────────
+
+  const { payload: ownerAccess } = await postJson(baseUrl, "/api/owner/access", {
+    code: ownerCode,
+  });
+  assert(ownerAccess.ok === true, "owner access should return ok=true");
+  assert(cookieJar.has("wonderquest-owner"), "owner session cookie should be set");
+
+  const ownerOverview = await requestJson(baseUrl, "/api/owner/overview");
+  assert(ownerOverview.ok, "/api/owner/overview should succeed after owner access");
+
+  const ownerFeedback = await requestJson(baseUrl, "/api/owner/feedback?limit=5");
+  assert(ownerFeedback.ok, "/api/owner/feedback should succeed after owner access");
+
   console.log(
     JSON.stringify(
       {
         baseUrl,
+        healthStatus: initialHealth.status,
+        healthDatabase: initialHealth.database,
+        healthResponseTimeMs: initialHealth.responseTimeMs ?? null,
         childCreated: child.created,
         childSessionCookieSet: cookieJar.has("wonderquest-child-session"),
         childSessionRestoreStudentId: childRestore.student?.id ?? null,
@@ -259,6 +329,8 @@ async function main() {
         firstQuestion: firstQuestion.questionKey,
         k1QuestionSkills: session.questions.map((question) => question.skill),
         prekQuestionSkills: prekSession.questions.map((question) => question.skill),
+        ownerApiGated: true,
+        ownerFeedbackCount: ownerFeedback.payload.total ?? 0,
         retryNeedsExplainer: retry.needsRetry,
         recoveryPoints: recovery.pointsEarned,
         parentSessionCookieSet: cookieJar.has("wonderquest-parent-session"),

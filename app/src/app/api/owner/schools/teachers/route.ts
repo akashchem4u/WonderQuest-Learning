@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireOwnerSession } from "@/lib/owner-session";
 
 export async function GET(request: NextRequest) {
+  const auth = requireOwnerSession(request);
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   const { searchParams } = new URL(request.url);
   const school = searchParams.get("school");
 

@@ -207,6 +207,8 @@ check_route_status "/api/parent/reset-child-pin" "401" "Parent reset-child-pin r
 check_route_status "/api/teacher/class" "401" "Teacher class route is teacher-gated"
 check_route_status "/api/teacher/skills" "401" "Teacher skills route is teacher-gated"
 check_route_status "/api/teacher/interventions" "401" "Teacher interventions route is teacher-gated"
+check_route_status "/api/owner/overview" "401" "Owner overview route is owner-gated"
+check_route_status "/api/owner/feedback" "401" "Owner feedback route is owner-gated"
 
 section "Summary"
 printf 'Passes: %d\n' "${PASS_COUNT}"

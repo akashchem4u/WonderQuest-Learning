@@ -33,6 +33,11 @@ export function issueOwnerAccessToken() {
   return buildToken(code);
 }
 
+export function isValidOwnerAccessToken(token: string) {
+  const code = configuredCode();
+  return Boolean(code) && token.trim() === buildToken(code);
+}
+
 const ACCESS_TYPE_OWNER = "owner";
 
 function readPositiveInt(name: string, fallback: number) {
@@ -85,13 +90,7 @@ export async function recordOwnerAccessAttempt(input: {
 }
 
 export async function hasOwnerAccess() {
-  const code = configuredCode();
-
-  if (!code) {
-    return false;
-  }
-
   const store = await cookies();
   const cookie = store.get(OWNER_COOKIE_NAME)?.value ?? "";
-  return cookie === buildToken(code);
+  return isValidOwnerAccessToken(cookie);
 }

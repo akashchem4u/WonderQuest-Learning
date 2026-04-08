@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
-// ── Palette ────────────────────────────────────────────────────────────────
 const C = {
   base: "#100b2e",
   surface: "#161b22",
@@ -15,397 +15,518 @@ const C = {
   mint: "#22c55e",
   gold: "#ffd166",
   amber: "#f59e0b",
+  blue: "#38bdf8",
+  coral: "#ff7b6b",
   text: "#f0f6ff",
   muted: "#8b949e",
 } as const;
 
-// ── Roster shape from /api/teacher/class ──────────────────────────────────
-interface Student {
-  studentId: string;
-  displayName: string;
-  avatarKey: string;
-  launchBandCode: string;
-  totalPoints: number;
-  currentLevel: number;
-  sessionsLast7d: number;
-  correctLast7d: number;
-  totalLast7d: number;
-  lastSessionAt: string | null;
-  inInterventionQueue: boolean;
-  streak: number;
-}
-
-// ── Win card shape ─────────────────────────────────────────────────────────
-interface WinCard {
+type TeacherWin = {
   id: string;
-  icon: string;
-  headline: string;
-  detail: string;
-  time: string;
-  chipLabel: string;
-  chipBg: string;
-  chipColor: string;
-  encouragement: string;
-}
+  type: string;
+  title: string;
+  description: string;
+  value: string | null;
+  createdAt: string;
+  studentId: string;
+  studentDisplayName: string;
+  launchBandCode: string;
+  launchBandLabel: string;
+};
 
-// ── Time helpers ──────────────────────────────────────────────────────────
-function hoursAgo(iso: string | null): number {
-  if (!iso) return Infinity;
-  return (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60);
-}
+type WinsResponse = {
+  teacherId: string;
+  rangeDays: number;
+  wins: TeacherWin[];
+};
 
-function friendlyTime(iso: string | null): string {
-  if (!iso) return "Unknown";
-  const h = hoursAgo(iso);
-  if (h < 1) return "Just now";
-  if (h < 24) return `${Math.floor(h)}h ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ago`;
-}
+type FilterOption = {
+  days: number;
+  label: string;
+  hint: string;
+};
 
-// ── Avatar emoji from key ─────────────────────────────────────────────────
-function avatarEmoji(key: string): string {
-  const map: Record<string, string> = {
-    fox: "🦊", owl: "🦉", bear: "🐻", cat: "🐱", dog: "🐶",
-    rabbit: "🐰", penguin: "🐧", lion: "🦁", tiger: "🐯", panda: "🐼",
-    dragon: "🐲", unicorn: "🦄", star: "⭐", rocket: "🚀",
-  };
-  return map[key?.toLowerCase()] ?? "🙂";
-}
+const FILTERS: FilterOption[] = [
+  { days: 7, label: "7 days", hint: "Fresh momentum" },
+  { days: 14, label: "14 days", hint: "Two-week arc" },
+  { days: 30, label: "30 days", hint: "Monthly view" },
+];
 
-// ── Derive wins from roster ───────────────────────────────────────────────
-function deriveWins(roster: Student[]): WinCard[] {
-  const wins: WinCard[] = [];
-  if (roster.length === 0) return wins;
+const WIN_LIMIT = 50;
 
-  // 1. Active today — lastSessionAt within 24 hours
-  const activeToday = roster.filter((s) => hoursAgo(s.lastSessionAt) <= 24);
-  activeToday.forEach((s) => {
-    wins.push({
-      id: `active-${s.studentId}`,
-      icon: "🔥",
-      headline: `${avatarEmoji(s.avatarKey)} ${s.displayName} played today!`,
-      detail: `Logged in and played a session today. Keep the momentum going!`,
-      time: `Last active ${friendlyTime(s.lastSessionAt)}`,
-      chipLabel: "Active today",
-      chipBg: "rgba(245,158,11,0.14)",
-      chipColor: "#fbbf24",
-      encouragement: "Keep it up!",
-    });
-  });
-
-  // 2. Most sessions — top 20% by sessionsLast7d (min 2 sessions to qualify)
-  const withSessions = roster.filter((s) => s.sessionsLast7d >= 2);
-  if (withSessions.length > 0) {
-    const sorted = [...withSessions].sort((a, b) => b.sessionsLast7d - a.sessionsLast7d);
-    const topCount = Math.max(1, Math.ceil(sorted.length * 0.2));
-    sorted.slice(0, topCount).forEach((s) => {
-      wins.push({
-        id: `sessions-${s.studentId}`,
-        icon: "📚",
-        headline: `${avatarEmoji(s.avatarKey)} ${s.displayName} is a dedicated learner!`,
-        detail: `${s.sessionsLast7d} sessions this week · Level ${s.currentLevel} · ${s.totalPoints.toLocaleString()} total points.`,
-        time: "This week · Most sessions",
-        chipLabel: "Most sessions",
-        chipBg: "rgba(34,197,94,0.12)",
-        chipColor: "#4ade80",
-        encouragement: "Keep it up!",
-      });
-    });
+function fetchJsonError(payload: unknown, status: number): string {
+  if (payload && typeof payload === "object" && "error" in payload) {
+    const message = (payload as { error?: unknown }).error;
+    if (typeof message === "string" && message.trim()) {
+      return message;
+    }
   }
-
-  // 3. On a roll — lastSessionAt within 3 days (but not already Active today)
-  const activeTodayIds = new Set(activeToday.map((s) => s.studentId));
-  const onARoll = roster.filter(
-    (s) => !activeTodayIds.has(s.studentId) && hoursAgo(s.lastSessionAt) <= 72
-  );
-  onARoll.forEach((s) => {
-    wins.push({
-      id: `roll-${s.studentId}`,
-      icon: "⭐",
-      headline: `${avatarEmoji(s.avatarKey)} ${s.displayName} is on a roll!`,
-      detail: `Active in the last 3 days with ${s.sessionsLast7d} session${s.sessionsLast7d !== 1 ? "s" : ""} this week.`,
-      time: `Last active ${friendlyTime(s.lastSessionAt)}`,
-      chipLabel: "On a roll",
-      chipBg: "rgba(155,114,255,0.14)",
-      chipColor: C.violet,
-      encouragement: "Keep it up!",
-    });
-  });
-
-  // 4. High accuracy performers — >= 80% accuracy with meaningful volume
-  const sessionIds = new Set([
-    ...activeToday.map((s) => s.studentId),
-    ...onARoll.map((s) => s.studentId),
-  ]);
-  const highAccuracy = roster.filter(
-    (s) =>
-      !sessionIds.has(s.studentId) &&
-      s.totalLast7d >= 5 &&
-      s.correctLast7d / s.totalLast7d >= 0.8
-  );
-  highAccuracy.forEach((s) => {
-    const pct = Math.round((s.correctLast7d / s.totalLast7d) * 100);
-    wins.push({
-      id: `accuracy-${s.studentId}`,
-      icon: "🚀",
-      headline: `${avatarEmoji(s.avatarKey)} ${s.displayName} — ${pct}% accuracy this week!`,
-      detail: `${s.correctLast7d} correct of ${s.totalLast7d} answers. May be ready for band advancement.`,
-      time: "This week · High accuracy",
-      chipLabel: "Top performer",
-      chipBg: "rgba(255,209,102,0.14)",
-      chipColor: C.gold,
-      encouragement: "Keep it up!",
-    });
-  });
-
-  return wins;
+  return `HTTP ${status}`;
 }
 
-// ── Stats bar values ───────────────────────────────────────────────────────
-interface SummaryStats {
-  totalWins: number;
-  activeToday: number;
-  onARoll: number;
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 2) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return "yesterday";
+  return `${diffDays}d ago`;
 }
 
-function computeSummary(roster: Student[], wins: WinCard[]): SummaryStats {
-  const activeToday = roster.filter((s) => hoursAgo(s.lastSessionAt) <= 24).length;
-  const onARoll = roster.filter(
-    (s) => hoursAgo(s.lastSessionAt) > 24 && hoursAgo(s.lastSessionAt) <= 72
-  ).length;
-  return {
-    totalWins: wins.length,
-    activeToday,
-    onARoll,
-  };
+function formatDate(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(iso));
 }
 
-// ── Stat pill ─────────────────────────────────────────────────────────────
-function StatPill({
-  icon,
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function typeMeta(type: string) {
+  switch (type) {
+    case "level_up":
+      return {
+        icon: "⬆️",
+        label: "Level up",
+        bg: "rgba(34,197,94,0.14)",
+        color: C.mint,
+      };
+    case "badge":
+      return {
+        icon: "🏅",
+        label: "Badge",
+        bg: "rgba(255,209,102,0.14)",
+        color: C.gold,
+      };
+    case "streak":
+      return {
+        icon: "🔥",
+        label: "Streak",
+        bg: "rgba(255,123,107,0.12)",
+        color: C.coral,
+      };
+    case "milestone-earned":
+    default:
+      return {
+        icon: "🎉",
+        label: "Milestone",
+        bg: "rgba(155,114,255,0.12)",
+        color: C.violet,
+      };
+  }
+}
+
+function bandMeta(code: string) {
+  const normalized = code.trim().toUpperCase();
+  if (normalized === "PREK" || normalized === "P0") {
+    return { bg: "rgba(255,209,102,0.12)", color: C.gold };
+  }
+  if (normalized === "K1" || normalized === "P1") {
+    return { bg: "rgba(155,114,255,0.12)", color: C.violet };
+  }
+  if (normalized === "G23" || normalized === "P2") {
+    return { bg: "rgba(34,197,94,0.12)", color: C.mint };
+  }
+  if (normalized === "G45" || normalized === "P3") {
+    return { bg: "rgba(56,189,248,0.12)", color: C.blue };
+  }
+  return { bg: "rgba(255,255,255,0.08)", color: C.text };
+}
+
+function countBy<T>(items: T[], pick: (item: T) => string) {
+  return items.reduce<Record<string, number>>((acc, item) => {
+    const key = pick(item);
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+}
+
+function StatCard({
   value,
   label,
-  color,
+  icon,
+  tone,
 }: {
-  icon: string;
-  value: number;
+  value: string;
   label: string;
-  color: string;
+  icon: string;
+  tone: string;
 }) {
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
         background: C.surface,
         border: `1px solid ${C.border}`,
-        borderRadius: 12,
-        padding: "12px 18px",
+        borderRadius: 18,
+        padding: "18px 18px 16px",
+        minHeight: 108,
       }}
     >
-      <span style={{ fontSize: 22 }}>{icon}</span>
-      <div>
-        <div style={{ fontSize: 20, fontWeight: 900, color, lineHeight: 1 }}>
-          {value}
-        </div>
-        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{label}</div>
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 36,
+          height: 36,
+          borderRadius: 12,
+          background: tone,
+          marginBottom: 14,
+          fontSize: 18,
+        }}
+      >
+        {icon}
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: C.text, lineHeight: 1 }}>
+        {value}
+      </div>
+      <div
+        style={{
+          marginTop: 6,
+          fontSize: 11,
+          fontWeight: 700,
+          color: C.muted,
+          textTransform: "uppercase",
+          letterSpacing: ".08em",
+        }}
+      >
+        {label}
       </div>
     </div>
   );
 }
 
-// ── Win card ──────────────────────────────────────────────────────────────
-function WinCardView({ win }: { win: WinCard }) {
+function FilterChip({
+  active,
+  label,
+  hint,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  hint: string;
+  onClick: () => void;
+}) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
       style={{
-        background: C.surface,
-        borderRadius: 14,
-        padding: "16px 18px",
-        border: `1px solid ${C.border}`,
-        display: "flex",
+        display: "inline-flex",
         flexDirection: "column",
-        gap: 8,
+        gap: 2,
+        alignItems: "flex-start",
+        padding: "11px 14px",
+        minWidth: 116,
+        borderRadius: 14,
+        border: active ? `1px solid ${C.violet}` : `1px solid ${C.border}`,
+        background: active ? "rgba(155,114,255,0.12)" : C.surface,
+        color: C.text,
+        cursor: "pointer",
+        textAlign: "left",
+        transition: "transform .15s ease, border-color .15s ease, background .15s ease",
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <span
+      <span style={{ fontSize: 13, fontWeight: 800 }}>{label}</span>
+      <span style={{ fontSize: 11, color: active ? C.violet : C.muted }}>{hint}</span>
+    </button>
+  );
+}
+
+function WinCard({ win }: { win: TeacherWin }) {
+  const type = typeMeta(win.type);
+  const band = bandMeta(win.launchBandCode);
+
+  return (
+    <article
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 18,
+        padding: 18,
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: "auto -18px -18px auto",
+          width: 110,
+          height: 110,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(155,114,255,0.12), transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+        <div
           style={{
-            fontSize: 28,
+            width: 48,
+            height: 48,
+            borderRadius: 16,
+            background: type.bg,
+            color: type.color,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 22,
             flexShrink: 0,
-            lineHeight: 1,
-            marginTop: 1,
           }}
         >
-          {win.icon}
-        </span>
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 800,
-              color: C.text,
-              lineHeight: 1.35,
-              marginBottom: 4,
-            }}
-          >
-            {win.headline}
+          {type.icon}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 900,
+                color: C.text,
+                lineHeight: 1.35,
+                flex: "1 1 220px",
+              }}
+            >
+              {win.title}
+            </h3>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 10px",
+                borderRadius: 999,
+                background: type.bg,
+                color: type.color,
+                fontSize: 11,
+                fontWeight: 800,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {type.label}
+            </span>
           </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: C.muted,
-              lineHeight: 1.5,
-              marginBottom: 6,
-            }}
-          >
-            {win.detail}
-          </div>
+
+          <p style={{ margin: "8px 0 0", fontSize: 13, lineHeight: 1.6, color: C.muted }}>
+            {win.description}
+          </p>
+
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
               flexWrap: "wrap",
+              gap: 8,
+              marginTop: 14,
             }}
           >
             <span
               style={{
-                display: "inline-block",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 10px",
+                borderRadius: 999,
+                background: band.bg,
+                color: band.color,
                 fontSize: 11,
-                fontWeight: 700,
-                padding: "3px 10px",
-                borderRadius: 10,
-                background: win.chipBg,
-                color: win.chipColor,
+                fontWeight: 800,
               }}
             >
-              {win.chipLabel}
+              {win.launchBandLabel}
             </span>
-            <span style={{ fontSize: 11, color: C.muted }}>{win.time}</span>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: C.mint,
-                marginLeft: "auto",
-              }}
-            >
-              {win.encouragement}
-            </span>
+            {win.value ? (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,0.05)",
+                  color: C.text,
+                  fontSize: 11,
+                  fontWeight: 800,
+                }}
+              >
+                {win.value}
+              </span>
+            ) : null}
+            <span style={{ fontSize: 11, color: C.muted }}>{formatDate(win.createdAt)}</span>
+            <span style={{ fontSize: 11, color: C.muted }}>•</span>
+            <span style={{ fontSize: 11, color: C.muted }}>{timeAgo(win.createdAt)}</span>
           </div>
         </div>
+
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 14,
+            background: "rgba(255,255,255,0.04)",
+            border: `1px solid ${C.border}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: C.text,
+            fontSize: 13,
+            fontWeight: 900,
+            flexShrink: 0,
+          }}
+        >
+          {initials(win.studentDisplayName)}
+        </div>
       </div>
-    </div>
+
+      <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: ".08em" }}>
+          Student
+        </div>
+        <div style={{ marginTop: 4, fontSize: 13, fontWeight: 800, color: C.text }}>
+          {win.studentDisplayName}
+        </div>
+      </div>
+    </article>
   );
 }
 
-// ── Empty state ────────────────────────────────────────────────────────────
-function EmptyState() {
+function LoadingCard() {
   return (
     <div
       style={{
         background: C.surface,
-        borderRadius: 16,
-        padding: "48px 32px",
         border: `1px solid ${C.border}`,
+        borderRadius: 18,
+        minHeight: 168,
+        opacity: 0.7,
+      }}
+    />
+  );
+}
+
+function EmptyState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div
+      style={{
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 20,
+        padding: "34px 28px",
         textAlign: "center",
-        maxWidth: 460,
       }}
     >
-      <div style={{ fontSize: 48, marginBottom: 16 }}>🌱</div>
-      <div
-        style={{
-          fontSize: 17,
-          fontWeight: 800,
-          color: C.text,
-          marginBottom: 10,
-        }}
-      >
-        Wins are on the way!
-      </div>
-      <div
-        style={{
-          fontSize: 13,
-          color: C.muted,
-          lineHeight: 1.7,
-          maxWidth: 340,
-          margin: "0 auto",
-        }}
-      >
-        Once your students start playing, their wins will appear here! 🎉
+      <div style={{ fontSize: 44, marginBottom: 12 }}>🌱</div>
+      <div style={{ fontSize: 18, fontWeight: 900, color: C.text }}>No wins surfaced yet</div>
+      <p style={{ margin: "10px auto 0", maxWidth: 460, fontSize: 13, lineHeight: 1.7, color: C.muted }}>
+        Once students start earning badges, streaks, and level-ups, they&apos;ll show up here. If you
+        just changed filters, try a wider range.
+      </p>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
+        <button
+          type="button"
+          onClick={onRetry}
+          style={{
+            padding: "10px 16px",
+            borderRadius: 12,
+            border: `1px solid ${C.violet}`,
+            background: "rgba(155,114,255,0.12)",
+            color: C.violet,
+            fontSize: 13,
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          Refresh
+        </button>
+        <Link
+          href="/teacher/class"
+          style={{
+            padding: "10px 16px",
+            borderRadius: 12,
+            border: `1px solid ${C.border}`,
+            background: C.surfaceAlt,
+            color: C.text,
+            fontSize: 13,
+            fontWeight: 800,
+            textDecoration: "none",
+          }}
+        >
+          Open class roster
+        </Link>
       </div>
     </div>
   );
 }
 
-// ── Nav link button ────────────────────────────────────────────────────────
-function NavBtn({ href, children }: { href: string; children: string }) {
-  return (
-    <a
-      href={href}
-      style={{
-        display: "inline-block",
-        padding: "10px 22px",
-        borderRadius: 10,
-        background: "rgba(155,114,255,0.12)",
-        border: `1px solid rgba(155,114,255,0.3)`,
-        color: C.violet,
-        fontSize: 13,
-        fontWeight: 700,
-        textDecoration: "none",
-        fontFamily: "system-ui,-apple-system,sans-serif",
-      }}
-    >
-      {children}
-    </a>
-  );
-}
-
-// ── Page ───────────────────────────────────────────────────────────────────
 export default function RecentWinsPage() {
   const [authed, setAuthed] = useState(false);
-  useEffect(() => {
-    setAuthed(!!getTeacherId());
-  }, []);
-
-  const [wins, setWins] = useState<WinCard[]>([]);
-  const [summary, setSummary] = useState<SummaryStats>({
-    totalWins: 0,
-    activeToday: 0,
-    onARoll: 0,
-  });
+  const [days, setDays] = useState(7);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const [wins, setWins] = useState<TeacherWin[]>([]);
+  const [rangeDays, setRangeDays] = useState(7);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setAuthed(!!getTeacherId());
+  }, []);
+
+  useEffect(() => {
     if (!authed) return;
+
     const teacherId = getTeacherId();
-    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
+    if (!teacherId) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetch(
+      `/api/teacher/wins?teacherId=${encodeURIComponent(teacherId)}&days=${days}&limit=${WIN_LIMIT}`,
+    )
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(fetchJsonError(payload, response.status));
+        }
+        return payload as WinsResponse;
       })
-      .then((data) => {
-        const roster: Student[] = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.roster)
-          ? data.roster
-          : Array.isArray(data?.students)
-          ? data.students
-          : [];
-        const derived = deriveWins(roster);
-        setWins(derived);
-        setSummary(computeSummary(roster, derived));
-        setLoading(false);
+      .then((payload) => {
+        if (cancelled) return;
+        setWins(Array.isArray(payload.wins) ? payload.wins : []);
+        setRangeDays(payload.rangeDays ?? days);
       })
-      .catch((e) => {
-        setError(String(e));
-        setLoading(false);
+      .catch((caughtError: unknown) => {
+        if (cancelled) return;
+        setWins([]);
+        setError(caughtError instanceof Error ? caughtError.message : "Failed to load wins.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-  }, [authed]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authed, days, refreshNonce]);
 
   if (!authed) {
     return (
@@ -416,7 +537,7 @@ export default function RecentWinsPage() {
             alignItems: "center",
             justifyContent: "center",
             minHeight: "100vh",
-            padding: "24px",
+            padding: 24,
           }}
         >
           <TeacherGate configured={true} />
@@ -425,169 +546,408 @@ export default function RecentWinsPage() {
     );
   }
 
+  const totalWins = wins.length;
+  const uniqueStudents = new Set(wins.map((win) => win.studentId)).size;
+  const uniqueBands = new Set(wins.map((win) => win.launchBandLabel)).size;
+  const latestWin = wins[0] ?? null;
+  const typeCounts = countBy(wins, (win) => win.type);
+  const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0] ?? null;
+
   return (
     <AppFrame audience="teacher" currentPath="/teacher/recent-wins">
       <div
         style={{
-          background: C.base,
+          position: "relative",
           minHeight: "100vh",
-          padding: "28px 24px",
-          fontFamily: "system-ui,-apple-system,sans-serif",
+          padding: "28px 24px 56px",
           color: C.text,
+          background:
+            "radial-gradient(circle at top left, rgba(155,114,255,0.18), transparent 28%), radial-gradient(circle at top right, rgba(56,189,248,0.14), transparent 26%), linear-gradient(180deg, #100b2e 0%, #0d0a22 100%)",
         }}
       >
-        {/* ── Page header ───────────────────────────────────────────── */}
-        <div style={{ marginBottom: 24, maxWidth: 900 }}>
-          <div
-            style={{
-              fontSize: 26,
-              fontWeight: 900,
-              color: C.text,
-              marginBottom: 4,
-            }}
-          >
-            🎉 Recent Wins
-          </div>
-          <div style={{ fontSize: 14, color: C.muted }}>
-            Active students, top performers, and milestones worth celebrating
-            {loading && (
-              <span
-                style={{
-                  marginLeft: 12,
-                  fontSize: 12,
-                  color: C.violet,
-                  fontWeight: 700,
-                }}
-              >
-                Loading…
-              </span>
-            )}
-            {error && (
-              <span
-                style={{
-                  marginLeft: 12,
-                  fontSize: 12,
-                  color: C.amber,
-                  fontWeight: 700,
-                }}
-              >
-                Could not load data
-              </span>
-            )}
-          </div>
-        </div>
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+            maskImage: "linear-gradient(180deg, rgba(0,0,0,0.5), transparent 92%)",
+            pointerEvents: "none",
+          }}
+        />
 
-        {/* ── Stats bar ─────────────────────────────────────────────── */}
-        {!loading && wins.length > 0 && (
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              flexWrap: "wrap",
-              marginBottom: 28,
-              maxWidth: 900,
-            }}
-          >
-            <StatPill
-              icon="🎉"
-              value={summary.totalWins}
-              label="Wins to celebrate"
-              color={C.gold}
-            />
-            <StatPill
-              icon="🔥"
-              value={summary.activeToday}
-              label="Active today"
-              color={C.amber}
-            />
-            <StatPill
-              icon="⭐"
-              value={summary.onARoll}
-              label="On a roll (3 days)"
-              color={C.mint}
-            />
-          </div>
-        )}
-
-        {/* ── Win cards grid ────────────────────────────────────────── */}
-        {!loading && wins.length > 0 && (
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 1180, margin: "0 auto" }}>
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: 14,
-              maxWidth: 900,
-              marginBottom: 32,
+              gridTemplateColumns: "minmax(0, 1.5fr) minmax(290px, 0.8fr)",
+              gap: 16,
+              alignItems: "stretch",
+              marginBottom: 16,
             }}
           >
-            {wins.map((win) => (
-              <WinCardView key={win.id} win={win} />
-            ))}
-          </div>
-        )}
-
-        {/* ── Empty state ───────────────────────────────────────────── */}
-        {!loading && wins.length === 0 && (
-          <div style={{ marginBottom: 32 }}>
-            <EmptyState />
-          </div>
-        )}
-
-        {/* ── Loading skeleton ──────────────────────────────────────── */}
-        {loading && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: 14,
-              maxWidth: 900,
-              marginBottom: 32,
-            }}
-          >
-            {[1, 2, 3, 4].map((n) => (
+            <section
+              style={{
+                position: "relative",
+                overflow: "hidden",
+                background:
+                  "linear-gradient(135deg, rgba(155,114,255,0.17), rgba(255,209,102,0.08) 48%, rgba(56,189,248,0.08))",
+                border: `1px solid ${C.border}`,
+                borderRadius: 22,
+                padding: 24,
+              }}
+            >
               <div
-                key={n}
+                aria-hidden="true"
                 style={{
-                  background: C.surface,
-                  borderRadius: 14,
-                  height: 110,
-                  border: `1px solid ${C.border}`,
-                  opacity: 0.5,
+                  position: "absolute",
+                  inset: "auto -60px -50px auto",
+                  width: 200,
+                  height: 200,
+                  borderRadius: "50%",
+                  background: "radial-gradient(circle, rgba(255,255,255,0.14), transparent 66%)",
+                  pointerEvents: "none",
                 }}
               />
-            ))}
+
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 10px",
+                    borderRadius: 999,
+                    background: "rgba(255,255,255,0.08)",
+                    border: `1px solid rgba(255,255,255,0.08)`,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: ".08em",
+                    textTransform: "uppercase",
+                    color: C.text,
+                  }}
+                >
+                  <span aria-hidden="true">🌟</span>
+                  Recent Wins
+                </div>
+                <h1
+                  style={{
+                    margin: "14px 0 10px",
+                    fontSize: 30,
+                    lineHeight: 1.1,
+                    fontWeight: 950,
+                    color: C.text,
+                    maxWidth: 680,
+                  }}
+                >
+                  Celebrate the last {rangeDays} days of momentum in one glance.
+                </h1>
+                <p style={{ margin: 0, maxWidth: 700, fontSize: 14, lineHeight: 1.7, color: "rgba(240,246,255,0.8)" }}>
+                  This feed pulls real milestone notifications from <code style={{ color: C.gold }}> /api/teacher/wins</code>, so teachers can quickly see who leveled up, earned a badge, or kept a streak alive.
+                </p>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 18 }}>
+                  {FILTERS.map((filter) => (
+                    <FilterChip
+                      key={filter.days}
+                      active={days === filter.days}
+                      label={filter.label}
+                      hint={filter.hint}
+                      onClick={() => setDays(filter.days)}
+                    />
+                  ))}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 10,
+                    marginTop: 18,
+                  }}
+                >
+                  <Link
+                    href="/teacher/class-health"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      border: `1px solid ${C.border}`,
+                      background: "rgba(255,255,255,0.04)",
+                      color: C.text,
+                      textDecoration: "none",
+                      fontSize: 13,
+                      fontWeight: 800,
+                    }}
+                  >
+                    Class health
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                  <Link
+                    href="/teacher/feedback-panel"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      border: `1px solid rgba(155,114,255,0.3)`,
+                      background: "rgba(155,114,255,0.12)",
+                      color: C.violet,
+                      textDecoration: "none",
+                      fontSize: 13,
+                      fontWeight: 800,
+                    }}
+                  >
+                    Support signals
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                </div>
+              </div>
+            </section>
+
+            <section
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gap: 12,
+              }}
+            >
+              <StatCard
+                value={loading ? "…" : String(totalWins)}
+                label="Wins surfaced"
+                icon="🎉"
+                tone="rgba(255,209,102,0.12)"
+              />
+              <StatCard
+                value={loading ? "…" : String(uniqueStudents)}
+                label="Students represented"
+                icon="👥"
+                tone="rgba(56,189,248,0.12)"
+              />
+              <StatCard
+                value={loading ? "…" : String(uniqueBands)}
+                label="Bands touched"
+                icon="📐"
+                tone="rgba(155,114,255,0.12)"
+              />
+              <StatCard
+                value={loading ? "…" : (topType ? typeMeta(topType[0]).label : "None")}
+                label="Most common win"
+                icon="✨"
+                tone="rgba(34,197,94,0.12)"
+              />
+            </section>
           </div>
-        )}
 
-        {/* ── Footer nav ────────────────────────────────────────────── */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            flexWrap: "wrap",
-            maxWidth: 900,
-            marginBottom: 32,
-          }}
-        >
-          <NavBtn href="/teacher/class">Full Class Roster</NavBtn>
-          <NavBtn href="/teacher/skill-mastery">Skill Mastery</NavBtn>
-        </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1.35fr) minmax(280px, 0.65fr)",
+              gap: 16,
+              alignItems: "start",
+            }}
+          >
+            <section
+              style={{
+                background: "rgba(22,27,34,0.96)",
+                border: `1px solid ${C.border}`,
+                borderRadius: 22,
+                padding: 20,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>
+                    Recent wins feed
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 12, color: C.muted }}>
+                    Sorted newest first · {rangeDays}-day window · {loading ? "loading…" : `${totalWins} item${totalWins === 1 ? "" : "s"}`}
+                  </div>
+                </div>
+                {latestWin ? (
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 12px",
+                      borderRadius: 999,
+                      background: "rgba(255,255,255,0.05)",
+                      border: `1px solid ${C.border}`,
+                      color: C.text,
+                      fontSize: 12,
+                      fontWeight: 800,
+                    }}
+                  >
+                    Latest {timeAgo(latestWin.createdAt)}
+                  </div>
+                ) : null}
+              </div>
 
-        {/* ── Teacher encouragement note ────────────────────────────── */}
-        <div
-          style={{
-            maxWidth: 900,
-            background: "rgba(255,209,102,0.07)",
-            border: "1px solid rgba(255,209,102,0.18)",
-            borderRadius: 12,
-            padding: "14px 18px",
-            fontSize: 13,
-            color: C.gold,
-            fontWeight: 600,
-            lineHeight: 1.6,
-          }}
-        >
-          💡 Recognizing progress keeps students motivated — share these wins in class!
+              {error ? (
+                <div
+                  style={{
+                    background: "rgba(255,123,107,0.09)",
+                    border: "1px solid rgba(255,123,107,0.22)",
+                    borderRadius: 16,
+                    padding: "14px 16px",
+                    marginBottom: 16,
+                    color: C.coral,
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  <strong>Could not load recent wins.</strong> {error}
+                  <div style={{ marginTop: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => setRefreshNonce((current) => current + 1)}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 10,
+                        border: `1px solid rgba(255,123,107,0.35)`,
+                        background: "rgba(255,123,107,0.12)",
+                        color: C.coral,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {loading ? (
+                <div style={{ display: "grid", gap: 12 }}>
+                  {[1, 2, 3, 4].map((n) => (
+                    <LoadingCard key={n} />
+                  ))}
+                </div>
+              ) : totalWins > 0 ? (
+                <div style={{ display: "grid", gap: 12 }}>
+                  {wins.map((win) => (
+                    <WinCard key={win.id} win={win} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState onRetry={() => setRefreshNonce((current) => current + 1)} />
+              )}
+            </section>
+
+            <aside style={{ display: "grid", gap: 16 }}>
+              <section
+                style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 22,
+                  padding: 20,
+                }}
+              >
+                <div style={{ fontSize: 14, fontWeight: 900, color: C.text, marginBottom: 12 }}>
+                  What counts as a win
+                </div>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {[
+                    { icon: "⬆️", title: "Level up", text: "A student crossed a progress threshold and moved to a new level." },
+                    { icon: "🏅", title: "Badge", text: "A badge was earned and added to the student profile." },
+                    { icon: "🔥", title: "Streak", text: "Daily play kept the momentum alive." },
+                    { icon: "🎉", title: "Milestone", text: "A broader milestone notification was recorded." },
+                  ].map((item) => (
+                    <div
+                      key={item.title}
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "flex-start",
+                        padding: "10px 0",
+                        borderTop: `1px solid ${C.border}`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 12,
+                          background: "rgba(255,255,255,0.05)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 16,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {item.icon}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 900, color: C.text }}>{item.title}</div>
+                        <div style={{ marginTop: 4, fontSize: 12, lineHeight: 1.6, color: C.muted }}>
+                          {item.text}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section
+                style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 22,
+                  padding: 20,
+                }}
+              >
+                <div style={{ fontSize: 14, fontWeight: 900, color: C.text, marginBottom: 12 }}>
+                  Quick links
+                </div>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {[
+                    { href: "/teacher/class", label: "Open class roster" },
+                    { href: "/teacher/class-health", label: "Check class health" },
+                    { href: "/teacher/feedback-panel", label: "Review feedback signals" },
+                  ].map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "12px 14px",
+                        borderRadius: 14,
+                        border: `1px solid ${C.border}`,
+                        background: "rgba(255,255,255,0.03)",
+                        color: C.text,
+                        textDecoration: "none",
+                        fontSize: 13,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {item.label}
+                      <span aria-hidden="true" style={{ color: C.violet }}>
+                        →
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            </aside>
+          </div>
         </div>
       </div>
     </AppFrame>
