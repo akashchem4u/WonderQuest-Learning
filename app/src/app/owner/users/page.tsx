@@ -192,7 +192,10 @@ function StudentsTab() {
       setLinkInput(l => ({ ...l, [studentId]: "" }));
       // reload guardians
       const lr = await fetch(`/api/admin/links?studentId=${studentId}`);
-      if (lr.ok) setLinkedGuardians(g => ({ ...g, [studentId]: (await lr.json()).links }));
+      if (lr.ok) {
+        const lrData = await lr.json();
+        setLinkedGuardians(g => ({ ...g, [studentId]: lrData.links }));
+      }
     } catch (e) { alert(e instanceof Error ? e.message : "Failed to link"); }
     finally { setLinkSaving(null); }
   }
