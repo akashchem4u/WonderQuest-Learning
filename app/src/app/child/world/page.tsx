@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { PreReaderShell } from "@/components/pre-reader-shell";
 
 const C = {
   base: "#100b2e",
@@ -71,8 +72,12 @@ export default function ChildWorldPage() {
   const mastered = stats?.masteredSkillsCount ?? 0;
   const streak = stats?.streakDays ?? 0;
 
+  const currentBandMeta = BANDS[effectiveIdx];
+  const worldPageIntro = `Welcome to your learning journey! You are in ${currentBandMeta?.name ?? "your world"}. You are level ${level} and have mastered ${mastered} skills. Keep it up!`;
+
   return (
     <AppFrame audience="kid" currentPath="/child">
+      <PreReaderShell bandCode={currentBandCode} pageIntro={worldPageIntro}>
       <style>{`
         @keyframes world-glow {
           0%,100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.4); }
@@ -194,6 +199,7 @@ export default function ChildWorldPage() {
           )}
         </div>
       </div>
+      </PreReaderShell>
     </AppFrame>
   );
 }

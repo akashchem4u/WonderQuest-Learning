@@ -1,841 +1,625 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
-import OwnerGate from "@/app/owner/owner-gate";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
-  base: "#100b2e",
-  bg: "#0d1117",
-  surface: "#161b22",
-  border: "rgba(255,255,255,0.06)",
+  bg: "#06071a",
+  card: "#12152e",
+  border: "rgba(255,255,255,0.07)",
   text: "#f0f6ff",
-  muted: "#8b949e",
-  mint: "#22c55e",
+  muted: "rgba(240,246,255,0.45)",
+  dimmed: "rgba(240,246,255,0.25)",
   violet: "#9b72ff",
-  blue: "#38bdf8",
-  gold: "#ffd166",
+  teal: "#2dd4bf",
+  green: "#22c55e",
   amber: "#f59e0b",
   red: "#ef4444",
 } as const;
 
-// ── API types ─────────────────────────────────────────────────────────────────
-interface BandCount {
-  code: string;
-  displayName: string;
-  studentCount: number;
+// ── Types ─────────────────────────────────────────────────────────────────────
+interface FunnelData {
+  totalStudents: number;
+  hadFirstSession: number;
+  activeByDay7: number;
+  activeByDay30: number;
+  firstSessionRate: number;
 }
 
-interface OverviewData {
-  counts: {
-    students: number;
-    guardians: number;
-    sessions: number;
-    feedbackItems: number;
-  };
-  byBand: BandCount[];
+interface GuardianData {
+  total: number;
+  linked: number;
+  active7d: number;
 }
 
-// ── Static chart/funnel data (unchanged) ──────────────────────────────────────
-const CHART_POINTS = [
-  { x: 52, y: 196.7, label: "Apr" },
-  { x: 117, y: 183.3, label: "May" },
-  { x: 181, y: 170, label: "Jun" },
-  { x: 246, y: 150, label: "Jul" },
-  { x: 311, y: 130, label: "Aug" },
-  { x: 375, y: 110, label: "Sep" },
-  { x: 440, y: 90, label: "Oct" },
-  { x: 505, y: 70, label: "Nov" },
-  { x: 569, y: 50, label: "Dec" },
-  { x: 634, y: 36.7, label: "Jan" },
-  { x: 698, y: 26.7, label: "Feb" },
-  { x: 762, y: 20.1, label: "Mar" },
-];
+interface SchoolRow {
+  school: string;
+  teachers: number;
+  students: number;
+  totalSessions: number;
+  sessions7d: number;
+  lastActivityAt: string | null;
+}
 
-const WEEKLY_BARS = [
-  { label: "W1", height: 42 },
-  { label: "W2", height: 50 },
-  { label: "W3", height: 48, opacity: 0.7 },
-  { label: "W4", height: 56 },
-  { label: "W5", height: 62 },
-  { label: "W6", height: 58, opacity: 0.75 },
-  { label: "W7", height: 63 },
-  { label: "W8", height: 67 },
-];
+interface TeacherRow {
+  id: string;
+  name: string;
+  username: string;
+  school: string;
+  sessionCount: number;
+  activeStudents: number;
+  sessions7d: number;
+  lastSessionAt: string | null;
+}
 
-const RETENTION = [
-  { week: "W1", pct: 100 },
-  { week: "W2", pct: 89 },
-  { week: "W3", pct: 81, approx: true },
-  { week: "W4", pct: 74 },
-  { week: "W6", pct: 67, approx: true },
-  { week: "W8", pct: 61 },
-];
+interface AdoptionData {
+  fetchedAt: string;
+  funnel: FunnelData;
+  guardians: GuardianData;
+  bySchool: SchoolRow[];
+  byTeacher: TeacherRow[];
+}
 
-const FUNNEL = [
-  { step: "Signed up", pct: 100, count: "1,847", color: "#22c55e" },
-  { step: "Completed onboarding", pct: 87, count: "1,612", color: "#4dd880" },
-  { step: "First session", pct: 81, count: "1,489", color: "#44c870" },
-  { step: "7-day return", pct: 51, count: "934", color: "#f0c040", darkText: true },
-  { step: "30-day active", pct: 40, count: "734", color: "#ff7a5c" },
-];
-
-const BAND_COLORS: Record<string, { bg: string; color: string }> = {
-  "Pre-K": { bg: "rgba(255,180,60,.18)", color: "#ffb43c" },
-  "K–1":   { bg: "rgba(80,232,144,.18)", color: "#50e890" },
-  "G2–3":  { bg: "rgba(80,160,255,.18)", color: "#50a0ff" },
-  "G4–5":  { bg: "rgba(200,120,255,.18)", color: "#c878ff" },
-};
-
-const ENG_STYLE: Record<string, { bg: string; color: string; border: string }> = {
-  High:   { bg: "rgba(80,232,144,.15)", color: "#50e890", border: "1px solid rgba(80,232,144,.3)" },
-  Medium: { bg: "rgba(255,180,60,.12)", color: "#ffb43c", border: "1px solid rgba(255,180,60,.3)" },
-  Low:    { bg: "rgba(255,100,90,.12)", color: "#ff6a5e", border: "1px solid rgba(255,100,90,.25)" },
-};
-
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(n: number): string {
   return n.toLocaleString();
 }
 
+function pct(num: number, den: number): string {
+  if (den === 0) return "—";
+  return Math.round((100 * num) / den) + "%";
+}
+
+function relTime(iso: string | null): string {
+  if (!iso) return "Never";
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  return `${Math.floor(days / 30)}mo ago`;
+}
+
+function teacherStatus(row: TeacherRow): { label: string; color: string } {
+  if (row.sessions7d > 0) return { label: "Active", color: C.green };
+  if (row.lastSessionAt) {
+    const days = Math.floor((Date.now() - new Date(row.lastSessionAt).getTime()) / 86400000);
+    if (days < 14) return { label: "Idle", color: C.amber };
+  }
+  return { label: "Dormant", color: C.red };
+}
+
+function schoolStatus(row: SchoolRow): { label: string; color: string } {
+  if (row.sessions7d > 0) return { label: "Active", color: C.green };
+  if (row.lastActivityAt) {
+    const days = Math.floor((Date.now() - new Date(row.lastActivityAt).getTime()) / 86400000);
+    if (days < 30) return { label: "Dormant", color: C.amber };
+  }
+  return { label: "New", color: C.teal };
+}
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+function Skeleton({ w = "100%", h = 16, r = 6 }: { w?: string | number; h?: number; r?: number }) {
+  return (
+    <div
+      style={{
+        width: w,
+        height: h,
+        borderRadius: r,
+        background: "rgba(255,255,255,0.06)",
+        animation: "pulse 1.4s ease-in-out infinite",
+      }}
+    />
+  );
+}
+
+// ── Status Badge ──────────────────────────────────────────────────────────────
+function StatusBadge({ label, color }: { label: string; color: string }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        fontSize: 11,
+        fontWeight: 700,
+        color,
+        background: color + "1a",
+        border: `1px solid ${color}33`,
+        borderRadius: 5,
+        padding: "2px 8px",
+      }}
+    >
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, display: "inline-block", flexShrink: 0 }} />
+      {label}
+    </span>
+  );
+}
+
+// ── Funnel Bar ────────────────────────────────────────────────────────────────
+function FunnelStep({
+  label,
+  count,
+  total,
+  convRate,
+  color,
+  isFirst,
+}: {
+  label: string;
+  count: number;
+  total: number;
+  convRate: string;
+  color: string;
+  isFirst: boolean;
+}) {
+  const barPct = total > 0 ? (count / total) * 100 : 0;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <span style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>{label}</span>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+          <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: "-0.5px" }}>{fmt(count)}</span>
+          {!isFirst && (
+            <span style={{ fontSize: 11, fontWeight: 700, color }}>
+              {convRate}
+            </span>
+          )}
+        </div>
+      </div>
+      <div style={{ height: 10, background: "rgba(255,255,255,0.06)", borderRadius: 5, overflow: "hidden" }}>
+        <div
+          style={{
+            height: "100%",
+            width: `${barPct}%`,
+            background: color,
+            borderRadius: 5,
+            transition: "width 0.5s ease",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function AdoptionPage() {
-  const [overview, setOverview] = useState<OverviewData | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [data, setData] = useState<AdoptionData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoadError("Request timed out"), 8000);
-    fetch("/api/owner/overview")
-      .then((res) => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
-      .then((data: OverviewData & { error?: string }) => {
-        clearTimeout(timer);
-        if (data?.error) {
-          setLoadError(data.error);
-        } else {
-          setOverview(data);
-        }
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setError("Request timed out. Check your connection and retry.");
+    }, 12000);
+    fetch("/api/owner/adoption")
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
       })
-      .catch((e: Error) => { clearTimeout(timer); setLoadError(e.message ?? "Failed to fetch overview data."); });
+      .then((d: AdoptionData & { error?: string }) => {
+        clearTimeout(timer);
+        if (d?.error) {
+          setError(d.error);
+        } else {
+          setData(d);
+        }
+        setLoading(false);
+      })
+      .catch((e: Error) => {
+        clearTimeout(timer);
+        setError(e.message ?? "Failed to load adoption data.");
+        setLoading(false);
+      });
   }, []);
 
-  if (loadError) {
-    return <OwnerGate configured={false} />;
-  }
+  useEffect(() => { load(); }, [load]);
 
-  const studentCount = overview?.counts.students ?? 0;
-  const sessionCount = overview?.counts.sessions ?? 0;
-  const guardianCount = overview?.counts.guardians ?? 0;
-  const byBand = overview?.byBand ?? [];
+  const updatedLabel = data
+    ? new Date(data.fetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : null;
 
-  // Build KPI cards from real data
-  const kpiCards = [
-    { label: "Students", value: fmt(studentCount), delta: overview ? "Live data" : "Loading…", up: true },
-    { label: "Families", value: fmt(guardianCount), delta: overview ? "Live data" : "Loading…", up: true },
-    { label: "Sessions", value: fmt(sessionCount), delta: overview ? "All time" : "Loading…", up: true },
-    { label: "Feedback", value: fmt(overview?.counts.feedbackItems ?? 0), delta: overview ? "All time" : "Loading…", up: true },
-    { label: "DAU / MAU", value: "—", delta: "● Analytics lag", up: false, valueSm: true },
-  ];
+  const TH = ({ children, right }: { children: React.ReactNode; right?: boolean }) => (
+    <th
+      style={{
+        fontSize: 11,
+        fontWeight: 700,
+        textTransform: "uppercase",
+        letterSpacing: "0.5px",
+        color: C.dimmed,
+        padding: "10px 14px",
+        textAlign: right ? "right" : "left",
+        borderBottom: `1px solid ${C.border}`,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </th>
+  );
 
-  const polylinePoints = CHART_POINTS.map((p) => `${p.x},${p.y}`).join(" ");
-  const areaPoints =
-    `52,210 ` +
-    CHART_POINTS.map((p) => `${p.x},${p.y}`).join(" ") +
-    ` 762,210`;
+  const TD = ({
+    children,
+    right,
+    muted,
+  }: {
+    children: React.ReactNode;
+    right?: boolean;
+    muted?: boolean;
+  }) => (
+    <td
+      style={{
+        padding: "10px 14px",
+        fontSize: 13,
+        color: muted ? C.muted : C.text,
+        textAlign: right ? "right" : "left",
+        borderBottom: `1px solid rgba(255,255,255,0.03)`,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </td>
+  );
 
   return (
     <AppFrame audience="owner" currentPath="/owner/adoption">
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
       <main
         style={{
           minHeight: "100vh",
-          background: C.base,
-          padding: "24px",
+          background: C.bg,
+          padding: "20px 24px 40px",
           fontFamily: "system-ui, -apple-system, sans-serif",
           color: C.text,
         }}
       >
-        {/* ── Page header ───────────────────────────────────────────────── */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px", flexWrap: "wrap" }}>
-          <div style={{ fontSize: "22px", fontWeight: 700, color: C.text, letterSpacing: "-0.3px" }}>
-            Adoption Trends
-          </div>
-          <div
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.4px" }}>Adoption</div>
+          <span
             style={{
-              background: "#50e890",
-              color: C.bg,
-              fontSize: "11px",
+              fontSize: 10,
               fontWeight: 800,
               letterSpacing: "0.8px",
-              padding: "3px 9px",
-              borderRadius: "4px",
               textTransform: "uppercase",
-              flexShrink: 0,
+              background: C.violet + "22",
+              color: C.violet,
+              border: `1px solid ${C.violet}44`,
+              borderRadius: 4,
+              padding: "2px 8px",
             }}
           >
             Owner Only
-          </div>
-          <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
-            {["7d", "30d", "90d", "All Time"].map((p) => (
-              <button
-                key={p}
-                style={{
-                  background: p === "30d" ? "rgba(80,232,144,.15)" : "rgba(255,255,255,.06)",
-                  border: p === "30d" ? "1px solid #50e890" : "1px solid rgba(255,255,255,.08)",
-                  color: p === "30d" ? "#50e890" : "rgba(240,246,255,.6)",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  padding: "5px 11px",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Tab nav ───────────────────────────────────────────────────── */}
-        <div
-          style={{
-            display: "flex",
-            gap: "4px",
-            marginBottom: "28px",
-            borderBottom: "1px solid rgba(255,255,255,.08)",
-          }}
-        >
-          {["Adoption Dashboard", "School Adoption"].map((tab, i) => (
-            <div
-              key={tab}
+          </span>
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+            {updatedLabel && (
+              <span style={{ fontSize: 12, color: C.dimmed }}>Updated {updatedLabel}</span>
+            )}
+            <button
+              onClick={load}
+              disabled={loading}
               style={{
-                fontSize: "14px",
-                fontWeight: 500,
-                padding: "10px 18px 12px",
-                cursor: "pointer",
-                borderBottom: i === 0 ? "2px solid #50e890" : "2px solid transparent",
-                marginBottom: "-1px",
-                color: i === 0 ? "#50e890" : "rgba(240,246,255,.45)",
+                background: loading ? "rgba(255,255,255,0.05)" : "rgba(155,114,255,0.12)",
+                border: `1px solid ${loading ? C.border : C.violet + "55"}`,
+                color: loading ? C.muted : C.violet,
+                fontSize: 12,
+                fontWeight: 700,
+                padding: "6px 14px",
+                borderRadius: 7,
+                cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              {tab}
-            </div>
-          ))}
-        </div>
-
-        {/* ── KPI row ───────────────────────────────────────────────────── */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(5, 1fr)",
-            gap: "12px",
-            marginBottom: "28px",
-          }}
-        >
-          {kpiCards.map((kpi) => (
-            <div
-              key={kpi.label}
-              style={{
-                background: C.surface,
-                border: `1px solid ${C.border}`,
-                borderRadius: "10px",
-                padding: "18px 16px 14px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  letterSpacing: "0.6px",
-                  textTransform: "uppercase",
-                  color: "rgba(240,246,255,.4)",
-                  marginBottom: "6px",
-                }}
-              >
-                {kpi.label}
-              </div>
-              <div
-                style={{
-                  fontSize: kpi.valueSm ? "24px" : "28px",
-                  fontWeight: 800,
-                  color: C.text,
-                  lineHeight: 1,
-                  marginBottom: "6px",
-                  letterSpacing: "-0.5px",
-                }}
-              >
-                {kpi.value}
-              </div>
-              <div
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: kpi.up ? "#50e890" : C.muted,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "3px",
-                }}
-              >
-                {kpi.delta}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Band breakdown ────────────────────────────────────────────── */}
-        {byBand.length > 0 && (
-          <div
-            style={{
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: "10px",
-              padding: "20px",
-              marginBottom: "28px",
-            }}
-          >
-            <div style={{ fontSize: "13px", fontWeight: 700, color: "rgba(240,246,255,.6)", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "16px" }}>
-              Students by Band
-            </div>
-            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-              {byBand.map((band) => {
-                const style = BAND_COLORS[band.code] ?? { bg: "rgba(255,255,255,.1)", color: C.muted };
-                return (
-                  <div
-                    key={band.code}
-                    style={{
-                      background: style.bg,
-                      borderRadius: "8px",
-                      padding: "14px 18px",
-                      minWidth: "120px",
-                      flex: "1 1 120px",
-                    }}
-                  >
-                    <div style={{ fontSize: "11px", fontWeight: 700, color: style.color, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>
-                      {band.displayName || band.code}
-                    </div>
-                    <div style={{ fontSize: "26px", fontWeight: 800, color: C.text, lineHeight: 1 }}>
-                      {fmt(band.studentCount)}
-                    </div>
-                    <div style={{ fontSize: "11px", color: "rgba(240,246,255,.4)", marginTop: "4px" }}>students</div>
-                  </div>
-                );
-              })}
-            </div>
+              {loading ? "Loading…" : "Refresh"}
+            </button>
           </div>
-        )}
+        </div>
 
-        {/* ── MAU Trend Chart ───────────────────────────────────────────── */}
-        <div
-          style={{
-            background: C.surface,
-            border: `1px solid ${C.border}`,
-            borderRadius: "10px",
-            padding: "20px",
-            marginBottom: "28px",
-          }}
-        >
+        {/* ── Error state ─────────────────────────────────────────────────── */}
+        {error && (
           <div
             style={{
+              background: "rgba(239,68,68,0.08)",
+              border: "1px solid rgba(239,68,68,0.25)",
+              borderRadius: 10,
+              padding: "16px 20px",
+              marginBottom: 24,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: "16px",
+              gap: 12,
               flexWrap: "wrap",
-              gap: "8px",
             }}
           >
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: 700, color: C.text }}>
-                MAU Growth — 12 Months
-              </div>
-              <div style={{ fontSize: "11px", color: "rgba(240,246,255,.35)", marginTop: "4px", display: "flex", alignItems: "center", gap: "5px" }}>
-                <span
-                  style={{
-                    display: "inline-block",
-                    width: "6px",
-                    height: "6px",
-                    borderRadius: "50%",
-                    background: "#f0c040",
-                    flexShrink: 0,
-                  }}
-                />
-                Analytics warehouse · 4–6h data lag
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px", fontSize: "12px", color: "rgba(240,246,255,.5)" }}>
-              <span>
-                <span
-                  style={{
-                    display: "inline-block",
-                    width: "10px",
-                    height: "10px",
-                    borderRadius: "50%",
-                    background: "#50e890",
-                    marginRight: "4px",
-                    verticalAlign: "middle",
-                  }}
-                />
-                MAU
-              </span>
-              <span>
-                <span
-                  style={{
-                    display: "inline-block",
-                    width: "10px",
-                    height: "10px",
-                    borderRadius: "50%",
-                    background: "rgba(80,232,144,.25)",
-                    marginRight: "4px",
-                    verticalAlign: "middle",
-                  }}
-                />
-                Trend area
-              </span>
-            </div>
+            <span style={{ fontSize: 13, color: "#fca5a5" }}>{error}</span>
+            <button
+              onClick={load}
+              style={{
+                background: "rgba(239,68,68,0.15)",
+                border: "1px solid rgba(239,68,68,0.35)",
+                color: "#fca5a5",
+                fontSize: 12,
+                fontWeight: 700,
+                padding: "5px 14px",
+                borderRadius: 6,
+                cursor: "pointer",
+              }}
+            >
+              Retry
+            </button>
           </div>
+        )}
 
-          <svg
-            viewBox="0 0 780 250"
-            preserveAspectRatio="xMidYMid meet"
-            style={{ width: "100%", height: "280px", display: "block", overflow: "visible" }}
-          >
-            <defs>
-              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#50e890" stopOpacity="0.28" />
-                <stop offset="100%" stopColor="#50e890" stopOpacity="0.02" />
-              </linearGradient>
-              <clipPath id="chartClip">
-                <rect x="52" y="10" width="710" height="200" />
-              </clipPath>
-            </defs>
-
-            {/* Y-axis grid lines */}
-            {[
-              { y: 10, label: "3000" },
-              { y: 43, label: "2500" },
-              { y: 77, label: "2000" },
-              { y: 110, label: "1500" },
-              { y: 143, label: "1000" },
-              { y: 177, label: "500" },
-              { y: 210, label: "0" },
-            ].map(({ y, label }) => (
-              <g key={label}>
-                <line
-                  x1="52"
-                  y1={y}
-                  x2="762"
-                  y2={y}
-                  stroke={y === 210 ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.05)"}
-                  strokeWidth="1"
-                />
-                <text
-                  x="46"
-                  y={y + 4}
-                  textAnchor="end"
-                  fill="rgba(240,246,255,.35)"
-                  fontSize="10"
-                >
-                  {label}
-                </text>
-              </g>
-            ))}
-
-            {/* X-axis labels */}
-            {CHART_POINTS.map((p) => (
-              <text
-                key={p.label}
-                x={p.x}
-                y="228"
-                textAnchor="middle"
-                fill="rgba(240,246,255,.35)"
-                fontSize="10"
-              >
-                {p.label}
-              </text>
-            ))}
-
-            {/* Area fill */}
-            <polygon
-              clipPath="url(#chartClip)"
-              fill="url(#areaGrad)"
-              points={areaPoints}
-            />
-
-            {/* Line */}
-            <polyline
-              clipPath="url(#chartClip)"
-              fill="none"
-              stroke="#50e890"
-              strokeWidth="2.5"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              points={polylinePoints}
-            />
-
-            {/* Data points */}
-            {CHART_POINTS.map((p, i) => (
-              <circle
-                key={p.label}
-                cx={p.x}
-                cy={p.y}
-                r={i === CHART_POINTS.length - 1 ? 4.5 : 3.5}
-                fill="#50e890"
-                stroke={i === CHART_POINTS.length - 1 ? C.bg : undefined}
-                strokeWidth={i === CHART_POINTS.length - 1 ? 2 : undefined}
+        {/* ── Activation Funnel ────────────────────────────────────────────── */}
+        <div
+          style={{
+            background: C.card,
+            border: `1px solid ${C.border}`,
+            borderRadius: 12,
+            padding: "18px 20px",
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: C.dimmed, marginBottom: 16 }}>
+            Activation Funnel
+          </div>
+          {loading ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <Skeleton w={120} h={12} />
+                    <Skeleton w={60} h={12} />
+                  </div>
+                  <Skeleton w="100%" h={10} r={5} />
+                </div>
+              ))}
+            </div>
+          ) : data ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 28px" }}>
+              <FunnelStep
+                label="Total Students"
+                count={data.funnel.totalStudents}
+                total={data.funnel.totalStudents}
+                convRate="—"
+                color={C.teal}
+                isFirst
               />
-            ))}
-
-            {/* Beta launch annotation */}
-            <g>
-              <line x1="181" y1="170" x2="181" y2="135" stroke="#f0c040" strokeWidth="1" strokeDasharray="3,2" />
-              <rect x="148" y="117" width="66" height="17" rx="3" fill="rgba(240,192,64,.15)" stroke="rgba(240,192,64,.4)" strokeWidth="1" />
-              <text x="181" y="129" textAnchor="middle" fill="#f0c040" fontSize="9.5" fontWeight="700">Beta launch</text>
-            </g>
-
-            {/* School onboarding annotation */}
-            <g>
-              <line x1="440" y1="90" x2="440" y2="55" stroke="#50a0ff" strokeWidth="1" strokeDasharray="3,2" />
-              <rect x="394" y="37" width="92" height="17" rx="3" fill="rgba(80,160,255,.15)" stroke="rgba(80,160,255,.4)" strokeWidth="1" />
-              <text x="440" y="49" textAnchor="middle" fill="#50a0ff" fontSize="9.5" fontWeight="700">School onboarding</text>
-            </g>
-          </svg>
+              <FunnelStep
+                label="Had First Session"
+                count={data.funnel.hadFirstSession}
+                total={data.funnel.totalStudents}
+                convRate={pct(data.funnel.hadFirstSession, data.funnel.totalStudents)}
+                color={C.violet}
+                isFirst={false}
+              />
+              <FunnelStep
+                label="Active by Day 7"
+                count={data.funnel.activeByDay7}
+                total={data.funnel.totalStudents}
+                convRate={pct(data.funnel.activeByDay7, data.funnel.hadFirstSession)}
+                color={C.amber}
+                isFirst={false}
+              />
+              <FunnelStep
+                label="Active by Day 30"
+                count={data.funnel.activeByDay30}
+                total={data.funnel.totalStudents}
+                convRate={pct(data.funnel.activeByDay30, data.funnel.activeByDay7)}
+                color={C.green}
+                isFirst={false}
+              />
+            </div>
+          ) : (
+            <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 13 }}>
+              No adoption data yet
+            </div>
+          )}
         </div>
 
-        {/* ── Cohort row ────────────────────────────────────────────────── */}
+        {/* ── Guardian Engagement ──────────────────────────────────────────── */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "16px",
-            marginBottom: "28px",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 12,
+            marginBottom: 16,
           }}
         >
-          {/* Teacher cohort */}
-          <div
-            style={{
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: "10px",
-              padding: "20px",
-            }}
-          >
+          {(
+            [
+              {
+                label: "Total Guardians",
+                value: data?.guardians.total,
+                sub: "All registered",
+                color: C.teal,
+              },
+              {
+                label: "Linked to a Child",
+                value: data?.guardians.linked,
+                sub: data ? `${pct(data.guardians.linked, data.guardians.total)} of total` : "—",
+                color: C.violet,
+              },
+              {
+                label: "Active This Week",
+                value: data?.guardians.active7d,
+                sub: data ? `${pct(data.guardians.active7d, data.guardians.linked)} of linked` : "—",
+                color: C.green,
+              },
+            ] as { label: string; value: number | undefined; sub: string; color: string }[]
+          ).map((card) => (
             <div
+              key={card.label}
               style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                letterSpacing: "0.7px",
-                textTransform: "uppercase",
-                color: "rgba(240,246,255,.45)",
-                marginBottom: "8px",
+                background: C.card,
+                border: `1px solid ${C.border}`,
+                borderRadius: 12,
+                padding: "16px 18px",
               }}
             >
-              Teacher Cohort — Sessions per Week (8-week window)
-            </div>
-            <div style={{ fontSize: "12px", color: "rgba(240,246,255,.45)", marginBottom: "4px" }}>
-              Total sessions (all time): {fmt(sessionCount)}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-end",
-                gap: "4px",
-                height: "70px",
-                marginTop: "12px",
-              }}
-            >
-              {WEEKLY_BARS.map((bar) => (
-                <div
-                  key={bar.label}
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "3px",
-                    height: "100%",
-                    justifyContent: "flex-end",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "100%",
-                      height: `${bar.height}px`,
-                      background: "#50e890",
-                      borderRadius: "3px 3px 0 0",
-                      opacity: bar.opacity ?? 0.82,
-                    }}
-                  />
-                  <div style={{ fontSize: "10px", color: "rgba(240,246,255,.4)", whiteSpace: "nowrap" }}>
-                    {bar.label}
-                  </div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: C.dimmed, marginBottom: 8 }}>
+                {card.label}
+              </div>
+              {loading ? (
+                <Skeleton w={80} h={28} r={4} />
+              ) : (
+                <div style={{ fontSize: 28, fontWeight: 800, color: card.color, letterSpacing: "-0.5px", lineHeight: 1 }}>
+                  {card.value !== undefined ? fmt(card.value) : "—"}
                 </div>
-              ))}
+              )}
+              <div style={{ fontSize: 11, color: C.dimmed, marginTop: 6 }}>{card.sub}</div>
             </div>
-            <div style={{ fontSize: "11px", color: "rgba(240,246,255,.35)", marginTop: "10px" }}>
-              Avg sessions/teacher/week: 4.2 · Trend ▲ improving
-            </div>
-          </div>
-
-          {/* Family retention */}
-          <div
-            style={{
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: "10px",
-              padding: "20px",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                letterSpacing: "0.7px",
-                textTransform: "uppercase",
-                color: "rgba(240,246,255,.45)",
-                marginBottom: "8px",
-              }}
-            >
-              Family Retention Curve — {fmt(guardianCount)} Families
-            </div>
-            <div style={{ fontSize: "12px", color: "rgba(240,246,255,.45)", marginBottom: "2px" }}>
-              % still active by week
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
-              {RETENTION.map((r) => (
-                <div
-                  key={r.week}
-                  style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "12px" }}
-                >
-                  <div style={{ width: "32px", color: "rgba(240,246,255,.5)", flexShrink: 0 }}>
-                    {r.week}
-                  </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      height: "10px",
-                      background: "rgba(255,255,255,.06)",
-                      borderRadius: "5px",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        width: `${r.pct}%`,
-                        background: "#50e890",
-                        borderRadius: "5px",
-                        opacity: r.approx ? 0.85 : 1,
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      width: "38px",
-                      textAlign: "right",
-                      color: r.approx ? "rgba(240,246,255,.5)" : C.text,
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {r.approx ? `~${r.pct}%` : `${r.pct}%`}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ fontSize: "11px", color: "rgba(240,246,255,.35)", marginTop: "10px" }}>
-              61% 8-week retention · Industry avg ~55%
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* ── Activation funnel ─────────────────────────────────────────── */}
+        {/* ── By School ────────────────────────────────────────────────────── */}
         <div
           style={{
-            background: C.surface,
+            background: C.card,
             border: `1px solid ${C.border}`,
-            borderRadius: "10px",
-            padding: "20px",
-            marginBottom: "28px",
+            borderRadius: 12,
+            marginBottom: 16,
+            overflow: "hidden",
           }}
         >
-          <div
-            style={{
-              fontSize: "13px",
-              fontWeight: 700,
-              color: "rgba(240,246,255,.6)",
-              textTransform: "uppercase",
-              letterSpacing: "0.6px",
-              marginBottom: "6px",
-            }}
-          >
-            Activation Funnel
+          <div style={{ padding: "14px 16px 0", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: C.dimmed }}>
+            By School
           </div>
-          <div style={{ fontSize: "11px", color: "rgba(240,246,255,.35)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "5px" }}>
-            <span
-              style={{
-                display: "inline-block",
-                width: "6px",
-                height: "6px",
-                borderRadius: "50%",
-                background: "#f0c040",
-                flexShrink: 0,
-              }}
-            />
-            Each step = distinct event in analytics_events table
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "16px" }}>
-            {FUNNEL.map((step) => (
-              <div key={step.step} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ width: "180px", fontSize: "13px", color: "rgba(240,246,255,.75)", flexShrink: 0 }}>
-                  {step.step}
-                </div>
-                <div
-                  style={{
-                    flex: 1,
-                    height: "22px",
-                    background: "rgba(255,255,255,.05)",
-                    borderRadius: "5px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${step.pct}%`,
-                      background: step.color,
-                      borderRadius: "5px",
-                      display: "flex",
-                      alignItems: "center",
-                      paddingLeft: "10px",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: step.darkText ? C.bg : "#0d1117",
-                    }}
-                  >
-                    {step.pct}%
-                  </div>
-                </div>
-                <div style={{ width: "55px", textAlign: "right", fontSize: "13px", fontWeight: 700, color: C.text, flexShrink: 0 }}>
-                  {step.count}
-                </div>
-                <div style={{ width: "38px", textAlign: "right", fontSize: "12px", color: "rgba(240,246,255,.5)", flexShrink: 0 }}>
-                  {step.pct === 100 ? "—" : `${step.pct}%`}
-                </div>
-              </div>
-            ))}
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <TH>School</TH>
+                  <TH right>Teachers</TH>
+                  <TH right>Students</TH>
+                  <TH right>Sessions (7d)</TH>
+                  <TH right>Last Activity</TH>
+                  <TH right>Status</TH>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <tr key={i}>
+                      {[160, 50, 50, 70, 80, 70].map((w, j) => (
+                        <td key={j} style={{ padding: "12px 14px" }}>
+                          <Skeleton w={w} h={12} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : data && data.bySchool.length > 0 ? (
+                  data.bySchool.map((row) => {
+                    const st = schoolStatus(row);
+                    return (
+                      <tr key={row.school} style={{ borderBottom: `1px solid rgba(255,255,255,0.03)` }}>
+                        <TD>
+                          <span style={{ fontWeight: 600 }}>{row.school}</span>
+                        </TD>
+                        <TD right muted>{fmt(row.teachers)}</TD>
+                        <TD right muted>{fmt(row.students)}</TD>
+                        <TD right>
+                          <span style={{ fontWeight: 700, color: row.sessions7d > 0 ? C.teal : C.muted }}>
+                            {fmt(row.sessions7d)}
+                          </span>
+                        </TD>
+                        <TD right muted>{relTime(row.lastActivityAt)}</TD>
+                        <TD right>
+                          <StatusBadge label={st.label} color={st.color} />
+                        </TD>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={6} style={{ padding: "40px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
+                      No school data yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* ── Band adoption table ───────────────────────────────────────── */}
-        {byBand.length > 0 && (
-          <div style={{ marginBottom: "28px" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "16px",
-                flexWrap: "wrap",
-                gap: "10px",
-              }}
-            >
-              <div style={{ fontSize: "13px", fontWeight: 700, color: "rgba(240,246,255,.6)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
-                Students by Band ({fmt(studentCount)} total)
-              </div>
-              <div style={{ fontSize: "12px", color: "rgba(240,246,255,.4)", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                Engagement:
-                {(["High", "Medium", "Low"] as const).map((eng) => (
-                  <span
-                    key={eng}
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      padding: "3px 10px",
-                      borderRadius: "5px",
-                      ...ENG_STYLE[eng],
-                    }}
-                  >
-                    {eng}
-                  </span>
-                ))}
-                DAU/MAU
-              </div>
-            </div>
-            <div
-              style={{
-                background: C.surface,
-                border: `1px solid ${C.border}`,
-                borderRadius: "10px",
-                overflowX: "auto",
-              }}
-            >
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                <thead>
-                  <tr>
-                    {["Band", "Display Name", "Students"].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                          color: "rgba(240,246,255,.4)",
-                          padding: "12px 16px",
-                          textAlign: "left",
-                          borderBottom: "1px solid rgba(255,255,255,.06)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {byBand.map((band) => {
-                    const style = BAND_COLORS[band.code] ?? { bg: "rgba(255,255,255,.08)", color: C.muted };
-                    return (
-                      <tr
-                        key={band.code}
-                        style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}
-                      >
-                        <td style={{ padding: "11px 16px" }}>
-                          <span
-                            style={{
-                              fontSize: "10px",
-                              fontWeight: 700,
-                              padding: "2px 7px",
-                              borderRadius: "3px",
-                              letterSpacing: "0.3px",
-                              background: style.bg,
-                              color: style.color,
-                            }}
-                          >
-                            {band.code}
-                          </span>
+        {/* ── By Teacher ───────────────────────────────────────────────────── */}
+        <div
+          style={{
+            background: C.card,
+            border: `1px solid ${C.border}`,
+            borderRadius: 12,
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ padding: "14px 16px 0", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: C.dimmed }}>
+            By Teacher
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <TH>Teacher</TH>
+                  <TH>School</TH>
+                  <TH right>Active Students</TH>
+                  <TH right>Sessions (7d)</TH>
+                  <TH right>Last Session</TH>
+                  <TH right>Status</TH>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i}>
+                      {[140, 120, 60, 70, 80, 70].map((w, j) => (
+                        <td key={j} style={{ padding: "12px 14px" }}>
+                          <Skeleton w={w} h={12} />
                         </td>
-                        <td style={{ padding: "11px 16px", color: C.text, fontWeight: 600 }}>{band.displayName || band.code}</td>
-                        <td style={{ padding: "11px 16px", color: C.text }}>{fmt(band.studentCount)}</td>
+                      ))}
+                    </tr>
+                  ))
+                ) : data && data.byTeacher.length > 0 ? (
+                  data.byTeacher.map((row) => {
+                    const st = teacherStatus(row);
+                    return (
+                      <tr key={row.id} style={{ borderBottom: `1px solid rgba(255,255,255,0.03)` }}>
+                        <TD>
+                          <div style={{ fontWeight: 600 }}>{row.name || row.username}</div>
+                          {row.name && (
+                            <div style={{ fontSize: 11, color: C.dimmed, marginTop: 1 }}>@{row.username}</div>
+                          )}
+                        </TD>
+                        <TD muted>{row.school}</TD>
+                        <TD right muted>{fmt(row.activeStudents)}</TD>
+                        <TD right>
+                          <span style={{ fontWeight: 700, color: row.sessions7d > 0 ? C.teal : C.muted }}>
+                            {fmt(row.sessions7d)}
+                          </span>
+                        </TD>
+                        <TD right muted>{relTime(row.lastSessionAt)}</TD>
+                        <TD right>
+                          <StatusBadge label={st.label} color={st.color} />
+                        </TD>
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ fontSize: "11px", color: "rgba(240,246,255,.35)", marginTop: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
-              <span
-                style={{
-                  display: "inline-block",
-                  width: "6px",
-                  height: "6px",
-                  borderRadius: "50%",
-                  background: "#f0c040",
-                  flexShrink: 0,
-                }}
-              />
-              Individual student names are never displayed · B2B contract context only
-            </div>
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={6} style={{ padding: "40px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
+                      No teacher data yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
       </main>
     </AppFrame>
   );

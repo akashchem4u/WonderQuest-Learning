@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { PreReaderShell } from "@/components/pre-reader-shell";
 
 const C = {
   base: "#100b2e",
@@ -14,6 +15,10 @@ const C = {
   surface: "#1a1540",
   border: "#2a2060",
 } as const;
+
+type ChildSession = {
+  student: { displayName?: string; launchBandCode?: string };
+};
 
 type Assignment = {
   id: string;
@@ -44,6 +49,7 @@ function SkeletonCard() {
 }
 
 export default function ChildQuestPage() {
+  const [session, setSession] = useState<ChildSession | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [missed, setMissed] = useState<MissedQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +63,8 @@ export default function ChildQuestPage() {
       fetch("/api/child/assignments").then((r) => r.json()),
       fetch("/api/child/missed-questions").then((r) => r.json()),
     ])
-      .then(([, assignData, missData]) => {
+      .then(([sessionData, assignData, missData]) => {
+        if (sessionData) setSession(sessionData as ChildSession);
         setAssignments(Array.isArray(assignData) ? assignData : []);
         setMissed(Array.isArray(missData) ? missData : []);
         setLoading(false);
@@ -73,9 +80,12 @@ export default function ChildQuestPage() {
   }, [loadData]);
 
   const practiceItems = missed.slice(0, 3);
+  const bandCode = session?.student?.launchBandCode ?? "";
+  const pageIntro = `Welcome to your quests, ${session?.student?.displayName ?? "adventurer"}! Here are your learning quests for today.`;
 
   return (
     <AppFrame audience="kid" currentPath="/child">
+      <PreReaderShell bandCode={bandCode} pageIntro={pageIntro}>
       <style>{`@keyframes dot-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.5); } 50% { box-shadow: 0 0 0 4px rgba(155,114,255,0); } }`}</style>
       <div style={{ minHeight: "100vh", background: "#0a0820", fontFamily: "'Nunito', system-ui, sans-serif", padding: "24px 16px" }}>
 
@@ -183,6 +193,7 @@ export default function ChildQuestPage() {
           </div>
         )}
       </div>
+      </PreReaderShell>
     </AppFrame>
   );
 }
