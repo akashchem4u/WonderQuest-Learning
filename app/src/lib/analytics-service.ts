@@ -133,7 +133,7 @@ export async function getOwnerOverview() {
         count(*) filter (where started_at >= now() - interval '30 days') as sessions_last_30d,
         count(*) filter (where started_at >= now() - interval '7 days' and ended_at is not null) as completed_last_7d,
         count(distinct student_id) filter (where started_at >= now() - interval '7 days') as active_students_7d
-      from public.play_sessions
+      from public.challenge_sessions
     `,
   );
 
@@ -143,7 +143,7 @@ export async function getOwnerOverview() {
         date_trunc('day', started_at)::date as day,
         count(*) as sessions,
         count(*) filter (where ended_at is not null) as completed
-      from public.play_sessions
+      from public.challenge_sessions
       where started_at >= now() - interval '14 days'
       group by 1
       order by 1
