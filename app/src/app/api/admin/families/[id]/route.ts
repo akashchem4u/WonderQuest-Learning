@@ -16,7 +16,7 @@ export async function GET(
     const [familyRes, childrenRes] = await Promise.all([
       db.query(`SELECT id, display_name, email, username, relationship_label, tester_flag, last_active_at, google_id IS NOT NULL AS has_google FROM public.guardian_profiles WHERE id = $1`, [id]),
       db.query(`
-        SELECT sp.id, sp.display_name, sp.username, sp.avatar_key, sp.age_label, gsl.relationship_label
+        SELECT sp.id, sp.display_name, sp.username, sp.avatar_key, sp.age_label
         FROM public.guardian_student_links gsl
         JOIN public.student_profiles sp ON sp.id = gsl.student_id
         WHERE gsl.guardian_id = $1

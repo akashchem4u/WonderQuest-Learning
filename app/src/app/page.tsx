@@ -323,19 +323,13 @@ export default async function HomePage() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {AUDIENCES.map((a, i) => (
-              <div key={a.href} style={{
-                display: "grid",
-                gridTemplateColumns: i % 2 === 0 ? "1fr 380px" : "380px 1fr",
-                gap: 0,
-                borderRadius: 24,
-                overflow: "hidden",
+              <div key={a.href} className={`home-audience-row ${i % 2 === 0 ? "home-audience-even" : "home-audience-odd"}`} style={{
                 border: `1px solid ${a.accentBorder}`,
                 background: a.accentBg,
               }}>
                 {/* Text block */}
-                <div style={{
+                <div className={`home-audience-text ${i % 2 === 0 ? "home-audience-even-text" : "home-audience-odd-text"}`} style={{
                   padding: "clamp(28px,4vw,48px)",
-                  order: i % 2 === 0 ? 0 : 1,
                 }}>
                   <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 800, color: a.accent, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                     {a.label}
@@ -367,13 +361,12 @@ export default async function HomePage() {
                 </div>
 
                 {/* Visual block */}
-                <div style={{
+                <div className={`home-audience-visual ${i % 2 === 0 ? "home-audience-even-visual" : "home-audience-odd-visual"}`} style={{
                   display: "flex", alignItems: "center", justifyContent: "center",
                   padding: "32px",
                   background: `linear-gradient(135deg, ${a.accentBg}, rgba(6,7,26,0.4))`,
                   borderLeft: i % 2 === 0 ? `1px solid ${a.accentBorder}` : "none",
                   borderRight: i % 2 !== 0 ? `1px solid ${a.accentBorder}` : "none",
-                  order: i % 2 === 0 ? 1 : 0,
                   fontSize: "clamp(80px,12vw,110px)",
                 }}>
                   {a.emoji}
@@ -431,15 +424,11 @@ export default async function HomePage() {
       {/* ── Safety ────────────────────────────────────────────────────────── */}
       <section style={{ padding: "clamp(56px,8vw,96px) clamp(16px,4vw,48px)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{
+          <div className="home-safety-grid" style={{
             borderRadius: 24, overflow: "hidden",
             border: `1px solid ${T.border}`,
             background: `linear-gradient(135deg, rgba(45,212,191,0.06) 0%, rgba(155,114,255,0.06) 100%)`,
             padding: "clamp(32px,5vw,56px)",
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            gap: 32,
-            alignItems: "center",
           }}>
             <div>
               <p style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 800, color: T.teal, letterSpacing: "0.12em", textTransform: "uppercase" }}>

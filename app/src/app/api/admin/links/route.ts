@@ -3,12 +3,12 @@ import { db, isDatabaseConnectionError } from "@/lib/db";
 import { requireAdminSession } from "@/lib/admin-auth";
 
 // POST /api/admin/links — link or unlink guardian↔student
-// Body: { action: "link"|"unlink", guardianId: string, studentId: string, relationshipLabel?: string }
+// Body: { action: "link"|"unlink", guardianId: string, studentId: string }
 export async function POST(request: NextRequest) {
   const auth = await requireAdminSession(request);
   if (!auth.ok) return auth.response;
 
-  let body: { action?: unknown; guardianId?: unknown; studentId?: unknown; relationshipLabel?: unknown };
+  let body: { action?: unknown; guardianId?: unknown; studentId?: unknown };
   try { body = await request.json(); } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
   const action = body.action === "link" || body.action === "unlink" ? body.action : null;
   const guardianId = typeof body.guardianId === "string" ? body.guardianId : null;
   const studentId = typeof body.studentId === "string" ? body.studentId : null;
-  const relationshipLabel = typeof body.relationshipLabel === "string" ? body.relationshipLabel : "parent";
 
   if (!action || !guardianId || !studentId) {
     return NextResponse.json({ error: "action, guardianId, and studentId are required." }, { status: 400 });
@@ -25,10 +24,10 @@ export async function POST(request: NextRequest) {
   try {
     if (action === "link") {
       await db.query(
-        `INSERT INTO public.guardian_student_links (guardian_id, student_id, relationship_label)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (guardian_id, student_id) DO UPDATE SET relationship_label = EXCLUDED.relationship_label`,
-        [guardianId, studentId, relationshipLabel]
+        `INSERT INTO public.guardian_student_links (guardian_id, student_id)
+         VALUES ($1, $2)
+         ON CONFLICT (guardian_id, student_id) DO NOTHING`,
+        [guardianId, studentId]
       );
     } else {
       await db.query(
@@ -47,7 +46,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// POST-style GET for checking existing links
+// GET /api/admin/links?guardianId=X  or  ?studentId=X
 export async function GET(request: NextRequest) {
   const auth = await requireAdminSession(request);
   if (!auth.ok) return auth.response;
@@ -64,21 +63,23 @@ export async function GET(request: NextRequest) {
     let result;
     if (guardianId) {
       result = await db.query(`
-        SELECT gsl.student_id, sp.display_name, sp.username, sp.avatar_key, sp.age_label, gsl.relationship_label
+        SELECT gsl.student_id, sp.display_name, sp.username, sp.avatar_key, sp.age_label
         FROM public.guardian_student_links gsl
         JOIN public.student_profiles sp ON sp.id = gsl.student_id
         WHERE gsl.guardian_id = $1
+        ORDER BY sp.display_name ASC
       `, [guardianId]);
-      return NextResponse.json({ links: result.rows });
     } else {
       result = await db.query(`
-        SELECT gsl.guardian_id, gp.display_name, gp.email, gp.username, gsl.relationship_label
+        SELECT gsl.guardian_id, gp.display_name, gp.email, gp.username
         FROM public.guardian_student_links gsl
         JOIN public.guardian_profiles gp ON gp.id = gsl.guardian_id
         WHERE gsl.student_id = $1
+        ORDER BY gp.display_name ASC
       `, [studentId]);
-      return NextResponse.json({ links: result.rows });
     }
+
+    return NextResponse.json({ links: result.rows });
   } catch (err) {
     if (isDatabaseConnectionError(err)) {
       return NextResponse.json({ error: "Database unavailable." }, { status: 503 });

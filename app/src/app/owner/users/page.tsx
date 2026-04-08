@@ -28,7 +28,7 @@ type Family = {
 
 type SearchResult = { id: string; display_name: string; email?: string | null; username: string; child_count?: number; age_label?: string | null; launch_band_code?: string | null };
 type LinkedChild = { id: string; display_name: string; username: string; age_label: string | null; relationship_label: string };
-type LinkedGuardian = { guardian_id: string; display_name: string; email: string | null; username: string; relationship_label: string };
+type LinkedGuardian = { guardian_id: string; display_name: string; email: string | null; username: string };
 
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -661,7 +661,7 @@ function FamiliesTab() {
                                       <div>
                                         <span style={{ color: C.text, fontSize: 13, fontWeight: 600 }}>{c.display_name}</span>
                                         <span style={{ color: C.muted, fontSize: 11, marginLeft: 6 }}>@{c.username}</span>
-                                        <span style={{ color: C.muted, fontSize: 11, marginLeft: 6 }}>({c.relationship_label})</span>
+                                        
                                       </div>
                                       <button style={{ ...bC, padding: "3px 9px", fontSize: 11 }} onClick={() => void unlinkChild(f.id, c.id)}>Unlink</button>
                                     </div>

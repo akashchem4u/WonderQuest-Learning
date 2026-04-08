@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
     if (type === "student") {
       // Transfer guardian links (ignore conflicts — guardian may already be linked to keepId)
       await client.query(`
-        INSERT INTO public.guardian_student_links (guardian_id, student_id, relationship_label)
-        SELECT guardian_id, $1, relationship_label FROM public.guardian_student_links WHERE student_id = $2
+        INSERT INTO public.guardian_student_links (guardian_id, student_id)
+        SELECT guardian_id, $1 FROM public.guardian_student_links WHERE student_id = $2
         ON CONFLICT (guardian_id, student_id) DO NOTHING
       `, [keepId, mergeId]);
 
@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
       // guardian merge
       // Transfer student links
       await client.query(`
-        INSERT INTO public.guardian_student_links (guardian_id, student_id, relationship_label)
-        SELECT $1, student_id, relationship_label FROM public.guardian_student_links WHERE guardian_id = $2
+        INSERT INTO public.guardian_student_links (guardian_id, student_id)
+        SELECT $1, student_id FROM public.guardian_student_links WHERE guardian_id = $2
         ON CONFLICT (guardian_id, student_id) DO NOTHING
       `, [keepId, mergeId]);
 

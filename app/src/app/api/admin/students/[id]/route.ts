@@ -16,7 +16,7 @@ export async function GET(
     const [studentRes, guardiansRes, teachersRes] = await Promise.all([
       db.query(`SELECT * FROM public.student_profiles WHERE id = $1`, [id]),
       db.query(`
-        SELECT gp.id, gp.display_name, gp.email, gp.username, gsl.relationship_label
+        SELECT gp.id, gp.display_name, gp.email, gp.username
         FROM public.guardian_student_links gsl
         JOIN public.guardian_profiles gp ON gp.id = gsl.guardian_id
         WHERE gsl.student_id = $1
