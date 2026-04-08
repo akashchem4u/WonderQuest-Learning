@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../../../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -104,16 +104,16 @@ export default function TeacherSkillDrilldownPage() {
   const bandLabel = launchBandCode ? formatBandLabel(launchBandCode) : "";
 
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [activeTab, setActiveTab] = useState<"drilldown" | "compare">("drilldown");
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [rosterLoaded, setRosterLoaded] = useState(false);
   const [skillStudents, setSkillStudents] = useState<StudentRow[]>([]);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
     // Fetch real per-student skill data from the skill-detail API
     fetch(`/api/teacher/skill-detail/${encodeURIComponent(skillCode)}?teacherId=${encodeURIComponent(teacherId)}`)
       .then((res) => (res.ok ? res.json() : null))
@@ -149,7 +149,7 @@ export default function TeacherSkillDrilldownPage() {
       })
       .catch(() => {/* silently ignore */})
       .finally(() => setRosterLoaded(true));
-  }, [authed, skillCode]);
+  })(); }, [authed, skillCode]);
 
   if (!authed) {
     return (

@@ -385,9 +385,11 @@ export default function ChildTrophiesPage() {
   const [selectedTrophy, setSelectedTrophy] = useState<Trophy | null>(null);
   const [loading, setLoading] = useState(true);
   const [trophies, setTrophies] = useState<Trophy[]>([]);
-  const [trophiesComingSoon, setTrophiesComingSoon] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
-  useEffect(() => {
+  function loadTrophies() {
+    setLoading(true);
+    setFetchError(false);
     // Auth check first
     fetch("/api/child/session")
       .then((r) => {
@@ -400,26 +402,22 @@ export default function ChildTrophiesPage() {
         // Fetch trophies
         return fetch("/api/child/trophies")
           .then((r) => {
-            if (!r.ok) return null;
+            if (!r.ok) throw new Error("fetch failed");
             return r.json();
           })
-          .then((data: { trophies: ApiTrophy[] } | null) => {
-            if (!data || data.trophies.length === 0) {
-              setTrophiesComingSoon(!data);
-              setTrophies(
-                TROPHY_CATALOG.map((t) => ({ ...t, earned: false })).concat(
-                  MYSTERY_TROPHIES.map((t) => ({ ...t, earned: false }))
-                )
-              );
-            } else {
-              setTrophies(apiTrophiesToTrophyList(data.trophies));
-            }
+          .then((data: { trophies: ApiTrophy[] }) => {
+            setTrophies(apiTrophiesToTrophyList(data.trophies));
           })
           .catch(() => {
-            setTrophies(TROPHY_CATALOG.map((t) => ({ ...t, earned: false })));
+            setFetchError(true);
           });
       })
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadTrophies();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const earnedCount = trophies.filter((t) => t.earned).length;
@@ -446,6 +444,37 @@ export default function ChildTrophiesPage() {
       <AppFrame audience="kid" currentPath="/child">
         <div style={{ minHeight: "100vh", background: "#0a0820", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito', system-ui, sans-serif", color: "#9b8ec4", fontSize: 18, fontWeight: 700 }}>
           Loading your trophies...
+        </div>
+      </AppFrame>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={{ minHeight: "100vh", background: "#0a0820", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
+          <div style={{ fontSize: 15, color: "#9b8ec4", fontWeight: 700, marginBottom: 20, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+            Could not load trophies. Check your connection and try again.
+          </div>
+          <button
+            onClick={loadTrophies}
+            style={{ padding: "12px 28px", borderRadius: 12, border: "none", background: "#9b72ff", color: "#fff", fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 14, fontWeight: 900, cursor: "pointer" }}
+          >
+            Retry
+          </button>
+        </div>
+      </AppFrame>
+    );
+  }
+
+  if (!loading && trophies.length === 0) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={{ minHeight: "100vh", background: "#0a0820", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🏆</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#e8e0ff", marginBottom: 8, fontFamily: "'Nunito', system-ui, sans-serif" }}>No trophies yet!</div>
+          <div style={{ fontSize: 15, color: "#9b8ec4", marginBottom: 24, fontFamily: "'Nunito', system-ui, sans-serif" }}>Keep learning to earn your first trophy.</div>
+          <a href="/play" style={{ padding: "12px 28px", borderRadius: 12, background: "#9b72ff", color: "#fff", fontWeight: 800, textDecoration: "none", fontFamily: "'Nunito', system-ui, sans-serif" }}>Start a quest →</a>
         </div>
       </AppFrame>
     );
@@ -488,24 +517,6 @@ export default function ChildTrophiesPage() {
             </span>
           </div>
         </div>
-
-        {trophiesComingSoon && (
-          <div style={{
-            margin: "0 16px 20px",
-            background: "linear-gradient(135deg, #1a1060, #2a1880)",
-            border: "2px solid #9b72ff",
-            borderRadius: 16,
-            padding: "16px 24px",
-            textAlign: "center",
-          }}>
-            <div style={{ fontSize: 22, fontWeight: 900, color: "#9b72ff", marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-              No trophies yet
-            </div>
-            <div style={{ fontSize: 13, color: "#9b8ec4", fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-              Finish your first learning world to earn a trophy!
-            </div>
-          </div>
-        )}
 
         {/* Tier legend */}
         <div style={{ display: "flex", gap: 10, padding: "0 16px", marginBottom: 16, flexWrap: "wrap" }}>

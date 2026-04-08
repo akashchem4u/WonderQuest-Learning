@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import { setActiveStudentId } from "@/lib/active-student";
 import TeacherGate from "./teacher-gate";
 
@@ -162,7 +162,7 @@ export default function TeacherPage() {
   // Auth gate — resolved client-side to avoid hydration mismatch
   const router = useRouter();
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [activeTab, setActiveTab] = useState<"overview" | "students" | "support">("overview");
   const [showProfileSetup, setShowProfileSetup] = useState(false);
@@ -182,51 +182,53 @@ export default function TeacherPage() {
   const [isVirtualClassroom, setIsVirtualClassroom] = useState(false);
 
   useEffect(() => {
-    const teacherId = getTeacherId();
-    if (!teacherId) return;
-    fetch(`/api/teacher/profile?teacherId=${teacherId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { profile?: { displayName: string; schoolName: string | null; isIncomplete?: boolean } } | null) => {
-        if (data?.profile) {
-          setTeacherName(data.profile.displayName === "Teacher" ? "" : data.profile.displayName);
-          if (data.profile.displayName === "Teacher") {
-            setShowProfileSetup(true);
-          } else if (data.profile.isIncomplete) {
-            setShowProfileBanner(true);
+    fetchTeacherId().then(teacherId => {
+      if (!teacherId) return;
+      fetch(`/api/teacher/profile?teacherId=${teacherId}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data: { profile?: { displayName: string; schoolName: string | null; isIncomplete?: boolean } } | null) => {
+          if (data?.profile) {
+            setTeacherName(data.profile.displayName === "Teacher" ? "" : data.profile.displayName);
+            if (data.profile.displayName === "Teacher") {
+              setShowProfileSetup(true);
+            } else if (data.profile.isIncomplete) {
+              setShowProfileBanner(true);
+            }
           }
-        }
-      })
-      .catch(() => {/* ignore */});
+        })
+        .catch(() => {/* ignore */});
+    });
   }, []);
 
   useEffect(() => {
-    const teacherId = getTeacherId();
-    Promise.all([
-      fetch(`/api/teacher/class?teacherId=${teacherId}`).then((r) => r.ok ? r.json() : { roster: [] }),
-      fetch(`/api/teacher/interventions?teacherId=${teacherId}`).then((r) => r.ok ? r.json() : { interventions: [] }),
-    ])
-      .then(([classData, intData]) => {
-        const rosterData: RosterStudent[] = classData.roster ?? [];
-        setRoster(rosterData);
-        // Detect virtual classroom: if any student is from a virtual class
-        // We detect this via a separate lightweight check
-        if (rosterData.length > 0) {
-          fetch("/api/teacher/has-virtual-class")
-            .then((r) => r.ok ? r.json() : { isVirtual: false })
-            .then((d: { isVirtual?: boolean }) => setIsVirtualClassroom(d.isVirtual ?? false))
-            .catch(() => {/* ignore */});
-        }
-        // Normalise API field names: interventionType → triggerType, skillCode → skillLabel
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rawInts: any[] = intData.interventions ?? [];
-        setInterventions(rawInts.map((i) => ({
-          ...i,
-          triggerType: i.triggerType ?? i.interventionType ?? i.reason ?? "check_in",
-          skillLabel: i.skillLabel ?? i.skillCode ?? null,
-        })));
-      })
-      .catch(() => {/* ignore */})
-      .finally(() => setLoading(false));
+    fetchTeacherId().then(teacherId => {
+      Promise.all([
+        fetch(`/api/teacher/class?teacherId=${teacherId}`).then((r) => r.ok ? r.json() : { roster: [] }),
+        fetch(`/api/teacher/interventions?teacherId=${teacherId}`).then((r) => r.ok ? r.json() : { interventions: [] }),
+      ])
+        .then(([classData, intData]) => {
+          const rosterData: RosterStudent[] = classData.roster ?? [];
+          setRoster(rosterData);
+          // Detect virtual classroom: if any student is from a virtual class
+          // We detect this via a separate lightweight check
+          if (rosterData.length > 0) {
+            fetch("/api/teacher/has-virtual-class")
+              .then((r) => r.ok ? r.json() : { isVirtual: false })
+              .then((d: { isVirtual?: boolean }) => setIsVirtualClassroom(d.isVirtual ?? false))
+              .catch(() => {/* ignore */});
+          }
+          // Normalise API field names: interventionType → triggerType, skillCode → skillLabel
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const rawInts: any[] = intData.interventions ?? [];
+          setInterventions(rawInts.map((i) => ({
+            ...i,
+            triggerType: i.triggerType ?? i.interventionType ?? i.reason ?? "check_in",
+            skillLabel: i.skillLabel ?? i.skillCode ?? null,
+          })));
+        })
+        .catch(() => {/* ignore */})
+        .finally(() => setLoading(false));
+    });
   }, []);
 
   // ── Derived stats ────────────────────────────────────────────────────────

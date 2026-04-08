@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 const C = {
@@ -241,16 +241,16 @@ function SkeletonSection() {
 export default function FeedbackPanelPage() {
   const [authed, setAuthed] = useState(false);
   useEffect(() => {
-    setAuthed(!!getTeacherId());
+    fetchTeacherId().then(id => setAuthed(!!id));
   }, []);
 
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -265,7 +265,7 @@ export default function FeedbackPanelPage() {
         setError("Could not load class data. Please try again.");
         setLoading(false);
       });
-  }, [authed]);
+  })(); }, [authed]);
 
   if (!authed) {
     return (

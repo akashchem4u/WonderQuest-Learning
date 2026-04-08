@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -80,16 +80,16 @@ const BUCKET_ORDER: DateBucket[] = ["Today", "Yesterday", "Last 7 days", "Older"
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function InterventionTimelinePage() {
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [activeTab, setActiveTab] = useState<"all" | "active" | "resolved">("all");
   const [interventions, setInterventions] = useState<ApiIntervention[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
     const url = `/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=all`;
 
     fetch(url)
@@ -102,7 +102,7 @@ export default function InterventionTimelinePage() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, [authed]);
+  })(); }, [authed]);
 
   if (!authed) {
     return (

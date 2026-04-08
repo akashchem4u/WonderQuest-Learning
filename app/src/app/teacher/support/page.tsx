@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 const C = {
@@ -67,7 +67,7 @@ export default function TeacherSupportPage() {
   const [authed, setAuthed] = useState(false);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   if (!authed) {
     return (

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 // Auto-queue types
@@ -140,11 +140,11 @@ export default function TeacherWatchlistPage() {
   const [sendingNote, setSendingNote] = useState<string | null>(null);
   const [noteToast, setNoteToast] = useState<string | null>(null);
 
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
 
     fetch("/api/teacher/interventions?teacherId=" + encodeURIComponent(teacherId) + "&status=active")
       .then((r) => r.json())
@@ -181,7 +181,7 @@ export default function TeacherWatchlistPage() {
       })
       .catch(() => { /* leave empty */ })
       .finally(() => setAutoLoading(false));
-  }, [authed]);
+  })(); }, [authed]);
 
   function removeStudent(id: string) {
     setStudents((prev) => prev.filter((s) => s.id !== id));
@@ -206,7 +206,7 @@ export default function TeacherWatchlistPage() {
   }
 
   async function handleSendNote(student: WatchlistStudent) {
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
     if (!student.studentId || !teacherId) {
       setNoteToast("Note sent to " + student.name + "!");
       setTimeout(() => setNoteToast(null), 2800);

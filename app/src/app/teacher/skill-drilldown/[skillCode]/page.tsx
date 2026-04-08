@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../../teacher-gate";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
@@ -67,15 +67,15 @@ export default function SkillDrilldownPage() {
   const skillCode = typeof params.skillCode === "string" ? params.skillCode : "";
 
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<SkillDetailResponse | null>(null);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed || !skillCode) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
 
     async function load() {
       try {
@@ -95,7 +95,7 @@ export default function SkillDrilldownPage() {
     }
 
     void load();
-  }, [authed, skillCode]);
+  })(); }, [authed, skillCode]);
 
   if (!authed) {
     return (

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -235,9 +235,11 @@ function saveCustomGroups(teacherId: string, groups: CustomGroup[]): void {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function TeacherGroupsPage() {
   const [authed, setAuthed] = useState(false);
-  const teacherId = typeof window !== "undefined" ? getTeacherId() : "";
+  const [teacherId, setTeacherId] = useState("");
 
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => {
+    fetchTeacherId().then(id => { setTeacherId(id); setAuthed(!!id); });
+  }, []);
 
   const [mainTab, setMainTab] = useState<"groups" | "engagement">("groups");
   const [engGroupId, setEngGroupId] = useState<string>("");
@@ -264,9 +266,8 @@ export default function TeacherGroupsPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authed) return;
-    const tid = getTeacherId();
-    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(tid)}`)
+    if (!authed || !teacherId) return;
+    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => r.json())
       .then((data: { roster?: RosterStudent[] }) => {
         if (data.roster) {
@@ -280,9 +281,8 @@ export default function TeacherGroupsPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
 
-    const tid2 = getTeacherId();
-    setCustomGroups(loadCustomGroups(tid2));
-  }, [authed]);
+    setCustomGroups(loadCustomGroups(teacherId));
+  }, [authed, teacherId]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -303,7 +303,7 @@ export default function TeacherGroupsPage() {
     };
     const updated = [...customGroups, group];
     setCustomGroups(updated);
-    saveCustomGroups(getTeacherId(), updated);
+    saveCustomGroups(teacherId, updated);
     setNewGroupName("");
     setNewGroupColor("teal");
     setNewGroupStudents([]);
@@ -314,7 +314,7 @@ export default function TeacherGroupsPage() {
   function handleDeleteGroup(id: string) {
     const updated = customGroups.filter((g) => g.id !== id);
     setCustomGroups(updated);
-    saveCustomGroups(getTeacherId(), updated);
+    saveCustomGroups(teacherId, updated);
     setConfirmDeleteId(null);
     showToast("Group deleted");
   }
@@ -335,7 +335,7 @@ export default function TeacherGroupsPage() {
         : g
     );
     setCustomGroups(updated);
-    saveCustomGroups(getTeacherId(), updated);
+    saveCustomGroups(teacherId, updated);
     setEditingGroupId(null);
     showToast("Group updated");
   }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 const C = {
@@ -162,7 +162,7 @@ type FilterMode = "all" | "needs-attention";
 export default function SkillMasteryPage() {
   const [authed, setAuthed] = useState(false);
   useEffect(() => {
-    setAuthed(!!getTeacherId());
+    fetchTeacherId().then(id => setAuthed(!!id));
   }, []);
 
   const [skills, setSkills] = useState<SkillTrend[]>([]);
@@ -173,9 +173,9 @@ export default function SkillMasteryPage() {
   const [sortMode, setSortMode] = useState<SortMode>("mastery-desc");
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
 
     const skillsReq = fetch(
       `/api/teacher/skill-trends?teacherId=${encodeURIComponent(teacherId)}&days=30`,
@@ -202,7 +202,7 @@ export default function SkillMasteryPage() {
         setError("Could not load skill data. Please try again.");
         setLoading(false);
       });
-  }, [authed]);
+  })(); }, [authed]);
 
   const filtered = useMemo(() => {
     let list = [...skills];

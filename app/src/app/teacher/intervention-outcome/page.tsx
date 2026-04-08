@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 const C = {
@@ -94,16 +94,16 @@ function computePatterns(items: Intervention[]): { type: string; total: number; 
 
 export default function TeacherInterventionOutcomePage() {
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [filter, setFilter] = useState<TimeFilter>("month");
   const [allInterventions, setAllInterventions] = useState<Intervention[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
 
     async function loadAll() {
       try {
@@ -123,7 +123,7 @@ export default function TeacherInterventionOutcomePage() {
     }
 
     void loadAll();
-  }, [authed]);
+  })(); }, [authed]);
 
   if (!authed) {
     return (

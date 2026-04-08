@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../../teacher-gate";
 
 // ---------------------------------------------------------------------------
@@ -77,10 +77,11 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 export default function TeacherInterventionDetailPage() {
   const params = useParams();
   const studentId = (params?.studentId as string | undefined) ?? "";
-  const teacherId = getTeacherId();
-
+  const [teacherId, setTeacherId] = useState("");
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => {
+    fetchTeacherId().then(id => { setTeacherId(id); setAuthed(!!id); });
+  }, []);
 
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [loading, setLoading] = useState(true);

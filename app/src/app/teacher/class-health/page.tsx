@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import { setActiveStudentId } from "@/lib/active-student";
 import TeacherGate from "../teacher-gate";
 
@@ -191,7 +191,7 @@ function buildTriage(roster: Student[], interventions: Intervention[]): { onTrac
 export default function ClassHealthPage() {
   const router = useRouter();
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [roster, setRoster] = useState<Student[]>([]);
   const [interventions, setInterventions] = useState<Intervention[]>([]);
@@ -199,8 +199,8 @@ export default function ClassHealthPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const teacherId = getTeacherId();
+  useEffect(() => { void (async () => {
+    const teacherId = await fetchTeacherId();
     Promise.all([
       fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`).then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -223,7 +223,7 @@ export default function ClassHealthPage() {
         setError(String(e));
         setLoading(false);
       });
-  }, []);
+  })(); }, []);
 
   const engagementBadge: BadgeVariant = stats.total === 0 ? "amber" : stats.activeCount / stats.total >= 0.75 ? "green" : "amber";
   const masteryBadge: BadgeVariant = stats.highAccuracyCount > stats.buildingCount ? "green" : "amber";

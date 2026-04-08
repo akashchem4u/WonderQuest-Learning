@@ -33,7 +33,7 @@ const BANDS: Record<string, { label: string; ages: string; icon: string; color: 
 // ─── Feature grid ─────────────────────────────────────────────────────────────
 const FEATURES = [
   { icon: "🧠", title: "AI-adaptive engine",   body: "Every question adjusts in real time to the child's pace, band, and current mastery level."      },
-  { icon: "🏆", title: "3 000+ questions",      body: "Reading, math, phonics, science, logic, geography — across all four learning bands."              },
+  { icon: "🏆", title: "Growing question bank",  body: "Reading, math, phonics, science, logic, geography — across all four learning bands, actively expanding."  },
   { icon: "🎤", title: "Audio-first for Pre-K", body: "Every prompt can be read aloud. Early learners never need to read to start learning."              },
   { icon: "🦁", title: "Coach Leo",             body: "When a child answers wrong twice, Coach Leo steps in with a scaffolded visual explanation."       },
   { icon: "📊", title: "Parent weekly digest",  body: "Plain-language AI report every week — what happened, what improved, what to do next."              },
@@ -159,14 +159,14 @@ export default async function HomePage() {
             lineHeight: 1.7,
             color: T.muted,
           }}>
-            WonderQuest is an AI-powered adaptive learning platform for children aged 2–11.
+            WonderQuest is an AI-powered adaptive learning platform for children aged 2–11 — currently in early access.
             Short quests, instant parent insights, and classroom-ready teacher tools —
             all in one safe, ad-free environment.
           </p>
 
           {/* Feature chips */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 36 }}>
-            {["🎮 Gamified quests", "🤖 AI coaching", "📊 Real-time insights", "🔒 COPPA-safe"].map((chip) => (
+            {["🎮 Gamified quests", "🤖 AI coaching", "📊 Real-time insights", "🔒 Privacy-first"].map((chip) => (
               <span key={chip} style={{
                 padding: "7px 14px", borderRadius: 999,
                 background: "rgba(255,255,255,0.06)",
@@ -254,10 +254,10 @@ export default async function HomePage() {
         background: T.surface,
       }}>
         {[
-          { value: "3 000+",     label: "Practice questions"    },
-          { value: "4 bands",    label: "Grade-level paths"      },
-          { value: "AI-powered", label: "Adaptive engine"        },
-          { value: "COPPA",      label: "Fully compliant"        },
+          { value: "Growing",    label: "Practice questions"        },
+          { value: "4 bands",    label: "Grade-level paths"        },
+          { value: "AI-powered", label: "Adaptive engine"          },
+          { value: "COPPA",      label: "Designed for compliance"  },
         ].map((stat, i) => (
           <div key={i} style={{
             flex: "1 1 180px",
@@ -453,7 +453,7 @@ export default async function HomePage() {
                 No social features, no advertising, no data sold, ever.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {["🔒 COPPA-compliant", "📵 Zero ads", "💬 No chat", "👁️ No child rankings", "🤖 No data sold", "📱 Any device"].map((item) => (
+                {["🔒 COPPA-designed", "📵 Zero ads", "💬 No chat", "👁️ No child rankings", "🤖 No data sold", "📱 Any device"].map((item) => (
                   <span key={item} style={{
                     padding: "7px 14px", borderRadius: 999,
                     background: "rgba(255,255,255,0.06)",

@@ -232,47 +232,34 @@ export default function ChildBadgesPage() {
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   const [loading, setLoading] = useState(true);
   const [allBadges, setAllBadges] = useState<Badge[]>([]);
-  const [badgesComingSoon, setBadgesComingSoon] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [noSession, setNoSession] = useState(false);
 
-  useEffect(() => {
-    // Fetch from the badges API endpoint
+  function loadBadges() {
+    setLoading(true);
+    setFetchError(false);
     fetch("/api/child/badges")
       .then((r) => {
         if (r.status === 401) {
           setNoSession(true);
           return null;
         }
+        if (!r.ok) throw new Error("fetch failed");
         return r.json();
       })
       .then((data: { badges: ApiBadge[] } | null) => {
         if (!data) return;
-        if (data.badges.length === 0) {
-          // No badge_definitions table or no badges defined — show placeholder
-          setBadgesComingSoon(true);
-          setAllBadges(MYSTERY_BADGES.map((b) => ({ ...b, earned: false })));
-        } else {
-          setAllBadges(apiBadgesToBadgeList(data.badges));
-        }
+        setAllBadges(apiBadgesToBadgeList(data.badges));
       })
       .catch(() => {
-        // Fallback: try session for badge count
-        fetch("/api/child/session")
-          .then((r) => {
-            if (r.status === 401) {
-              setNoSession(true);
-              return null;
-            }
-            return r.json();
-          })
-          .then((data: { progression?: { badgeCount?: number } } | null) => {
-            if (!data) return;
-            const badgeCount = data.progression?.badgeCount ?? 0;
-            setAllBadges(buildPlaceholderBadgeList(badgeCount));
-          })
-          .catch(() => {});
+        setFetchError(true);
       })
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadBadges();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const earned = allBadges.filter((b) => b.earned);
@@ -367,26 +354,27 @@ export default function ChildBadgesPage() {
             <div style={{ textAlign: "center", padding: "80px 0", color: MUTED, fontSize: 18, fontWeight: 700 }}>
               Loading your badges...
             </div>
+          ) : fetchError ? (
+            <div style={{ textAlign: "center", padding: "80px 0" }}>
+              <div style={{ fontSize: 15, color: MUTED, fontWeight: 700, marginBottom: 16 }}>
+                Could not load badges. Check your connection and try again.
+              </div>
+              <button
+                onClick={loadBadges}
+                style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: VIOLET, color: "#fff", fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 14, fontWeight: 900, cursor: "pointer" }}
+              >
+                Retry
+              </button>
+            </div>
+          ) : allBadges.length === 0 ? (
+            <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
+              <div style={{ fontSize: 64, marginBottom: 16 }}>🏅</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#e8e0ff", marginBottom: 8, fontFamily: "'Nunito', system-ui, sans-serif" }}>No badges yet!</div>
+              <div style={{ fontSize: 15, color: MUTED, marginBottom: 24, fontFamily: "'Nunito', system-ui, sans-serif" }}>Complete quests to earn your first badge.</div>
+              <a href="/play" style={{ padding: "12px 28px", borderRadius: 12, background: VIOLET, color: "#fff", fontWeight: 800, textDecoration: "none", fontFamily: "'Nunito', system-ui, sans-serif" }}>Start a quest →</a>
+            </div>
           ) : (
             <>
-              {badgesComingSoon && (
-                <div style={{
-                  background: "linear-gradient(135deg, #1a1060, #2a1880)",
-                  border: `2px solid ${VIOLET}`,
-                  borderRadius: 16,
-                  padding: "16px 24px",
-                  marginBottom: 24,
-                  textAlign: "center",
-                }}>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: VIOLET, marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-                    No badges yet
-                  </div>
-                  <div style={{ fontSize: 13, color: MUTED, fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-                    Keep completing quests to earn your first badge!
-                  </div>
-                </div>
-              )}
-
               {/* Category filter */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
                 {filterBtns.map(({ key, label }) => (

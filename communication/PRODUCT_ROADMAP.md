@@ -241,3 +241,65 @@ P0-1 to P0-9   All 9 P0 fixes                          ~3 days total
 | Child keypad touch-target pass rate | 100% WCAG 2.2 | Lighthouse a11y |
 | Route auth test pass rate | 100% | `smoke:beta` |
 | Lighthouse performance (child page) | > 85 | CI check |
+
+---
+
+## Feedback Batch 2 — Added Items
+
+**Source:** Internal review session · `2026-04-07`
+
+### 🔴 New P0 Bugs
+
+| # | Issue | Detail | Effort |
+|---|-------|--------|--------|
+| P0-10 | **Teacher session impersonation** | `wonderquest-teacher-id` cookie is `httpOnly:false`, making it client-readable and modifiable. Any script can forge a teacher identity. Fix: replace with a proper DB-backed teacher session using an `httpOnly:true` token. Being fixed in parallel. | S |
+| P0-11 | **Marketing claims ahead of product state** | Home page hardcodes `"3 000+"` questions and `"COPPA · Fully compliant"` while internal docs describe the product as alpha/prototype. Misrepresentation creates legal and trust risk before certification is in place. Adjust all claims to match actual state. | S |
+
+### 🟠 New P1 Bugs
+
+| # | Issue | Detail | Effort |
+|---|-------|--------|--------|
+| 1.18 | **Teacher class fake students** | Class page initialises with fallback/mock student records on empty or error states instead of showing a truthful empty state. Users may mistake sample data for real enrolments. | S |
+| 1.19 | **Child rewards placeholder catalogs** | Badge and trophy surfaces fabricate catalogs when real definitions are missing. Weakens the reward loop and can mislead children expecting those rewards. | S |
+| 1.20 | **Operational readiness / DB health** | `/api/health` waits up to 15 s for DB timeout. `smoke:backend` fails when DB is slow. Implement a fast-fail health check (< 2 s) with a cached fallback for launch metadata so DB latency never causes silent mystery failures. | M |
+| 1.21 | **Parent notification settings are local-only** | `parent/notifications/page.tsx` persists preferences to `localStorage` only. Settings are lost on device switch or browser clear. Needs backend persistence via the notifications model. | S |
+
+### 🟠 New P1 Enhancements
+
+- **Replace ALL fallback/mock UI states** with explicit empty, loading, degraded, and demo states. Synthetic learner data must never appear without a visible "demo" label — no exceptions.
+- **Fast-fail health and readiness** — add degraded-mode banners and cached launch metadata. DB outages should surface immediately as a labelled degraded state, not as slow mystery failures.
+- **Tighten the alpha slice** — cut or hide non-essential routes until the child + parent + one teacher/owner lane feel fully coherent. The app currently has 26 parent pages, 27 teacher pages, 30 owner pages, and 27 child pages. Reduce surface area before adding more.
+- **Phone/tablet hardening pass** on child, play, and parent routes. Touch targets, layout reflow, and keyboard behaviour must be validated on real devices.
+
+### 🟡 New P2 Items
+
+- **Live owner KPI and incident pages** — replace hardcoded data with live APIs, freshness timestamps, and a visible "sample data" label when the live source is unavailable.
+- **Backend-managed content definitions** — move notifications, rewards, and content definitions out of client-side stubs and hardcoded arrays into backend-managed models.
+- **Family account resilience** — polished sibling switching, wrong-link recovery, and durable multi-child context across sessions.
+- **Pre-reader mode** — stronger audio-first navigation, auto-read prompts, and lower-text reward surfaces optimised for ages 2–5.
+- **Real notification delivery** — server-side email / in-app / push preferences, quiet-hours rules, and digest scheduling.
+
+### 🟢 New P3 Items
+
+- **Release cockpit** — unify smoke status, DB health, content health, feedback triage, and incident state into one owner-facing readiness screen.
+- **Centralised proxy middleware** — migrate middleware to a single proxy pattern rather than scattered per-route guards.
+
+---
+
+### Architecture Notes (Reviewer Priorities)
+
+The following architectural directions are prioritised by the reviewer. These should gate feature additions — no new surface area until the foundations below are stable.
+
+1. **Collapse page counts before adding more.** 26 parent pages / 27 teacher pages / 30 owner pages / 27 child pages is too wide for an alpha. Collapse each audience into 4–6 core jobs-to-be-done pages before expanding further.
+
+2. **Rebuild parent onboarding as a guided step-by-step flow.** The current page conflates sign-in, registration, recovery, child creation, and class join into a single surface. Break into discrete steps.
+
+3. **Make child home feel like a world.** Surface map, badges, trophies, a quick 3-min practice card, and a11y controls should all be accessible from a single hub — not scattered across routes.
+
+4. **Make parent insights actionable.** The goal is "what to do next tonight", not just "what happened this week." Surface a clear next-action card above the fold.
+
+5. **Make teacher insights actionable.** The goal is "what to do in the next 5 minutes", not just metrics. Prioritise intervention queue over dashboards.
+
+6. **Unify auth, shell, and reusable UI patterns before adding features.** Session handling, layout shells, and error boundaries must be consistent across all roles before the surface area grows.
+
+7. **Consolidate design system primitives.** Cards, tables, filters, empty states, loading states, and action bars should come from a single shared set of components — not be re-invented per route.

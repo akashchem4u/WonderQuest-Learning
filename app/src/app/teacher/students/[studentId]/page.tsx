@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import { setActiveStudentId } from "@/lib/active-student";
 import TeacherGate from "../../teacher-gate";
 
@@ -196,18 +196,18 @@ export default function TeacherStudentReportPage() {
   const studentId = params?.studentId as string | undefined;
 
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
     if (!studentId) return;
     // Persist active student so teacher nav context stays consistent
     setActiveStudentId(studentId);
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
     setLoading(true);
     setError(null);
     fetch(`/api/teacher/students/${studentId}/report?teacherId=${encodeURIComponent(teacherId)}`)
@@ -220,7 +220,7 @@ export default function TeacherStudentReportPage() {
         setError(e instanceof Error ? e.message : "Failed to load student report");
       })
       .finally(() => setLoading(false));
-  }, [studentId, authed]);
+  })(); }, [studentId, authed]);
 
   if (!authed) {
     return (

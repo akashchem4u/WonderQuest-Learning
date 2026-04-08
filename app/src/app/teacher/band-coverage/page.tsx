@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 const C = {
@@ -187,16 +187,16 @@ function buildSummary(bands: LiveBand[], total: number): string {
 export default function BandCoveragePage() {
   const [authed, setAuthed] = useState(false);
   useEffect(() => {
-    setAuthed(!!getTeacherId());
+    fetchTeacherId().then(id => setAuthed(!!id));
   }, []);
 
   const [bands, setBands] = useState<LiveBand[]>(buildLiveBands([]));
   const [totalStudents, setTotalStudents] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => r.json())
       .then((data) => {
@@ -215,7 +215,7 @@ export default function BandCoveragePage() {
         // Keep zeroed-out bands on error
       })
       .finally(() => setLoading(false));
-  }, [authed]);
+  })(); }, [authed]);
 
   if (!authed) {
     return (

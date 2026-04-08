@@ -1,19 +1,33 @@
 // teacher-identity.ts
-// Client-side helper to read the per-teacher profile UUID from a cookie.
-// The cookie is set by /api/teacher/access after successful login.
+// Teacher identity helpers.
+// teacherId is now resolved server-side via a DB-backed session.
+// Client components must call GET /api/teacher/me to obtain the teacher ID.
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Returns the teacher's UUID from the wonderquest-teacher-id cookie,
- * or "" if no valid UUID is stored (not yet logged in).
- * API routes use isValidTeacherId() to guard DB queries.
+ * @deprecated Use GET /api/teacher/me (or the useTeacherId hook) instead.
+ * The wonderquest-teacher-id cookie no longer exists.
+ * Returns "" so existing call-sites degrade gracefully until migrated.
  */
 export function getTeacherId(): string {
-  if (typeof document === "undefined") return "";
-  const match = document.cookie.match(/wonderquest-teacher-id=([^;]+)/);
-  const value = match?.[1] ?? "";
-  return UUID_RE.test(value) ? value : "";
+  return "";
+}
+
+/**
+ * Fetches the authenticated teacher's ID from the server.
+ * Returns "" if the session is missing or expired.
+ * Use this in React components instead of the deprecated getTeacherId().
+ */
+export async function fetchTeacherId(): Promise<string> {
+  try {
+    const res = await fetch("/api/teacher/me");
+    if (!res.ok) return "";
+    const data = (await res.json()) as { teacherId?: string };
+    return isValidTeacherId(data.teacherId) ? data.teacherId : "";
+  } catch {
+    return "";
+  }
 }
 
 /**

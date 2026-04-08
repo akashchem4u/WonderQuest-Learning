@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ const TIPS = [
 export default function TeacherCommandPage() {
   const [authed, setAuthed] = useState(false);
   useEffect(() => {
-    setAuthed(!!getTeacherId());
+    fetchTeacherId().then(id => setAuthed(!!id));
   }, []);
 
   const [roster, setRoster] = useState<RosterStudent[]>([]);
@@ -68,9 +68,9 @@ export default function TeacherCommandPage() {
   const [loading, setLoading] = useState(true);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
     if (!teacherId) {
       setLoading(false);
       return;
@@ -109,7 +109,7 @@ export default function TeacherCommandPage() {
       })
       .catch(() => {/* silently ignore */})
       .finally(() => setLoading(false));
-  }, [authed]);
+  })(); }, [authed]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const totalStudents = roster.length;

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 const C = {
@@ -175,14 +175,14 @@ export default function RemediationPage() {
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [resolvedInterventionIds, setResolvedInterventionIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   useEffect(() => {
     if (!authed) return;
     async function loadRoster() {
       try {
         setLoading(true);
-        const teacherId = getTeacherId();
+        const teacherId = await fetchTeacherId();
         const res = await fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`);
         if (!res.ok) throw new Error(`Failed to load roster (${res.status})`);
         const data = await res.json();
@@ -235,7 +235,7 @@ export default function RemediationPage() {
     if (!authed) return;
     async function loadInterventions() {
       try {
-        const teacherId = getTeacherId();
+        const teacherId = await fetchTeacherId();
         const res = await fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=active`);
         if (!res.ok) return;
         const data = await res.json() as { interventions: ApiIntervention[] };
@@ -250,7 +250,7 @@ export default function RemediationPage() {
   async function resolveIntervention(id: string) {
     setResolvingId(id);
     try {
-      const teacherId = getTeacherId();
+      const teacherId = await fetchTeacherId();
       const res = await fetch(`/api/teacher/interventions/${id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

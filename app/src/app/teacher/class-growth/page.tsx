@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -94,15 +94,15 @@ function levelChipStyle(type: string) {
 
 export default function ClassGrowthPage() {
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [activeTab, setActiveTab] = useState<"growth" | "students">("growth");
   const [period, setPeriod] = useState("term2");
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const teacherId = getTeacherId();
+  useEffect(() => { void (async () => {
+    const teacherId = await fetchTeacherId();
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => r.json())
       .then((data: { roster?: RosterStudent[] }) => {
@@ -110,7 +110,7 @@ export default function ClassGrowthPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  })(); }, []);
 
   const periodLabel: Record<string, string> = {
     term2: "Term 2",

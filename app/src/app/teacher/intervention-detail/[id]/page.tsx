@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ export default function InterventionDetailPage() {
   const id = typeof params?.id === "string" ? params.id : "";
 
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,9 +106,9 @@ export default function InterventionDetailPage() {
   const [resolveNote, setResolveNote] = useState("");
   const [showResolveForm, setShowResolveForm] = useState(false);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
 
     async function load() {
       try {
@@ -153,7 +153,7 @@ export default function InterventionDetailPage() {
     }
 
     void load();
-  }, [id, authed]);
+  })(); }, [id, authed]);
 
   const toggleAction = (idx: number) => {
     setActions((prev) => prev.map((a, i) => (i === idx ? { ...a, done: !a.done } : a)));
@@ -163,7 +163,7 @@ export default function InterventionDetailPage() {
     if (!intervention || resolving) return;
     setResolving(true);
     try {
-      const teacherId = getTeacherId();
+      const teacherId = await fetchTeacherId();
       const res = await fetch(`/api/teacher/interventions/${intervention.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

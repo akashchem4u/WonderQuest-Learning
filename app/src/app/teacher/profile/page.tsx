@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ type ProfileData = {
 
 export default function TeacherProfilePage() {
   const [authed, setAuthed] = useState(false);
-  useEffect(() => setAuthed(!!getTeacherId()), []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
   if (!authed) return <TeacherGate configured={false} />;
 
   return <ProfileContent />;
@@ -86,8 +86,8 @@ function ProfileContent() {
   // Copy state
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const teacherId = getTeacherId();
+  useEffect(() => { void (async () => {
+    const teacherId = await fetchTeacherId();
     if (!teacherId) return;
 
     fetch(`/api/teacher/profile?teacherId=${encodeURIComponent(teacherId)}`)
@@ -106,7 +106,7 @@ function ProfileContent() {
       })
       .catch(() => setError("Failed to load profile."))
       .finally(() => setLoading(false));
-  }, []);
+  })(); }, []);
 
   function toggleGrade(grade: string) {
     setGradeLevels((prev) =>

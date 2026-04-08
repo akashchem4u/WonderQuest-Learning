@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -251,7 +251,7 @@ const TEMPLATES = [
 export default function TeacherMessagesPage() {
   // Auth guard
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   // Top-level page tab
   const [pageTab, setPageTab] = useState<"notes" | "parent-messages">("notes");
@@ -283,9 +283,9 @@ export default function TeacherMessagesPage() {
   // ── Real student roster ──────────────────────────────────────────────────
   const [roster, setRoster] = useState<RosterStudent[]>([]);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
     async function load() {
       try {
         const res = await fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`);
@@ -297,12 +297,12 @@ export default function TeacherMessagesPage() {
       }
     }
     void load();
-  }, [authed]);
+  })(); }, [authed]);
 
   const loadSentMessages = useCallback(async () => {
     setSentLoading(true);
     try {
-      const teacherId = getTeacherId();
+      const teacherId = await fetchTeacherId();
       const res = await fetch(`/api/teacher/messages?teacherId=${encodeURIComponent(teacherId)}`);
       if (!res.ok) return;
       const data = await res.json() as { messages: SentMessage[] };
@@ -327,7 +327,7 @@ export default function TeacherMessagesPage() {
     if (!composeMsgBody.trim()) { setComposeError("Please enter a message."); return; }
     setComposeSending(true);
     try {
-      const teacherId = getTeacherId();
+      const teacherId = await fetchTeacherId();
       const res = await fetch("/api/teacher/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -360,7 +360,7 @@ export default function TeacherMessagesPage() {
     if (!announceBody.trim()) { setAnnounceError("Please enter a message."); return; }
     setAnnounceSending(true);
     try {
-      const teacherId = getTeacherId();
+      const teacherId = await fetchTeacherId();
       const sends = roster.map((s) =>
         fetch("/api/teacher/messages", {
           method: "POST",

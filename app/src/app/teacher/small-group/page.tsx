@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 const C = {
@@ -117,11 +117,11 @@ export default function SmallGroupPage() {
   const [loading, setLoading] = useState(true);
   const [roster, setRoster] = useState<RosterStudent[]>([]);
 
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
     async function load() {
       try {
         setLoading(true);
@@ -136,7 +136,7 @@ export default function SmallGroupPage() {
       }
     }
     void load();
-  }, [authed]);
+  })(); }, [authed]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2800); };
   const toggleStudent = (name: string) => {

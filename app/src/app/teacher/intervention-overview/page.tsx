@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import { setActiveStudentId } from "@/lib/active-student";
 import TeacherGate from "../teacher-gate";
 
@@ -156,7 +156,7 @@ function InterventionCard({
     if (resolving) return;
     setResolving(true);
     try {
-      const teacherId = getTeacherId();
+      const teacherId = await fetchTeacherId();
       const res = await fetch(`/api/teacher/interventions/${intervention.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -315,7 +315,7 @@ function InterventionCard({
 
 export default function TeacherInterventionOverviewPage() {
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [filter, setFilter] = useState<FilterTab>("active");
   const [interventions, setInterventions] = useState<Intervention[]>([]);
@@ -327,8 +327,8 @@ export default function TeacherInterventionOverviewPage() {
   // Track all-time totals for summary bar (fetched once with status=all)
   const [allInterventions, setAllInterventions] = useState<Intervention[]>([]);
 
-  useEffect(() => {
-    const teacherId = getTeacherId();
+  useEffect(() => { void (async () => {
+    const teacherId = await fetchTeacherId();
     setLoading(true);
     setError(null);
 
@@ -363,18 +363,18 @@ export default function TeacherInterventionOverviewPage() {
         setError("Could not load interventions. Please try again.");
         setLoading(false);
       });
-  }, [filter]);
+  })(); }, [filter]);
 
   // Fetch all-status data once for the summary bar counts
-  useEffect(() => {
-    const teacherId = getTeacherId();
+  useEffect(() => { void (async () => {
+    const teacherId = await fetchTeacherId();
     fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=all`)
       .then((r) => r.ok ? r.json() as Promise<{ interventions: Intervention[] }> : Promise.reject())
       .then((data) => {
         setAllInterventions(data.interventions ?? []);
       })
       .catch(() => {/* silent */});
-  }, []);
+  })(); }, []);
 
   function handleRemove(id: string) {
     setInterventions((prev) => prev.filter((i) => i.id !== id));
@@ -399,7 +399,7 @@ export default function TeacherInterventionOverviewPage() {
     setAutoQueueBusy(true);
     setAutoQueueMsg(null);
     try {
-      const teacherId = getTeacherId();
+      const teacherId = await fetchTeacherId();
       const r = await fetch(
         `/api/teacher/interventions/auto-queue?teacherId=${encodeURIComponent(teacherId)}`,
         { method: "POST" },
@@ -412,7 +412,7 @@ export default function TeacherInterventionOverviewPage() {
           : "Auto-queue ran successfully.",
       );
       // Refresh current list
-      const teacherId2 = getTeacherId();
+      const teacherId2 = await fetchTeacherId();
       const statusParam = filter === "all" ? "all" : filter;
       const refresh = await fetch(
         `/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId2)}&status=${statusParam}`,

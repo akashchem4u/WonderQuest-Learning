@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import {
   TEACHER_COOKIE_NAME,
@@ -7,10 +8,31 @@ import {
   recordTeacherAccessAttempt,
 } from "@/lib/teacher-access";
 import { getRequestIpAddress, getRequestUserAgent } from "@/lib/child-access";
-import { isDatabaseConnectionError } from "@/lib/db";
+import { db, isDatabaseConnectionError } from "@/lib/db";
 import { accessTeacherWithCredentials } from "@/lib/teacher-service";
+import { TEACHER_SESSION_COOKIE } from "@/lib/teacher-session";
 
-export const TEACHER_ID_COOKIE_NAME = "wonderquest-teacher-id";
+const SESSION_TTL_HOURS = 8;
+const ACCESS_TYPE_TEACHER = "teacher";
+
+function hashToken(token: string) {
+  return createHash("sha256").update(`wonderquest:teacher:${token}`).digest("hex");
+}
+
+async function createTeacherAccessSession(
+  teacherId: string,
+  ipAddress: string | null,
+  userAgent: string | null,
+) {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + SESSION_TTL_HOURS * 60 * 60 * 1000);
+  await db.query(
+    `INSERT INTO public.access_sessions (access_type, student_id, token_hash, ip_address, user_agent, expires_at)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [ACCESS_TYPE_TEACHER, teacherId, hashToken(token), ipAddress, userAgent, expiresAt],
+  );
+  return { token, expiresAt };
+}
 
 export async function POST(request: NextRequest) {
   const ipAddress = getRequestIpAddress(request);
@@ -36,7 +58,15 @@ export async function POST(request: NextRequest) {
 
     await recordTeacherAccessAttempt({ ipAddress, userAgent, succeeded: true });
 
-    const response = NextResponse.json({ ok: true, teacherId: result.teacherId, isNew: result.isNew });
+    const { token, expiresAt } = await createTeacherAccessSession(
+      result.teacherId,
+      ipAddress,
+      userAgent,
+    );
+
+    const response = NextResponse.json({ ok: true, isNew: result.isNew });
+
+    // Shared-access middleware cookie (soft gate — still needed for middleware)
     response.cookies.set({
       name: TEACHER_COOKIE_NAME,
       value: issueTeacherAccessToken(),
@@ -46,14 +76,16 @@ export async function POST(request: NextRequest) {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
     });
+
+    // Secure per-teacher session cookie — replaces the old httpOnly:false UUID cookie
     response.cookies.set({
-      name: TEACHER_ID_COOKIE_NAME,
-      value: result.teacherId,
-      httpOnly: false,
+      name: TEACHER_SESSION_COOKIE,
+      value: token,
+      httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 24 * 365,
+      expires: expiresAt,
     });
 
     return response;

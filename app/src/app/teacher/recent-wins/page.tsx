@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 const C = {
@@ -483,13 +483,13 @@ export default function RecentWinsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setAuthed(!!getTeacherId());
+    fetchTeacherId().then(id => setAuthed(!!id));
   }, []);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     if (!authed) return;
 
-    const teacherId = getTeacherId();
+    const teacherId = await fetchTeacherId();
     if (!teacherId) {
       setLoading(false);
       return;
@@ -526,7 +526,7 @@ export default function RecentWinsPage() {
     return () => {
       cancelled = true;
     };
-  }, [authed, days, refreshNonce]);
+  })(); }, [authed, days, refreshNonce]);
 
   if (!authed) {
     return (

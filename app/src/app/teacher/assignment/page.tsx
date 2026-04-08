@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 const C = {
@@ -73,8 +73,10 @@ type AssignmentProgress = {
 
 export default function TeacherAssignmentPage() {
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
-  const teacherId = getTeacherId();
+  const [teacherId, setTeacherId] = useState("");
+  useEffect(() => {
+    fetchTeacherId().then(id => { setTeacherId(id); setAuthed(!!id); });
+  }, []);
   const [step, setStep] = useState<Step>(1);
   const [assignmentType, setAssignmentType] = useState<"quest" | "skill" | "free">("skill");
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { getTeacherId } from "@/lib/teacher-identity";
+import { fetchTeacherId } from "@/lib/teacher-identity";
 import TeacherGate from "../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -254,42 +254,40 @@ function bandColor(b: Band): string {
 
 export default function TeacherClassPage() {
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [activeWeek, setActiveWeek] = useState(0);
   const [activeTab, setActiveTab] = useState<"summary" | "compare">("summary");
-  const [students, setStudents] = useState<StudentRow[]>(FALLBACK_STUDENTS);
+  const [students, setStudents] = useState<StudentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [classCode, setClassCode] = useState<string | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
 
   useEffect(() => {
     if (!authed) return;
-    const teacherId = getTeacherId();
+    fetchTeacherId().then(teacherId => {
+      // Fetch class roster
+      fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
+        .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+        .then((data: { roster: RosterStudent[] }) => {
+          setStudents(data.roster && data.roster.length > 0 ? mapRosterToStudentRows(data.roster) : []);
+        })
+        .catch(() => {
+          setFetchError(true);
+        })
+        .finally(() => setLoading(false));
 
-    // Fetch class roster
-    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
-      .then((data: { roster: RosterStudent[] }) => {
-        if (data.roster && data.roster.length > 0) {
-          setStudents(mapRosterToStudentRows(data.roster));
-        }
-        // empty roster → keep fallback
-      })
-      .catch(() => {
-        // fetch error → keep fallback
-      })
-      .finally(() => setLoading(false));
-
-    // Fetch class code from teacher profile
-    fetch(`/api/teacher/profile?teacherId=${encodeURIComponent(teacherId)}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
-      .then((data: { profile?: { classCode?: string } }) => {
-        if (data.profile?.classCode) setClassCode(data.profile.classCode);
-      })
-      .catch(() => {
-        // ignore — classCode remains null
-      });
+      // Fetch class code from teacher profile
+      fetch(`/api/teacher/profile?teacherId=${encodeURIComponent(teacherId)}`)
+        .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+        .then((data: { profile?: { classCode?: string } }) => {
+          if (data.profile?.classCode) setClassCode(data.profile.classCode);
+        })
+        .catch(() => {
+          // ignore — classCode remains null
+        });
+    });
   }, [authed]);
 
   const glassCard: React.CSSProperties = {
@@ -851,7 +849,35 @@ export default function TeacherClassPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {students.map((s) => (
+                      {fetchError ? (
+                        <tr>
+                          <td colSpan={7} style={{ padding: "40px 10px", textAlign: "center" }}>
+                            <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>
+                              Could not load student roster. Check your connection and try again.
+                            </div>
+                            <button
+                              onClick={() => { setFetchError(false); setLoading(true); fetchTeacherId().then((tid) => fetch(`/api/teacher/class?teacherId=${encodeURIComponent(tid)}`)).then((r) => r.ok ? r.json() : Promise.reject()).then((d: { roster: RosterStudent[] }) => setStudents(d.roster?.length ? mapRosterToStudentRows(d.roster) : [])).catch(() => setFetchError(true)).finally(() => setLoading(false)); }}
+                              style={{ fontSize: 12, fontWeight: 700, padding: "6px 16px", borderRadius: 8, border: `1px solid ${C.blue}55`, background: "rgba(56,189,248,0.08)", color: C.blue, cursor: "pointer", fontFamily: "system-ui,-apple-system,sans-serif" }}
+                            >
+                              Retry
+                            </button>
+                          </td>
+                        </tr>
+                      ) : !loading && students.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} style={{ padding: "40px 10px", textAlign: "center" }}>
+                            <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}>
+                              No students in your class yet. Share your class code to get started.
+                            </div>
+                            <Link
+                              href="/teacher/profile"
+                              style={{ fontSize: 12, fontWeight: 700, color: C.blue, textDecoration: "none", padding: "6px 14px", border: `1px solid ${C.blue}44`, borderRadius: 8 }}
+                            >
+                              View class code →
+                            </Link>
+                          </td>
+                        </tr>
+                      ) : students.map((s) => (
                         <tr key={s.id}>
                           <td style={{ padding: "8px 10px", borderBottom: `1px solid ${C.border}` }}>
                             <div
@@ -975,6 +1001,7 @@ export default function TeacherClassPage() {
                         </tr>
                       ))}
                     </tbody>
+
                   </table>
                 </div>
 
