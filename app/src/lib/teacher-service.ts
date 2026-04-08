@@ -639,12 +639,8 @@ export async function accessTeacherWithCredentials(input: {
     const passwordHash = row.password_hash as string | null;
 
     if (!passwordHash) {
-      // Legacy profile without password — allow any password and set it
-      await db.query(
-        `update public.teacher_profiles set password_hash = $2, username = $3 where id = $1`,
-        [row.id, hashTeacherPassword(password, username), username],
-      );
-      return { ok: true, teacherId: row.id as string, isNew: false };
+      // Account exists but has no password — admin must set one via /owner/teachers
+      return { ok: false, teacherId: "", isNew: false, error: "This account has no password set. Ask your admin to set a password from the Teachers management page." };
     }
 
     if (!verifyTeacherPassword(password, username, passwordHash)) {

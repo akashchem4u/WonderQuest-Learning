@@ -147,6 +147,11 @@ export function AppFrame({ children, currentPath, audience = "home" }: AppFrameP
                 Sign out →
               </a>
             )}
+            {audience === "owner" && (
+              <a href="/api/admin/logout" className="adult-sidebar-switch" style={{ marginTop: 8, color: "rgba(255,255,255,0.35)", fontSize: "0.75rem" }}>
+                Sign out →
+              </a>
+            )}
           </div>
 
         </aside>
