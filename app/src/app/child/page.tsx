@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DegradedBanner } from "@/components/degraded-banner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,7 @@ function getAvatarSymbol(avatarKey: string) {
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <main className="home-launcher">
+      <DegradedBanner />
       <div className="home-glow home-glow-violet" aria-hidden="true" />
       <div className="home-glow home-glow-teal" aria-hidden="true" />
 

@@ -125,8 +125,13 @@ function PlayCompletePageInner() {
                 ))}
               </div>
 
-              <div style={{ display: "flex", gap: 12, width: "100%" }}>
-                <Link href="/child" style={{ height: 52, borderRadius: 26, background: `linear-gradient(135deg, ${C.violet}, #7248e8)`, color: "#fff", fontSize: 16, fontWeight: 900, padding: "0 24px", display: "flex", alignItems: "center", textDecoration: "none" }}>Continue</Link>
+              <div style={{ display: "flex", gap: 12, width: "100%", flexWrap: "wrap" }}>
+                <Link
+                  href={`/play/summary?points=${starsDisplay}&correct=${correct}&total=${total}`}
+                  style={{ height: 52, borderRadius: 26, background: `linear-gradient(135deg, ${C.violet}, #7248e8)`, color: "#fff", fontSize: 16, fontWeight: 900, padding: "0 24px", display: "flex", alignItems: "center", textDecoration: "none" }}
+                >
+                  View Summary ⭐
+                </Link>
                 <Link href="/play" style={{ height: 52, borderRadius: 26, background: C.surface2, border: `1.5px solid ${C.border}`, color: "#b89eff", fontSize: 15, fontWeight: 900, padding: "0 20px", display: "flex", alignItems: "center", textDecoration: "none" }}>Play Again</Link>
               </div>
             </div>

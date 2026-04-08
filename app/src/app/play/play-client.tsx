@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { ShellCard, StatTile } from "@/components/ui";
 import { PlayBetaSupport, type AssistMode } from "./play-beta-support";
+import { SpeakButton } from "@/components/speak-button";
 
 // ── Color tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -2123,10 +2124,15 @@ function PlayClientInner() {
               {renderQuestionStageVisual(currentQuestion, currentScene, isAnsweredCorrect)}
 
               {/* Prompt */}
-              <div style={{ ...s.questPrompt, ...(isAnsweredCorrect ? { color: C.mintGreen } : {}) }}>
-                {isAnsweredCorrect
-                  ? `🎉 "${answerState?.correctAnswer}" — yes!`
-                  : currentQuestion.prompt}
+              <div style={{ ...s.questPrompt, ...(isAnsweredCorrect ? { color: C.mintGreen } : {}), display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span>
+                  {isAnsweredCorrect
+                    ? `🎉 "${answerState?.correctAnswer}" — yes!`
+                    : currentQuestion.prompt}
+                </span>
+                {!isAnsweredCorrect && (
+                  <SpeakButton text={currentQuestion.prompt} size="md" />
+                )}
               </div>
               <div style={s.questPromptSub}>
                 {isAnsweredCorrect

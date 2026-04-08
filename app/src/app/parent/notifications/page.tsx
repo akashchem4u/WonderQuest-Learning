@@ -576,49 +576,92 @@ const DELIVERY_OPTIONS: DeliveryOption[] = [
 
 // ─── Settings panel ───────────────────────────────────────────────────────────
 
-const NOTIF_SETTINGS_KEY = "wonderquest-notif-settings";
-const NOTIF_DELIVERY_KEY = "wonderquest-notif-delivery";
+// Maps toggle ID → notification_preferences DB column (null = UI-only, not persisted)
+const SETTING_DB_FIELD: Record<string, string | null> = {
+  badge:   "email_milestone_alerts",
+  levelup: "email_milestone_alerts",
+  weekly:  "email_weekly_digest",
+  session: "push_session_complete",
+  streak:  "push_streak_reminder",
+  inact:   null,
+};
 
 function SettingsPanel() {
   const [settings, setSettings] = useState<NotifSetting[]>(INITIAL_SETTINGS);
   const [delivery, setDelivery] = useState<string[]>(["email", "inapp"]);
-  const [saved, setSaved] = useState(false);
+  const [prefsLoading, setPrefsLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
 
-  // Load persisted settings on mount
+  // Load preferences from DB on mount
   useEffect(() => {
-    try {
-      const rawSettings = localStorage.getItem(NOTIF_SETTINGS_KEY);
-      if (rawSettings) {
-        const saved = JSON.parse(rawSettings) as Record<string, boolean>;
-        setSettings((prev) => prev.map((s) => (s.id in saved ? { ...s, on: saved[s.id] } : s)));
-      }
-      const rawDelivery = localStorage.getItem(NOTIF_DELIVERY_KEY);
-      if (rawDelivery) setDelivery(JSON.parse(rawDelivery) as string[]);
-    } catch { /* ignore */ }
+    fetch("/api/parent/notification-preferences")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.preferences) {
+          const p = data.preferences as Record<string, boolean | string>;
+          setSettings((prev) =>
+            prev.map((s) => {
+              const field = SETTING_DB_FIELD[s.id];
+              if (field && field in p) return { ...s, on: Boolean(p[field]) };
+              return s;
+            }),
+          );
+        }
+      })
+      .catch(() => { /* silently use defaults */ })
+      .finally(() => setPrefsLoading(false));
   }, []);
 
   function toggleSetting(id: string) {
-    setSettings((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, on: !s.on } : s)),
-    );
-    setSaved(false);
+    const field = SETTING_DB_FIELD[id];
+    setSettings((prev) => {
+      const next = prev.map((s) => (s.id === id ? { ...s, on: !s.on } : s));
+      if (field) {
+        // Sync the same DB field across all toggles that share it
+        const newVal = next.find((s) => s.id === id)!.on;
+        const patch: Record<string, boolean> = { [field]: newVal };
+        fetch("/api/parent/notification-preferences", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        })
+          .then((res) => {
+            if (res.ok) {
+              setSaveStatus("saved");
+              setTimeout(() => setSaveStatus("idle"), 2000);
+            } else {
+              setSaveStatus("error");
+              setTimeout(() => setSaveStatus("idle"), 4000);
+            }
+          })
+          .catch(() => {
+            setSaveStatus("error");
+            setTimeout(() => setSaveStatus("idle"), 4000);
+          });
+      }
+      return next;
+    });
   }
 
   function toggleDelivery(id: string) {
     setDelivery((prev) =>
       prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id],
     );
-    setSaved(false);
   }
 
-  function handleSave() {
-    try {
-      const map = Object.fromEntries(settings.map((s) => [s.id, s.on]));
-      localStorage.setItem(NOTIF_SETTINGS_KEY, JSON.stringify(map));
-      localStorage.setItem(NOTIF_DELIVERY_KEY, JSON.stringify(delivery));
-    } catch { /* ignore */ }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  if (prefsLoading) {
+    return (
+      <div
+        style={{
+          padding: "40px 24px",
+          textAlign: "center",
+          font: "400 0.84rem system-ui",
+          color: MUTED,
+        }}
+      >
+        Loading preferences…
+      </div>
+    );
   }
 
   return (
@@ -770,27 +813,23 @@ function SettingsPanel() {
         🔒 <strong style={{ color: "rgba(200,190,240,0.8)" }}>Privacy note:</strong> Notification content never reveals specific wrong answers or details that could embarrass your child. We celebrate what they&apos;ve achieved, not what they&apos;re building toward.
       </div>
 
-      {/* Save button */}
-      <button
-        onClick={handleSave}
-        style={{
-          width: "100%",
-          padding: "14px",
-          borderRadius: 14,
-          border: "none",
-          background: saved
-            ? "linear-gradient(135deg, #50e890, #30c870)"
-            : "linear-gradient(135deg, #9b72ff, #7c4ddb)",
-          color: saved ? "#0a2a15" : "#fff",
-          fontSize: 15,
-          fontWeight: 700,
-          cursor: "pointer",
-          fontFamily: "system-ui",
-          transition: "all 0.25s",
-        }}
-      >
-        {saved ? "✓ Saved!" : "Save notification settings"}
-      </button>
+      {/* Auto-save status toast */}
+      {saveStatus !== "idle" && (
+        <div
+          style={{
+            padding: "10px 16px",
+            borderRadius: 10,
+            font: "600 0.8rem system-ui",
+            color: saveStatus === "saved" ? "#30c870" : "#ff6b6b",
+            background: saveStatus === "saved"
+              ? "rgba(48,200,112,0.1)"
+              : "rgba(255,107,107,0.1)",
+            border: `1px solid ${saveStatus === "saved" ? "rgba(48,200,112,0.25)" : "rgba(255,107,107,0.25)"}`,
+          }}
+        >
+          {saveStatus === "saved" ? "Saved" : "Failed to save — changes kept locally"}
+        </div>
+      )}
     </div>
   );
 }
