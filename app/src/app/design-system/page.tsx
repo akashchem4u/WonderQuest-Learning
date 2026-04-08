@@ -58,14 +58,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   Other: "#6b7280",
 };
 
-export default function DesignSystemPage({
+export default async function DesignSystemPage({
   searchParams,
 }: {
-  searchParams: { source?: string; category?: string; q?: string };
+  searchParams: Promise<{ source?: string; category?: string; q?: string }>;
 }) {
-  const sourceFilter = searchParams.source ?? "all";
-  const categoryFilter = searchParams.category ?? "all";
-  const query = (searchParams.q ?? "").toLowerCase();
+  const params = await searchParams;
+  const sourceFilter = params.source ?? "all";
+  const categoryFilter = params.category ?? "all";
+  const query = (params.q ?? "").toLowerCase();
 
   const uiFiles = getFiles("ui");
   const parallelFiles = getFiles("parallel");
@@ -121,7 +122,7 @@ export default function DesignSystemPage({
         <form method="GET" style={{ display: "flex", gap: "12px", marginBottom: "24px", flexWrap: "wrap" }}>
           <input
             name="q"
-            defaultValue={searchParams.q ?? ""}
+            defaultValue={params.q ?? ""}
             placeholder="Search components..."
             style={{ flex: "1", minWidth: "200px", background: "#161b22", border: "1px solid rgba(255,255,255,.12)", borderRadius: "8px", padding: "10px 14px", color: "#f0f6ff", fontSize: "14px", outline: "none" }}
           />

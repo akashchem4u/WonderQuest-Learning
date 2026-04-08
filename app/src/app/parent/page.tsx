@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { US_STATES } from "@/lib/curriculum-frameworks";
+import { SiblingSwitcher } from "@/components/sibling-switcher";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
@@ -330,6 +331,27 @@ export default function ParentAccessPage() {
       setSelectedChildId(result.linkedChild?.id ?? result.linkedChildren[0]?.id ?? null);
     }
   }, [result, selectedChildId]);
+
+  // Switch active child: persist to DB + localStorage, then refresh dashboard data
+  async function handleSwitchChild(childId: string) {
+    setSelectedChildId(childId);
+    localStorage.setItem("wq_active_child_id", childId);
+    localStorage.setItem("wq_active_student_id", childId);
+    // Persist to DB (fire-and-forget — UX is already updated)
+    fetch("/api/parent/account-context", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activeChildId: childId }),
+    }).catch(() => {/* non-critical */});
+    // Re-fetch session to pull fresh dashboard data for the switched child
+    try {
+      const sessionRes = await fetch("/api/parent/session", { method: "GET" });
+      if (sessionRes.ok) {
+        const refreshed = (await sessionRes.json()) as ParentAccessResponse;
+        setResult(refreshed);
+      }
+    } catch {/* ignore */}
+  }
 
   async function handleSignIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1194,68 +1216,20 @@ export default function ParentAccessPage() {
             padding: "32px 36px 0",
           }}
         >
-          {/* ── Family Overview Strip (multi-child) ───────────────────────── */}
+          {/* ── Sibling Switcher (multi-child only) ───────────────────────── */}
           {result.linkedChildren.length > 1 && (
-            <div style={{ marginBottom: "28px" }}>
-              <div style={{ font: "700 0.75rem system-ui", color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "12px" }}>
-                Your children
+            <div style={{ marginBottom: "24px" }}>
+              <div style={{ font: "700 0.75rem system-ui", color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>Your children</span>
+                <Link href="/parent/wrong-child" style={{ font: "500 0.72rem system-ui", color: C.violet, textDecoration: "none", opacity: 0.8 }}>
+                  Wrong child? →
+                </Link>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "12px",
-                  overflowX: "auto",
-                  paddingBottom: "4px",
-                  scrollbarWidth: "none",
-                }}
-              >
-                {result.linkedChildren.map((child) => {
-                  const isActive = activeChildId === child.id;
-                  const childDash = result.childDashboards.find((d) => d.studentId === child.id) ?? null;
-                  const lastActive = formatLastActive(childDash?.lastSessionAt ?? null);
-                  const bandLabel = getBandLabel(child.launchBandCode);
-                  const avatar = getAvatarSymbol(child.avatarKey);
-                  return (
-                    <button
-                      key={child.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedChildId(child.id);
-                        localStorage.setItem("wq_active_student_id", child.id);
-                      }}
-                      style={{
-                        padding: "16px 14px",
-                        borderRadius: "18px",
-                        border: `2px solid ${isActive ? "#9b72ff" : "rgba(255,255,255,0.08)"}`,
-                        background: isActive ? "rgba(155,114,255,0.12)" : "rgba(255,255,255,0.03)",
-                        cursor: "pointer",
-                        minWidth: "130px",
-                        textAlign: "center",
-                        fontFamily: "system-ui",
-                        boxShadow: isActive ? "0 0 18px rgba(155,114,255,0.25)" : "none",
-                        transition: "border-color 0.15s, box-shadow 0.15s",
-                        flexShrink: 0,
-                        touchAction: "manipulation",
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      <div style={{ fontSize: "1.8rem", marginBottom: "6px" }}>{avatar}</div>
-                      <div style={{ font: "700 0.85rem system-ui", color: isActive ? C.text : "rgba(240,246,255,0.8)", marginBottom: "3px", whiteSpace: "nowrap" }}>
-                        {child.displayName}
-                      </div>
-                      <div style={{ font: "600 0.68rem system-ui", color: getBandColor(child.launchBandCode), marginBottom: "6px" }}>
-                        {bandLabel}
-                      </div>
-                      <div style={{ font: "400 0.68rem system-ui", color: C.muted, marginBottom: "4px" }}>
-                        {lastActive}
-                      </div>
-                      <div style={{ font: "700 0.72rem system-ui", color: C.gold }}>
-                        ⭐ {child.totalPoints}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <SiblingSwitcher
+                children={result.linkedChildren}
+                activeChildId={activeChildId ?? ""}
+                onSwitch={handleSwitchChild}
+              />
             </div>
           )}
 

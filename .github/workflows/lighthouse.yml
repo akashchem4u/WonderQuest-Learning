@@ -1,0 +1,39 @@
+name: Lighthouse CI
+
+# Audits the live Render deployment — no local server or DB setup required.
+# On first run scores are "warn" not "error" to give visibility without blocking deploys.
+# Tighten thresholds in .lighthouserc.json once baseline scores are established.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Lighthouse on production
+        run: |
+          npx @lhci/cli@0.14.x collect \
+            --url=https://wonderquest-learning.onrender.com/ \
+            --url=https://wonderquest-learning.onrender.com/child \
+            --url=https://wonderquest-learning.onrender.com/parent \
+            --numberOfRuns=1 \
+            --settings.preset=desktop \
+            --settings.onlyCategories=performance,accessibility,best-practices
+
+      - name: Assert scores
+        run: npx @lhci/cli@0.14.x assert --config=.lighthouserc.json
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-results
+          path: .lighthouseci/
+          retention-days: 30

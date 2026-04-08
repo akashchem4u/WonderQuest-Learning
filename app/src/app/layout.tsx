@@ -4,6 +4,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "WonderQuest Learning",
   description: "WonderQuest Learning — play-first, skill-building adventures for children ages 2 to 10.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "WonderQuest",
+  },
 };
 
 export const viewport: Viewport = {
@@ -19,6 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+      </head>
       <body>{children}</body>
     </html>
   );

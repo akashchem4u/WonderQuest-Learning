@@ -6,14 +6,14 @@ import {
 import { db } from "@/lib/db";
 import { resolveFramework } from "@/lib/curriculum-frameworks";
 
-// Returns curriculum framework resolution info for the logged-in parent.
-// Shape: { stateCode, schoolName, isdName, resolution: FrameworkResolution }
+// Returns curriculum framework resolution info + active child for the logged-in parent.
+// Shape: { stateCode, schoolName, isdName, resolution: FrameworkResolution, activeChildId }
 export async function GET(request: NextRequest) {
   try {
     const { guardianId } = await requireParentAccessSession(request);
 
     const result = await db.query(
-      `select state_code, school_name, isd_name from public.guardian_profiles where id = $1 limit 1`,
+      `select state_code, school_name, isd_name, active_child_id from public.guardian_profiles where id = $1 limit 1`,
       [guardianId],
     );
 
@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
       state_code: string | null;
       school_name: string | null;
       isd_name: string | null;
+      active_child_id: string | null;
     };
 
     const resolution = resolveFramework(row.state_code, row.isd_name);
@@ -34,11 +35,47 @@ export async function GET(request: NextRequest) {
       schoolName: row.school_name,
       isdName: row.isd_name,
       resolution,
+      activeChildId: row.active_child_id ?? null,
     });
   } catch (error) {
     const status = error instanceof ParentAccessSessionError ? 401 : 400;
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to load account context." },
+      { status },
+    );
+  }
+}
+
+// Persists the active child selection for the logged-in parent.
+// Body: { activeChildId: string }
+export async function PATCH(request: NextRequest) {
+  try {
+    const { guardianId } = await requireParentAccessSession(request);
+
+    const body = (await request.json()) as { activeChildId?: string };
+    const activeChildId = body.activeChildId ?? null;
+
+    // If a childId is provided, verify it belongs to this guardian before saving.
+    if (activeChildId) {
+      const check = await db.query(
+        `select 1 from public.guardian_student_links where guardian_id = $1 and student_id = $2 limit 1`,
+        [guardianId, activeChildId],
+      );
+      if (check.rows.length === 0) {
+        return NextResponse.json({ error: "Child not linked to this account." }, { status: 403 });
+      }
+    }
+
+    await db.query(
+      `update public.guardian_profiles set active_child_id = $1, updated_at = now() where id = $2`,
+      [activeChildId, guardianId],
+    );
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const status = error instanceof ParentAccessSessionError ? 401 : 400;
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to update active child." },
       { status },
     );
   }
