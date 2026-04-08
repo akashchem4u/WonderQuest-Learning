@@ -247,6 +247,7 @@ export default function ParentAccessPage() {
     birthYear: "",
     avatarKey: "bunny_purple",
     launchBandCode: "K1",
+    coppaConsent: false,
   });
   const [addChildSubmitting, setAddChildSubmitting] = useState(false);
   const [addChildError, setAddChildError] = useState("");
@@ -508,12 +509,13 @@ export default function ParentAccessPage() {
           avatarKey: addChildForm.avatarKey,
           launchBandCode: addChildForm.launchBandCode,
           birthYear: addChildForm.birthYear ? parseInt(addChildForm.birthYear, 10) : undefined,
+          coppaConsent: addChildForm.coppaConsent,
         }),
       });
       const payload = (await response.json()) as { success?: boolean; child?: { displayName: string }; error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Could not create child account.");
       setAddChildSuccess(`${payload.child?.displayName ?? "Child"} account created! They can now sign in.`);
-      setAddChildForm({ displayName: "", username: "", pin: "", birthYear: "", avatarKey: "bunny_purple", launchBandCode: "K1" });
+      setAddChildForm({ displayName: "", username: "", pin: "", birthYear: "", avatarKey: "bunny_purple", launchBandCode: "K1", coppaConsent: false });
       // Refresh dashboard data
       const sessionRes = await fetch("/api/parent/session", { method: "GET" });
       if (sessionRes.ok) {
@@ -2122,13 +2124,28 @@ export default function ParentAccessPage() {
                       </p>
                     )}
 
+                    {/* COPPA Consent */}
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginTop: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={addChildForm.coppaConsent}
+                        onChange={(e) => setAddChildForm((prev) => ({ ...prev, coppaConsent: e.target.checked }))}
+                        style={{ marginTop: 3, accentColor: "#9b72ff", width: 16, height: 16, flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
+                        I confirm that I am the parent or legal guardian of this child. I give WonderQuest Learning permission to create an educational account and collect educational data as described in the{" "}
+                        <a href="/privacy" style={{ color: "#9b72ff" }}>Privacy Policy</a>
+                        {" "}on behalf of my child. (Required by COPPA)
+                      </span>
+                    </label>
+
                     <button
                       type="submit"
-                      disabled={addChildSubmitting}
+                      disabled={addChildSubmitting || !addChildForm.coppaConsent}
                       style={{
                         ...primaryBtnStyle,
-                        opacity: addChildSubmitting ? 0.7 : 1,
-                        cursor: addChildSubmitting ? "not-allowed" : "pointer",
+                        opacity: addChildSubmitting || !addChildForm.coppaConsent ? 0.7 : 1,
+                        cursor: addChildSubmitting || !addChildForm.coppaConsent ? "not-allowed" : "pointer",
                       }}
                     >
                       {addChildSubmitting ? "Creating…" : "Create child account"}
