@@ -117,13 +117,19 @@ export default function OwnerPage() {
   const [overview, setOverview] = useState<OwnerOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError("");
     async function load() {
       try {
         const res = await fetch("/api/owner/overview");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({})) as { error?: string; detail?: string };
+          throw new Error(json.detail ?? json.error ?? `HTTP ${res.status}`);
+        }
         const data = (await res.json()) as OwnerOverview;
         if (!cancelled) setOverview(data);
       } catch (err) {
@@ -134,7 +140,7 @@ export default function OwnerPage() {
     }
     void load();
     return () => { cancelled = true; };
-  }, []);
+  }, [retryKey]);
 
   // Feedback badge from real count
   const feedbackBadgeCount = overview?.counts.feedbackItems ?? null;
@@ -344,8 +350,17 @@ export default function OwnerPage() {
 
             {/* Error state */}
             {error && !loading && (
-              <div style={{ background: "rgba(248,81,73,0.12)", border: `1px solid ${C.red}`, borderRadius: "10px", padding: "14px 16px", color: C.red, fontSize: "13px" }}>
-                Failed to load overview: {error}
+              <div style={{ background: "rgba(248,81,73,0.10)", border: `1px solid ${C.red}44`, borderRadius: "10px", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ color: C.red, fontSize: "13px", fontWeight: 600 }}>Failed to load overview</div>
+                  <div style={{ color: C.red, fontSize: "11px", opacity: 0.8, marginTop: 3, fontFamily: "monospace", wordBreak: "break-all" }}>{error}</div>
+                </div>
+                <button
+                  onClick={() => setRetryKey(k => k + 1)}
+                  style={{ background: C.red, color: "#fff", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: "12px", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+                >
+                  Retry
+                </button>
               </div>
             )}
 

@@ -13,7 +13,11 @@ export async function GET(request: NextRequest) {
     const overview = await getOwnerOverview();
     return NextResponse.json(overview);
   } catch (error) {
-    console.error("[api/owner/overview] error:", error);
-    return NextResponse.json({ error: "Failed to fetch owner overview" }, { status: 500 });
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[api/owner/overview] error:", msg);
+    return NextResponse.json(
+      { error: "Failed to fetch owner overview", detail: msg },
+      { status: 500 },
+    );
   }
 }
