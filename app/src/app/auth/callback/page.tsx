@@ -10,31 +10,71 @@ function CallbackInner() {
 
   useEffect(() => {
     async function handleCallback() {
-      const code = searchParams.get("code");
-      const role = (searchParams.get("role") ?? "parent") as "parent" | "teacher";
+      // Role stored in localStorage before redirect (avoids query-param mismatch
+      // with Supabase's redirect URL allow-list).
+      const role = (
+        (typeof window !== "undefined" && localStorage.getItem("oauth_redirect_role")) ??
+        searchParams.get("role") ??
+        "parent"
+      ) as "parent" | "teacher";
 
-      if (!code) {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("oauth_redirect_role");
+      }
+
+      // Check for an explicit error coming back from Supabase/Google
+      const oauthError = searchParams.get("error") ?? searchParams.get("error_description");
+      if (oauthError) {
+        setError(`Google sign-in was declined: ${oauthError}. Please try again.`);
+        return;
+      }
+
+      // PKCE flow — code arrives as a query param
+      const code = searchParams.get("code");
+
+      // Implicit flow fallback — token arrives in URL hash fragment
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
+      const accessToken = hashParams.get("access_token");
+
+      if (!code && !accessToken) {
         setError("No authorization code received. Please try signing in again.");
         return;
       }
 
       try {
-        // Exchange code for Supabase session (gets us the user's identity)
-        const { data, error: exchangeError } = await supabaseBrowser.auth.exchangeCodeForSession(code);
-        if (exchangeError || !data.user) {
-          setError("Could not verify your Google account. Please try again.");
-          return;
+        let googleId = "";
+        let email = "";
+        let displayName = "";
+
+        if (code) {
+          // PKCE — exchange code for session
+          const { data, error: exchangeError } = await supabaseBrowser.auth.exchangeCodeForSession(code);
+          if (exchangeError || !data.user) {
+            setError(exchangeError?.message ?? "Could not verify your Google account. Please try again.");
+            return;
+          }
+          const user = data.user;
+          googleId = user.id;
+          email = user.email ?? "";
+          displayName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? email.split("@")[0];
+        } else {
+          // Implicit — parse existing session from hash
+          const { data, error: sessionError } = await supabaseBrowser.auth.getUser(accessToken!);
+          if (sessionError || !data.user) {
+            setError("Could not verify your Google account. Please try again.");
+            return;
+          }
+          const user = data.user;
+          googleId = user.id;
+          email = user.email ?? "";
+          displayName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? email.split("@")[0];
         }
 
-        const user = data.user;
-        const googleId = user.id; // Supabase user ID (maps to Google sub)
-        const email = user.email ?? "";
-        const displayName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? email.split("@")[0];
-
-        // Sign out from Supabase Auth immediately — we use our own session system
+        // Sign out from Supabase Auth — we use our own custom session system
         await supabaseBrowser.auth.signOut();
 
-        // Create our own session via server-side API
+        // Create our own session cookie via server-side API
         const res = await fetch("/api/auth/google-callback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -48,7 +88,8 @@ function CallbackInner() {
         }
 
         router.replace(json.redirectTo ?? (role === "teacher" ? "/teacher" : "/parent"));
-      } catch {
+      } catch (err) {
+        console.error("OAuth callback error:", err);
         setError("Something went wrong. Please try signing in again.");
       }
     }
@@ -59,13 +100,17 @@ function CallbackInner() {
   const C = { base: "#100b2e", violet: "#9b72ff", text: "#f0f6ff", muted: "rgba(255,255,255,0.5)" };
 
   if (error) {
+    const isTeacher = (typeof window !== "undefined" && localStorage.getItem("oauth_redirect_role")) === "teacher";
     return (
       <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-        <div style={{ maxWidth: 400, textAlign: "center" }}>
+        <div style={{ maxWidth: 420, textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 8 }}>Sign-in failed</h1>
           <p style={{ fontSize: 14, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>{error}</p>
-          <a href="/parent" style={{ background: C.violet, color: "#fff", borderRadius: 10, padding: "12px 24px", fontWeight: 700, textDecoration: "none", fontSize: 14 }}>
+          <a
+            href={isTeacher ? "/teacher" : "/parent"}
+            style={{ background: C.violet, color: "#fff", borderRadius: 10, padding: "12px 24px", fontWeight: 700, textDecoration: "none", fontSize: 14 }}
+          >
             ← Back to sign in
           </a>
         </div>
@@ -76,8 +121,10 @@ function CallbackInner() {
   return (
     <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 16, animation: "spin 1s linear infinite" }}>🔄</div>
-        <p style={{ fontSize: 16, color: C.muted }}>Signing you in…</p>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>
+          <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⟳</span>
+        </div>
+        <p style={{ fontSize: 16, color: C.muted }}>Signing you in with Google…</p>
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>

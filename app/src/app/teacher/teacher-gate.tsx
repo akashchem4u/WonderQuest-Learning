@@ -47,7 +47,8 @@ export default function TeacherGate({ configured }: TeacherGateProps) {
   }
 
   async function handleGoogleSignIn(role: "parent" | "teacher") {
-    const redirectTo = `${window.location.origin}/auth/callback?role=${role}`;
+    localStorage.setItem("oauth_redirect_role", role);
+    const redirectTo = `${window.location.origin}/auth/callback`;
     await import("@/lib/supabase-browser").then(({ supabaseBrowser }) =>
       supabaseBrowser.auth.signInWithOAuth({
         provider: "google",

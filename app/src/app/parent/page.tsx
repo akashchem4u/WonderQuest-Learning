@@ -510,7 +510,10 @@ export default function ParentAccessPage() {
   }
 
   async function handleGoogleSignIn(role: "parent" | "teacher") {
-    const redirectTo = `${window.location.origin}/auth/callback?role=${role}`;
+    // Store role in localStorage — avoids adding query params to redirectTo
+    // which can cause Supabase redirect URL allow-list mismatches.
+    localStorage.setItem("oauth_redirect_role", role);
+    const redirectTo = `${window.location.origin}/auth/callback`;
     await import("@/lib/supabase-browser").then(({ supabaseBrowser }) =>
       supabaseBrowser.auth.signInWithOAuth({
         provider: "google",
