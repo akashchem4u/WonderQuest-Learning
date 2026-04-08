@@ -199,6 +199,7 @@ const TRUST_BADGES = ["🔒 COPPA-safe", "📵 No ads", "✅ Teacher-guided"];
 const DASHBOARD_NAV = [
   { href: "/parent/report", label: "Weekly Report", icon: "📊" },
   { href: "/parent/practice", label: "Practice Ideas", icon: "💡" },
+  { href: "/parent/link-health", label: "Link Health", icon: "🔗" },
   { href: "/parent/family", label: "Family Hub", icon: "👨‍👩‍👧" },
   { href: "/parent/benchmarks", label: "How it works", icon: "ℹ️" },
 ];
