@@ -16,10 +16,20 @@ function CallbackInner() {
         (typeof window !== "undefined" && localStorage.getItem("oauth_redirect_role")) ??
         searchParams.get("role") ??
         "parent"
-      ) as "parent" | "teacher";
+      ) as "parent" | "teacher" | "admin";
+
+      // Admin context (action + optional setupSecret / inviteToken)
+      const adminContextRaw =
+        typeof window !== "undefined" ? localStorage.getItem("oauth_admin_context") : null;
+      type AdminCtx = { action: string; setupSecret?: string; inviteToken?: string };
+      let adminContext: AdminCtx | null = null;
+      if (adminContextRaw) {
+        try { adminContext = JSON.parse(adminContextRaw) as AdminCtx; } catch { /* ignore */ }
+      }
 
       if (typeof window !== "undefined") {
         localStorage.removeItem("oauth_redirect_role");
+        localStorage.removeItem("oauth_admin_context");
       }
 
       // Check for an explicit error coming back from Supabase/Google
@@ -75,10 +85,25 @@ function CallbackInner() {
         await supabaseBrowser.auth.signOut();
 
         // Create our own session cookie via server-side API
-        const res = await fetch("/api/auth/google-callback", {
+        let apiUrl = "/api/auth/google-callback";
+        let apiBody: Record<string, unknown> = { googleId, email, displayName, role };
+
+        if (role === "admin") {
+          apiUrl = "/api/auth/google-admin-callback";
+          apiBody = {
+            googleId,
+            email,
+            displayName,
+            action: adminContext?.action ?? "login",
+            ...(adminContext?.setupSecret ? { setupSecret: adminContext.setupSecret } : {}),
+            ...(adminContext?.inviteToken ? { inviteToken: adminContext.inviteToken } : {}),
+          };
+        }
+
+        const res = await fetch(apiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ googleId, email, displayName, role }),
+          body: JSON.stringify(apiBody),
         });
 
         const json = await res.json() as { redirectTo?: string; error?: string };
@@ -87,7 +112,7 @@ function CallbackInner() {
           return;
         }
 
-        router.replace(json.redirectTo ?? (role === "teacher" ? "/teacher" : "/parent"));
+        router.replace(json.redirectTo ?? (role === "teacher" ? "/teacher" : role === "admin" ? "/owner" : "/parent"));
       } catch (err) {
         console.error("OAuth callback error:", err);
         setError("Something went wrong. Please try signing in again.");
@@ -100,7 +125,8 @@ function CallbackInner() {
   const C = { base: "#100b2e", violet: "#9b72ff", text: "#f0f6ff", muted: "rgba(255,255,255,0.5)" };
 
   if (error) {
-    const isTeacher = (typeof window !== "undefined" && localStorage.getItem("oauth_redirect_role")) === "teacher";
+    const storedRole = typeof window !== "undefined" ? localStorage.getItem("oauth_redirect_role") : null;
+    const backHref = storedRole === "teacher" ? "/teacher" : storedRole === "admin" ? "/owner/login" : "/parent";
     return (
       <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
         <div style={{ maxWidth: 420, textAlign: "center" }}>
@@ -108,7 +134,7 @@ function CallbackInner() {
           <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 8 }}>Sign-in failed</h1>
           <p style={{ fontSize: 14, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>{error}</p>
           <a
-            href={isTeacher ? "/teacher" : "/parent"}
+            href={backHref}
             style={{ background: C.violet, color: "#fff", borderRadius: 10, padding: "12px 24px", fontWeight: 700, textDecoration: "none", fontSize: 14 }}
           >
             ← Back to sign in
