@@ -1367,6 +1367,7 @@ function PlayClientInner() {
   const [progression, setProgression] = useState<SessionPayload["progression"] | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [attempt, setAttempt] = useState(1);
+  const [eliminatedAnswers, setEliminatedAnswers] = useState<string[]>([]);
   const [questionStartedAt, setQuestionStartedAt] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -1634,6 +1635,10 @@ function PlayClientInner() {
         setAttempt((value) => value + 1);
         setCoachMode("support");
         setQuestionStartedAt(Date.now());
+        // Auto-hint: eliminate a wrong answer on the second wrong attempt
+        if (attempt >= 2) {
+          eliminateOneWrongAnswer(currentQuestion);
+        }
         // Reset selected after a moment so they can retry
         setTimeout(() => setSelectedAnswer(null), 600);
       }
@@ -1661,6 +1666,7 @@ function PlayClientInner() {
     setCoachMode("listen");
     setSelectedAnswer(null);
     setQuestionStartedAt(Date.now());
+    setEliminatedAnswers([]);
     // Clear any concept explainer state
     setConceptExplanation(null);
     setExplainerPhase(null);
@@ -1787,6 +1793,15 @@ function PlayClientInner() {
   const welcomeBackCopy = buildWelcomeBackCopy(session.student.displayName, session.student.launchBandCode, progression);
   const promptCue = buildPromptCue(currentQuestion, currentScene);
   const coachCopy = buildCoachCopy(currentQuestion, currentScene, coachMode);
+
+  function eliminateOneWrongAnswer(question: SessionQuestion) {
+    const wrongAnswers = question.answers.filter(
+      (a) => a !== question.correctAnswer && !eliminatedAnswers.includes(a)
+    );
+    if (wrongAnswers.length === 0) return;
+    const pick = wrongAnswers[Math.floor(Math.random() * wrongAnswers.length)];
+    setEliminatedAnswers((prev) => [...prev, pick]);
+  }
   const coachSteps = buildCoachSteps(currentQuestion);
   const answerCardVariant = buildAnswerCardVariant(currentQuestion);
   const answerTapCue = buildAnswerTapCue(currentQuestion);
@@ -1912,6 +1927,27 @@ function PlayClientInner() {
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>stars earned</div>
                     </div>
                   </div>
+
+                  {/* Streak shield indicator */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 32 }}>
+                      {accuracy >= 70 ? "🔥" : accuracy >= 50 ? "🛡️" : "💙"}
+                    </span>
+                    <div>
+                      <div style={{
+                        fontSize: 15,
+                        fontWeight: 800,
+                        color: accuracy >= 70 ? C.mintGreen : accuracy >= 50 ? C.gold : C.coral,
+                        lineHeight: 1.3,
+                      }}>
+                        {accuracy >= 70
+                          ? "Streak safe!"
+                          : accuracy >= 50
+                            ? "Streak shield used! Try again tomorrow to keep your streak."
+                            : "No worries — streaks restart tomorrow!"}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Session segs */}
@@ -1938,6 +1974,7 @@ function PlayClientInner() {
                       setTotalAnswered(0);
                       setSessionPointsEarned(0);
                       setCoachMode("listen");
+                      setEliminatedAnswers([]);
                       setSessionKey((k) => k + 1);
                     }}
                     style={{ height: 50, borderRadius: 25, background: `linear-gradient(135deg, ${C.mintGreen}, #22c98a)`, color: "#0a1f15", fontSize: 15, fontWeight: 900, padding: "0 24px", display: "flex", alignItems: "center", gap: 8, border: "none", cursor: "pointer", fontFamily: "inherit" }}
@@ -1956,6 +1993,7 @@ function PlayClientInner() {
                       setTotalAnswered(0);
                       setSessionPointsEarned(0);
                       setCoachMode("listen");
+                      setEliminatedAnswers([]);
                     }}
                     style={{ height: 50, borderRadius: 25, background: `linear-gradient(135deg, ${C.violet}, #7248e8)`, color: "#fff", fontSize: 14, fontWeight: 900, padding: "0 20px", display: "flex", alignItems: "center", border: "none", cursor: "pointer", fontFamily: "inherit" }}
                   >
@@ -2180,15 +2218,17 @@ function PlayClientInner() {
                     const isThisSelected = selectedAnswer === answer;
                     const isThisCorrect = isAnsweredCorrect && answer === answerState?.correctAnswer;
                     const isThisWrong = isThisSelected && isRetrying;
+                    const isEliminated = eliminatedAnswers.includes(answer) && !isThisCorrect && !isThisSelected;
 
                     return (
                       <button
                         key={answer}
                         type="button"
-                        disabled={submitting || isAnsweredCorrect}
+                        disabled={submitting || isAnsweredCorrect || isEliminated}
                         onClick={() => void submitAnswer(answer)}
                         style={{
                           ...s.answerCard(isThisSelected, isThisCorrect ? true : null, isThisWrong),
+                          ...(isEliminated ? { opacity: 0.3, textDecoration: "line-through", cursor: "not-allowed" } : {}),
                         }}
                       >
                         {renderAnswerContent(currentQuestion, answer, true)}
@@ -2201,7 +2241,9 @@ function PlayClientInner() {
               {/* Wrong hint */}
               {isRetrying && !explainerPhase ? (
                 <div style={s.wrongHint}>
-                  That wasn&apos;t it — try again! You&apos;re getting closer 🌟
+                  {eliminatedAnswers.length > 0
+                    ? "One wrong answer is crossed out — try the others! 🔍"
+                    : "That wasn\u2019t it — try again! You\u2019re getting closer 🌟"}
                 </div>
               ) : null}
 
@@ -2485,7 +2527,7 @@ function PlayClientInner() {
             <button
               type="button"
               style={s.hintBtn(isRetrying)}
-              onClick={() => setCoachMode("clue")}
+              onClick={() => { setCoachMode("clue"); eliminateOneWrongAnswer(currentQuestion); }}
             >
               💡 {isRetrying ? "Get a hint" : "Give me a hint"}
             </button>
