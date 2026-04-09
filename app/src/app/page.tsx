@@ -1,6 +1,7 @@
 import { getLaunchStatus } from "@/lib/server-launch-status";
 import Link from "next/link";
 import { HomeNav } from "@/components/home-nav";
+import { GuestStartButton } from "@/components/guest-start-button";
 
 export const dynamic = "force-dynamic";
 
@@ -180,16 +181,12 @@ export default async function HomePage() {
 
           {/* CTAs */}
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/child" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
+            <GuestStartButton style={{
               padding: "15px 32px", borderRadius: 14,
               background: `linear-gradient(135deg, ${T.violet} 0%, ${T.teal} 100%)`,
               color: "#fff", fontSize: 16, fontWeight: 800,
-              textDecoration: "none",
               boxShadow: "0 8px 32px rgba(155,114,255,0.4)",
-            }}>
-              Start a free quest →
-            </Link>
+            }} />
             <Link href="/parent" style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "15px 28px", borderRadius: 14,
@@ -474,16 +471,12 @@ export default async function HomePage() {
             Set up in 60 seconds. No credit card. No homework stress.
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/child" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
+            <GuestStartButton style={{
               padding: "16px 36px", borderRadius: 14,
               background: `linear-gradient(135deg, ${T.violet} 0%, ${T.teal} 100%)`,
               color: "#fff", fontSize: 16, fontWeight: 800,
-              textDecoration: "none",
               boxShadow: "0 8px 32px rgba(155,114,255,0.4)",
-            }}>
-              Start a free quest →
-            </Link>
+            }} />
             <Link href="/teacher" style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "16px 28px", borderRadius: 14,
