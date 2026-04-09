@@ -25,6 +25,17 @@ type ChildAccessResponse = {
   };
 };
 
+type AvailableQuest = {
+  id: string;
+  source: "parent" | "teacher";
+  skillCode: string;
+  label: string;
+  subject: "math" | "reading" | "literacy";
+  priority: string;
+  note: string | null;
+  pushedAt: string;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getBandProfile(bandCode: string) {
@@ -102,6 +113,77 @@ function PageShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ─── Subject icon helper ──────────────────────────────────────────────────────
+
+function subjectIcon(subject: string) {
+  if (subject === "math") return "🔢";
+  if (subject === "literacy") return "🔤";
+  return "📖";
+}
+
+function subjectColor(subject: string) {
+  if (subject === "math") return "#ffd166";
+  if (subject === "literacy") return "#9b72ff";
+  return "#58e8c1";
+}
+
+// ─── Quest card ───────────────────────────────────────────────────────────────
+
+function QuestCard({ quest, onStart }: { quest: AvailableQuest; onStart: () => void }) {
+  const urgent = quest.priority === "urgent";
+  const sourceLabel = quest.source === "teacher" ? "From Teacher" : "From Family";
+  const sourceColor = quest.source === "teacher" ? "#38bdf8" : "#58e8c1";
+  const sc = subjectColor(quest.subject);
+  return (
+    <div style={{
+      background: "rgba(255,255,255,0.04)",
+      border: `1.5px solid ${urgent ? "#ff7b6b55" : "rgba(155,114,255,0.2)"}`,
+      borderRadius: 16, padding: "14px 16px",
+      display: "flex", alignItems: "center", gap: 12,
+    }}>
+      <div style={{
+        width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+        background: `${sc}18`, border: `1.5px solid ${sc}40`,
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+      }}>
+        {subjectIcon(quest.subject)}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#e8e0ff", marginBottom: 2 }}>
+          {quest.label}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: sourceColor, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            {sourceLabel}
+          </span>
+          {urgent && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#ff7b6b", background: "rgba(255,123,107,0.12)", borderRadius: 6, padding: "1px 6px" }}>
+              Urgent
+            </span>
+          )}
+        </div>
+        {quest.note && (
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {quest.note}
+          </div>
+        )}
+      </div>
+      <button
+        onClick={onStart}
+        style={{
+          padding: "8px 16px", borderRadius: 999, border: "none",
+          background: "linear-gradient(135deg, #9b72ff, #7c4ddb)",
+          color: "#fff", fontSize: 12, fontWeight: 800,
+          cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+          minHeight: 36, touchAction: "manipulation",
+        }}
+      >
+        Start
+      </button>
+    </div>
+  );
+}
+
 // ─── Hub — shown after sign-in ────────────────────────────────────────────────
 
 function ChildHub({ result }: { result: ChildAccessResponse }) {
@@ -109,6 +191,26 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
   const { student, progression } = result;
   const avatarEmoji = getAvatarSymbol(student.avatarKey);
   const bandProfile = getBandProfile(student.launchBandCode);
+
+  const [quests, setQuests] = useState<{ parentQuests: AvailableQuest[]; teacherQuests: AvailableQuest[] } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/child/available-quests")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: { parentQuests: AvailableQuest[]; teacherQuests: AvailableQuest[] } | null) => {
+        if (data) setQuests(data);
+      })
+      .catch(() => null);
+  }, []);
+
+  function startQuest(quest: AvailableQuest) {
+    const table = quest.source === "teacher" ? "teacher_pushed_sessions" : "guardian_pushed_activities";
+    router.push(`/play?sessionMode=guided-quest&chosenQuestId=${quest.id}&chosenQuestTable=${table}`);
+  }
+
+  const allAssignedQuests = [...(quests?.teacherQuests ?? []), ...(quests?.parentQuests ?? [])];
+  const mathQuests = allAssignedQuests.filter((q) => q.subject === "math");
+  const literacyQuests = allAssignedQuests.filter((q) => q.subject !== "math");
 
   const stats = [
     { icon: "⭐", label: "Stars", value: progression.totalPoints },
@@ -133,77 +235,77 @@ function ChildHub({ result }: { result: ChildAccessResponse }) {
         <p className="home-sub">Ready to continue your adventure?</p>
       </section>
 
-      {/* Play CTA */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 40 }}>
-        <button
-          onClick={() => router.push("/play?sessionMode=guided-quest&entry=returning")}
-          style={{
-            padding: "16px 52px",
-            borderRadius: 999,
-            border: "none",
-            background: "linear-gradient(135deg, #9b72ff, #7c4ddb)",
-            color: "#fff",
-            fontFamily: "inherit",
-            fontSize: 18,
-            fontWeight: 900,
-            cursor: "pointer",
-            boxShadow: "0 8px 32px rgba(155,114,255,0.4)",
-            letterSpacing: "-0.2px",
-            transition: "transform 0.15s, box-shadow 0.15s",
-            minHeight: 44,
-            minWidth: 44,
-            touchAction: "manipulation",
-          }}
-        >
-          ▶ Continue Adventure
-        </button>
-      </div>
-
       {/* Stats */}
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          justifyContent: "center",
-          flexWrap: "wrap",
-          maxWidth: 520,
-          margin: "0 auto 48px",
-          padding: "0 20px",
-        }}
-      >
+      <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", maxWidth: 520, margin: "0 auto 32px", padding: "0 20px" }}>
         {stats.map((s) => (
-          <div
-            key={s.label}
-            style={{
-              flex: "1 1 100px",
-              minWidth: 100,
-              padding: "18px 12px",
-              borderRadius: 20,
-              background: "rgba(155,114,255,0.08)",
-              border: "1px solid rgba(155,114,255,0.18)",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: 26, marginBottom: 6 }} aria-hidden="true">
-              {s.icon}
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: "#fff", lineHeight: 1 }}>
-              {s.value}
-            </div>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: "rgba(255,255,255,0.4)",
-                textTransform: "uppercase",
-                letterSpacing: 1,
-                marginTop: 4,
-              }}
-            >
-              {s.label}
-            </div>
+          <div key={s.label} style={{ flex: "1 1 100px", minWidth: 100, padding: "18px 12px", borderRadius: 20, background: "rgba(155,114,255,0.08)", border: "1px solid rgba(155,114,255,0.18)", textAlign: "center" }}>
+            <div style={{ fontSize: 26, marginBottom: 6 }} aria-hidden="true">{s.icon}</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: 1, marginTop: 4 }}>{s.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* ── Quest Selection ─────────────────────────────────────────────────── */}
+      <div style={{ maxWidth: 560, margin: "0 auto 40px", padding: "0 16px" }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: 1.2, textAlign: "center", marginBottom: 16 }}>
+          Choose Your Quest
+        </div>
+
+        {/* Assigned quests — by subject */}
+        {allAssignedQuests.length > 0 && (
+          <>
+            {mathQuests.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#ffd166", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                  🔢 Math
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {mathQuests.map((q) => <QuestCard key={q.id} quest={q} onStart={() => startQuest(q)} />)}
+                </div>
+              </div>
+            )}
+            {literacyQuests.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#9b72ff", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                  📖 Reading & Literacy
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {literacyQuests.map((q) => <QuestCard key={q.id} quest={q} onStart={() => startQuest(q)} />)}
+                </div>
+              </div>
+            )}
+            <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "16px 0" }} />
+          </>
+        )}
+
+        {/* Free-choice explore quests */}
+        <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", marginBottom: 10 }}>
+          🌟 Explore on your own
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
+          {([
+            { label: "Math Quest",          emoji: "🔢", color: "#ffd166", url: "/play?sessionMode=guided-quest&subject=math" },
+            { label: "Reading Quest",        emoji: "📖", color: "#58e8c1", url: "/play?sessionMode=guided-quest&subject=reading" },
+            { label: "Mixed Adventure",      emoji: "⚡", color: "#9b72ff", url: "/play?sessionMode=guided-quest" },
+            { label: "Quick Practice",       emoji: "🎯", color: "#fb7185", url: "/play?sessionMode=practice" },
+          ] as { label: string; emoji: string; color: string; url: string }[]).map((item) => (
+            <button
+              key={item.label}
+              onClick={() => router.push(item.url)}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                padding: "16px 12px", borderRadius: 16,
+                background: "rgba(255,255,255,0.04)", border: `1.5px solid ${item.color}30`,
+                cursor: "pointer", fontFamily: "inherit",
+                minHeight: 44, touchAction: "manipulation",
+              }}
+            >
+              <span style={{ fontSize: 28 }}>{item.emoji}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: "#e8e0ff" }}>{item.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Quick access portals */}
@@ -348,8 +450,8 @@ export default function ChildAccessPage() {
       try {
         const response = await fetch("/api/child/session", { method: "GET" });
         if (!response.ok || cancelled) return;
-        if (cancelled) return;
-        router.push("/play?sessionMode=guided-quest&entry=returning");
+        const payload = (await response.json()) as ChildAccessResponse;
+        if (!cancelled) setResult(payload);
       } catch {
         // no valid session — stay on form
       }

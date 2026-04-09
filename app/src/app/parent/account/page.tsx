@@ -83,6 +83,7 @@ export default function ParentAccountPage() {
     stateCode: string | null;
     schoolName: string | null;
     isdName: string | null;
+    hasPin: boolean;
     resolution?: { framework: CurriculumFramework; source: string; sourceLabel: string };
   } | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
@@ -94,6 +95,15 @@ export default function ParentAccountPage() {
   const [profileSaving,    setProfileSaving]    = useState(false);
   const [profileSaved,     setProfileSaved]     = useState(false);
   const [profileError,     setProfileError]     = useState<string | null>(null);
+
+  // School / curriculum editing
+  const [editingSchool,  setEditingSchool]  = useState(false);
+  const [editStateCode,  setEditStateCode]  = useState("");
+  const [editSchoolName, setEditSchoolName] = useState("");
+  const [editIsdName,    setEditIsdName]    = useState("");
+  const [schoolSaving,   setSchoolSaving]   = useState(false);
+  const [schoolSaved,    setSchoolSaved]    = useState(false);
+  const [schoolError,    setSchoolError]    = useState<string | null>(null);
 
   // Notification prefs
   const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>({
@@ -194,6 +204,37 @@ export default function ParentAccountPage() {
     }
   }
 
+  // ── School / curriculum save ──────────────────────────────────────────────
+  async function saveSchool() {
+    setSchoolSaving(true);
+    setSchoolError(null);
+    try {
+      const res = await fetch("/api/parent/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stateCode:  editStateCode.trim().toUpperCase() || null,
+          schoolName: editSchoolName.trim() || null,
+          isdName:    editIsdName.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "Save failed.");
+      }
+      // Refresh context so the displayed values update
+      const ctx = await fetch("/api/parent/account-context").then((r) => r.ok ? r.json() : null);
+      if (ctx) setAccountCtx(ctx as typeof accountCtx);
+      setEditingSchool(false);
+      setSchoolSaved(true);
+      setTimeout(() => setSchoolSaved(false), 2500);
+    } catch (err) {
+      setSchoolError(err instanceof Error ? err.message : "Save failed.");
+    } finally {
+      setSchoolSaving(false);
+    }
+  }
+
   // ── Notification prefs save ───────────────────────────────────────────────
   async function saveNotifPrefs() {
     setNotifSaving(true);
@@ -218,11 +259,13 @@ export default function ParentAccountPage() {
   }
 
   // ── PIN change ────────────────────────────────────────────────────────────
+  const hasPin = accountCtx?.hasPin ?? true; // default true = require current PIN
+
   async function changePin() {
     setPinError(null);
-    if (!/^\d{4}$/.test(currentPin)) { setPinError("Current PIN must be 4 digits."); return; }
-    if (!/^\d{4}$/.test(newPin))     { setPinError("New PIN must be exactly 4 digits."); return; }
-    if (newPin !== confirmPin)        { setPinError("PINs do not match."); return; }
+    if (hasPin && !/^\d{4}$/.test(currentPin)) { setPinError("Current PIN must be 4 digits."); return; }
+    if (!/^\d{4}$/.test(newPin))               { setPinError("New PIN must be exactly 4 digits."); return; }
+    if (newPin !== confirmPin)                  { setPinError("PINs do not match."); return; }
 
     setPinSaving(true);
     try {
@@ -611,41 +654,92 @@ export default function ParentAccountPage() {
 
             {/* School & Standards card */}
             <div style={cardStyle}>
-              <div style={cardHead}>School &amp; Curriculum Standards</div>
-              {accountCtx ? (
+              <div style={{ ...cardHead, display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <span>School &amp; Curriculum Standards</span>
+                {!editingSchool && (
+                  <span
+                    style={editLinkStyle}
+                    onClick={() => {
+                      setEditStateCode(accountCtx?.stateCode ?? "");
+                      setEditSchoolName(accountCtx?.schoolName ?? "");
+                      setEditIsdName(accountCtx?.isdName ?? "");
+                      setEditingSchool(true);
+                    }}
+                  >Edit</span>
+                )}
+              </div>
+
+              {schoolSaved && (
+                <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700, color: MINT, marginBottom: 12 }}>
+                  School info saved!
+                </div>
+              )}
+              {schoolError && (
+                <div style={{ background: "rgba(248,81,73,0.1)", border: "1px solid rgba(248,81,73,0.3)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 12 }}>
+                  {schoolError}
+                </div>
+              )}
+
+              {editingSchool ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>State (2-letter code)</div>
+                    <input
+                      style={inputStyle}
+                      value={editStateCode}
+                      onChange={(e) => setEditStateCode(e.target.value.slice(0, 2))}
+                      placeholder="e.g. TX"
+                      maxLength={2}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>School name</div>
+                    <input
+                      style={inputStyle}
+                      value={editSchoolName}
+                      onChange={(e) => setEditSchoolName(e.target.value)}
+                      placeholder="e.g. Lincoln Elementary"
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>ISD / District</div>
+                    <input
+                      style={inputStyle}
+                      value={editIsdName}
+                      onChange={(e) => setEditIsdName(e.target.value)}
+                      placeholder="e.g. Austin ISD"
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                    <button style={saveBtnStyle(schoolSaving)} disabled={schoolSaving} onClick={saveSchool}>
+                      {schoolSaving ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      onClick={() => { setEditingSchool(false); setSchoolError(null); }}
+                      style={{ padding: "9px 16px", borderRadius: 10, border: "1.5px solid rgba(255,255,255,0.1)", background: "transparent", color: MUTED, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "system-ui", minHeight: 44, touchAction: "manipulation" }}
+                    >Cancel</button>
+                  </div>
+                </div>
+              ) : accountCtx ? (
                 <>
                   {accountCtx.resolution && accountCtx.stateCode ? (
                     <div style={{ ...rowStyle }}>
                       <span style={labelStyle}>Curriculum</span>
                       <div style={{ flex: 1 }}>
-                        <span style={{
-                          display: "inline-block",
-                          fontWeight: 700,
-                          fontSize: 13,
-                          color: accountCtx.resolution.framework.color,
-                          background: `${accountCtx.resolution.framework.color}18`,
-                          border: `1.5px solid ${accountCtx.resolution.framework.color}35`,
-                          borderRadius: 8,
-                          padding: "3px 10px",
-                        }}>
+                        <span style={{ display: "inline-block", fontWeight: 700, fontSize: 13, color: accountCtx.resolution.framework.color, background: `${accountCtx.resolution.framework.color}18`, border: `1.5px solid ${accountCtx.resolution.framework.color}35`, borderRadius: 8, padding: "3px 10px" }}>
                           {accountCtx.resolution.framework.shortName}
                         </span>
                         <span style={{ fontSize: 11, color: MUTED, marginLeft: 8 }}>
-                          {accountCtx.resolution.source === "isd"
-                            ? `via ${accountCtx.resolution.sourceLabel}`
-                            : accountCtx.resolution.sourceLabel}
+                          {accountCtx.resolution.source === "isd" ? `via ${accountCtx.resolution.sourceLabel}` : accountCtx.resolution.sourceLabel}
                         </span>
                       </div>
                     </div>
                   ) : (
                     <div style={{ ...rowStyle }}>
                       <span style={labelStyle}>Curriculum</span>
-                      <a
-                        href="/parent"
-                        style={{ fontSize: 12, color: VIOLET, fontWeight: 600, textDecoration: "none" }}
-                      >
-                        Add your state to see curriculum alignment →
-                      </a>
+                      <span style={{ fontSize: 12, color: MUTED }}>
+                        No state set — click Edit to add your state for curriculum alignment.
+                      </span>
                     </div>
                   )}
                   {accountCtx.schoolName && (
@@ -658,6 +752,12 @@ export default function ParentAccountPage() {
                     <div style={{ ...rowStyle, borderBottom: "none" }}>
                       <span style={labelStyle}>ISD / District</span>
                       <span style={valStyle}>{accountCtx.isdName}</span>
+                    </div>
+                  )}
+                  {!accountCtx.schoolName && !accountCtx.isdName && (
+                    <div style={{ ...rowStyle, borderBottom: "none" }}>
+                      <span style={labelStyle}>School / District</span>
+                      <span style={{ fontSize: 12, color: MUTED }}>Not set</span>
                     </div>
                   )}
                 </>
@@ -879,11 +979,13 @@ export default function ParentAccountPage() {
         {/* ── Security Tab ── */}
         {tab === "security" && (
           <div>
-            {/* Change PIN */}
+            {/* Change / Set PIN */}
             <div style={cardStyle}>
-              <div style={cardHead}>Change PIN</div>
+              <div style={cardHead}>{hasPin ? "Change PIN" : "Set PIN"}</div>
               <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5, marginBottom: 16 }}>
-                Your 4-digit PIN is used to switch into your parent view from a child device.
+                {hasPin
+                  ? "Your 4-digit PIN is used to switch into your parent view from a child device."
+                  : "You signed in with Google — set a 4-digit PIN to access your parent view from a child device."}
               </div>
 
               {pinSaved && (
@@ -901,20 +1003,22 @@ export default function ParentAccountPage() {
               )}
 
               <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 320 }}>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
-                    Current PIN
+                {hasPin && (
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
+                      Current PIN
+                    </div>
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={currentPin}
+                      onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      style={pinInputStyle}
+                    />
                   </div>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    placeholder="••••"
-                    value={currentPin}
-                    onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    style={pinInputStyle}
-                  />
-                </div>
+                )}
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
                     New PIN
@@ -949,7 +1053,7 @@ export default function ParentAccountPage() {
                   disabled={pinSaving}
                   onClick={changePin}
                 >
-                  {pinSaving ? "Updating..." : "Update PIN"}
+                  {pinSaving ? "Saving…" : hasPin ? "Update PIN" : "Set PIN"}
                 </button>
               </div>
             </div>

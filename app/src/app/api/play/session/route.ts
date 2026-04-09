@@ -13,6 +13,10 @@ export async function POST(request: NextRequest) {
     const result = await createPlaySession({
       studentId: accessSession.studentId,
       sessionMode: body.sessionMode,
+      chosenQuestId: typeof body.chosenQuestId === "string" ? body.chosenQuestId : undefined,
+      chosenQuestTable: body.chosenQuestTable === "teacher_pushed_sessions" || body.chosenQuestTable === "guardian_pushed_activities"
+        ? body.chosenQuestTable
+        : undefined,
     });
     void track(accessSession.studentId, "session_started", {
       band: result.student.launchBandCode,

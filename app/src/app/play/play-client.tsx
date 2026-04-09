@@ -460,13 +460,116 @@ function buildCoachSteps(question: SessionQuestion) {
   return ["Listen first.", "Look for the clue.", "Tap your best answer."];
 }
 
+function buildHintExplanation(question: SessionQuestion): { title: string; body: string } {
+  if (isComparisonSkill(question)) {
+    return {
+      title: "Here's how to compare numbers 🔢",
+      body: "Look at the biggest place first — hundreds, then tens, then ones. The number with more hundreds is bigger. If the hundreds match, check the tens!",
+    };
+  }
+  if (isCountSkill(question)) {
+    return {
+      title: "Let's count together! 🐾",
+      body: "Point to each picture and say one number as you go: 1, 2, 3… The last number you say is the answer!",
+    };
+  }
+  if (isBiggerSmallerSkill(question)) {
+    return {
+      title: "Finding the bigger group 👀",
+      body: "Count each group slowly. The group with more objects is the bigger one. Try counting out loud!",
+    };
+  }
+  if (isLetterSkill(question)) {
+    return {
+      title: "Finding the right letter 🔤",
+      body: "Say the letter sound out loud. Then look at each card and find the one that makes that same sound. You can do it!",
+    };
+  }
+  if (isShapeSkill(question)) {
+    return {
+      title: "Shape detective time! 🔷",
+      body: "Count the corners on each shape. A triangle has 3 corners, a square has 4, and a circle has zero. Which one fits?",
+    };
+  }
+  if (isShortASkill(question)) {
+    const soundLabel =
+      question.skill === "short-e-sound" ? "short e (like in 'bed')"
+      : question.skill === "short-i-sound" ? "short i (like in 'sit')"
+      : "short a (like in 'cat')";
+    return {
+      title: "Listen for the vowel sound 👂",
+      body: `Say each word slowly in your head. Listen for the ${soundLabel} sound. Which word has it?`,
+    };
+  }
+  if (isAddToTenSkill(question)) {
+    if (question.skill === "subtract-from-10") {
+      return {
+        title: "How to subtract 🧮",
+        body: "Start with the bigger number and count backwards. Hold up fingers to help — take away one at a time!",
+      };
+    }
+    return {
+      title: "How to add numbers 🧮",
+      body: "Start with the first number and count up by the second. You can use your fingers — each finger is one more!",
+    };
+  }
+  if (isSkipCountSkill(question)) {
+    return {
+      title: "Skip counting by 5s 🖐",
+      body: "Count by fives: 5, 10, 15, 20… Each jump is 5 more. Say them out loud with your hand!",
+    };
+  }
+  if (isTimeSkill(question)) {
+    return {
+      title: "Reading a clock 🕐",
+      body: "The short hand points to the hour. The long hand points to 12 for exactly on the hour. What hour does the short hand point to?",
+    };
+  }
+  if (isReadSimpleWordSkill(question)) {
+    return {
+      title: "Sound it out! 📖",
+      body: "Look at the first letter and say its sound. Then blend the sounds together slowly. Which card matches the word?",
+    };
+  }
+  if (isRhymeSkill(question)) {
+    return {
+      title: "Finding rhymes 🎵",
+      body: "Rhyming words end with the same sound — like 'cat' and 'hat'. Say each word out loud. Which two sound the same at the end?",
+    };
+  }
+  if (isColorSkill(question)) {
+    return {
+      title: "Look for the color! 🎨",
+      body: "Look at each card carefully. Which one shows the color you're looking for? Trust your eyes!",
+    };
+  }
+  if (isCauseEffectSkill(question)) {
+    const isCause = /most likely cause|what caused|why did/i.test(question.prompt);
+    return {
+      title: isCause ? "Finding the cause 🔍" : "Finding the effect 🔍",
+      body: isCause
+        ? "A cause is WHY something happened — it comes first. Read each choice and ask: 'Could this have made it happen?'"
+        : "An effect is WHAT happened because of something. Read the story and ask: 'What would happen next because of this?'",
+    };
+  }
+  if (question.subject === "math") {
+    return {
+      title: "Let's think through it 🧠",
+      body: "Read the question slowly out loud — hearing it can help! Then look at each answer and ask yourself which one makes sense.",
+    };
+  }
+  return {
+    title: "Let's figure it out together 💡",
+    body: "Read the question one more time, slowly. Look at each answer choice carefully. Which one feels right? Trust yourself!",
+  };
+}
+
 function buildCoachCopy(
   question: SessionQuestion,
   scene: QuestionVisualScene | null,
   mode: "listen" | "clue" | "support",
 ) {
-  const helper = scene?.helper ?? buildPromptCue(question, scene);
-  if (mode === "clue") return { title: "Let me show the clue.", body: helper };
+  if (mode === "clue") return buildHintExplanation(question);
   if (mode === "support") {
     return { title: "It is okay to need help.", body: "We can slow down, listen again, and do one small step at a time." };
   }
@@ -1052,15 +1155,15 @@ const s = {
     marginTop: 4,
   },
   answerCard: (isSelected: boolean, isCorrect: boolean | null, isWrong: boolean) => ({
-    background: isCorrect ? "#1a3a20" : isWrong ? "#2a1010" : C.surface2,
-    border: `3px solid ${isCorrect ? C.mintGreen : isWrong ? C.coral : C.border}`,
+    background: isCorrect ? "#1a3a20" : isWrong ? "#2a1010" : "rgba(155,114,255,0.1)",
+    border: `2.5px solid ${isCorrect ? C.mintGreen : isWrong ? C.coral : "rgba(155,114,255,0.35)"}`,
     borderRadius: 14,
     padding: "14px 12px",
     textAlign: "center" as const,
     cursor: isSelected ? "default" : "pointer",
     fontSize: 15,
     fontWeight: 900,
-    color: isCorrect ? C.mintGreen : isWrong ? C.coral : C.text,
+    color: isCorrect ? C.mintGreen : isWrong ? C.coral : "#e8e0ff",
     transition: "border-color 0.15s, transform 0.15s, background 0.15s",
     display: "flex",
     flexDirection: "column" as const,
@@ -1372,6 +1475,8 @@ function PlayClientInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionMode = searchParams.get("sessionMode") ?? "guided-quest";
+  const chosenQuestId = searchParams.get("chosenQuestId") ?? undefined;
+  const chosenQuestTable = searchParams.get("chosenQuestTable") ?? undefined;
   const entryMode = searchParams.get("entry") ?? "new";
   const returningEntry = entryMode === "returning";
 
@@ -1442,7 +1547,7 @@ function PlayClientInner() {
           response = await fetch("/api/play/session", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionMode }),
+            body: JSON.stringify({ sessionMode, chosenQuestId, chosenQuestTable }),
             signal: controller.signal,
           });
         } catch (fetchErr) {
@@ -1747,19 +1852,28 @@ function PlayClientInner() {
   if (loading) {
     return (
       <AppFrame audience="kid" currentPath="/child">
-        <div style={{ padding: "24px 20px", maxWidth: 860, margin: "0 auto" }}>
-          <div style={s.loadingShell}>
-            <div style={{ ...s.skeletonLine("40%", 20), marginBottom: 8 }} />
-            <div style={s.skeletonLine("60%", 32)} />
-            <div style={s.skeletonLine("80%", 120)} />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} style={{ ...s.skeletonLine("100%", 72), borderRadius: 14 }} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "70vh", padding: "24px 20px" }}>
+          <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+            {/* Animated stars */}
+            <div style={{ fontSize: 56, lineHeight: 1, animation: "none" }} className="quest-loader-icon">
+              🚀
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              {["⭐", "🌟", "✨"].map((star, i) => (
+                <span key={i} className={`quest-loader-star quest-loader-star-${i}`} style={{ fontSize: 22 }}>{star}</span>
               ))}
             </div>
-            <p style={{ color: C.muted, fontSize: 13, textAlign: "center", marginTop: 8 }}>
-              Getting your quest ready…
-            </p>
+            <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: "-0.02em" }}>
+              Your quest is loading!
+            </div>
+            <div style={{ fontSize: 15, color: C.muted, maxWidth: 280, lineHeight: 1.6 }}>
+              Get ready, explorer — your next adventure is almost here! 🌟
+            </div>
+            <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className={`quest-loader-dot quest-loader-dot-${i}`} style={{ width: 10, height: 10, borderRadius: "50%", background: C.violet }} />
+              ))}
+            </div>
           </div>
         </div>
       </AppFrame>
@@ -2109,7 +2223,7 @@ function PlayClientInner() {
             <Link href="/child" style={s.backBtn}>← Home</Link>
             <div style={{ flex: "0 0 auto" }}>
               <div style={s.questName}>{questWorldLabel}</div>
-              <div style={s.questSub}>{questSkillLabel} · {session.student.displayName}</div>
+              <div style={s.questSub}>{questSkillLabel}</div>
             </div>
 
             {/* Progress dots */}
@@ -2128,8 +2242,61 @@ function PlayClientInner() {
             </div>
 
             {/* Star counter */}
-            <div style={{ ...s.starCounter, ...(isAnsweredCorrect ? { borderColor: C.gold, background: "#1a1500" } : {}) }}>
+            <div className="play-score" style={{ ...s.starCounter, ...(isAnsweredCorrect ? { borderColor: C.gold, background: "#1a1500" } : {}) }}>
               🌟 {progression?.totalPoints ?? 0}
+            </div>
+
+            {/* Child avatar + name + sign out */}
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }} className="play-player-chip">
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById("play-player-menu");
+                  if (el) el.style.display = el.style.display === "none" ? "flex" : "none";
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 7,
+                  background: "rgba(155,114,255,0.12)", border: "1.5px solid rgba(155,114,255,0.3)",
+                  borderRadius: 999, padding: "5px 12px 5px 7px",
+                  cursor: "pointer", fontFamily: "inherit",
+                  touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                  minHeight: 36,
+                }}
+              >
+                <span style={{
+                  width: 26, height: 26, borderRadius: "50%",
+                  background: "rgba(155,114,255,0.25)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 15, flexShrink: 0,
+                }}>
+                  {getAvatarSymbol(session.student.avatarKey)}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.text, maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {session.student.displayName}
+                </span>
+                <span style={{ fontSize: 10, color: C.muted }}>▾</span>
+              </button>
+              {/* Dropdown */}
+              <div
+                id="play-player-menu"
+                style={{
+                  display: "none", flexDirection: "column",
+                  position: "absolute", top: "calc(100% + 8px)", right: 0,
+                  background: "#0e0c2a", border: "1.5px solid rgba(155,114,255,0.25)",
+                  borderRadius: 12, padding: 6, minWidth: 160, zIndex: 200,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                }}
+              >
+                <Link href="/child?manual=1" onClick={() => { const el = document.getElementById("play-player-menu"); if (el) el.style.display = "none"; }} style={{ display: "block", padding: "9px 14px", fontSize: 13, fontWeight: 600, color: C.text, textDecoration: "none", borderRadius: 8 }}>
+                  👦 Switch child
+                </Link>
+                <Link href="/parent" onClick={() => { const el = document.getElementById("play-player-menu"); if (el) el.style.display = "none"; }} style={{ display: "block", padding: "9px 14px", fontSize: 13, fontWeight: 600, color: C.text, textDecoration: "none", borderRadius: 8 }}>
+                  👨‍👩‍👧 Parent view
+                </Link>
+                <a href="/api/child/logout" style={{ display: "block", padding: "9px 14px", fontSize: 13, fontWeight: 600, color: C.coral, textDecoration: "none", borderRadius: 8 }}>
+                  🚪 Sign out
+                </a>
+              </div>
             </div>
 
             {/* Pause — navigate to pause screen with live session data */}
@@ -2460,7 +2627,7 @@ function PlayClientInner() {
             </div>
 
             {/* Right rail */}
-            <div style={s.rail}>
+            <div className="play-rail" style={s.rail}>
 
               {/* Mascot coach */}
               <div style={s.mascotCard}>
@@ -2527,18 +2694,6 @@ function PlayClientInner() {
                 <div style={{ ...s.starSafeBadge, borderColor: C.gold, color: C.gold, background: "#1a1000" }}>🏆 New trophy!</div>
               ) : null}
 
-              {/* Navigation links */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: "auto" }}>
-                <Link href="/child?manual=1" style={{ fontSize: 12, color: C.muted, textDecoration: "none", textAlign: "center", padding: "6px 0" }}>
-                  Switch child
-                </Link>
-                <Link href="/parent" style={{ fontSize: 12, color: C.muted, textDecoration: "none", textAlign: "center", padding: "6px 0" }}>
-                  Parent view
-                </Link>
-                <a href="/api/child/logout" style={{ fontSize: 12, color: C.muted, textDecoration: "none", textAlign: "center", padding: "6px 0" }}>
-                  Sign out
-                </a>
-              </div>
             </div>
           </div>
 
@@ -2555,7 +2710,7 @@ function PlayClientInner() {
             <button
               type="button"
               style={s.hintBtn(isRetrying)}
-              onClick={() => { setCoachMode("clue"); eliminateOneWrongAnswer(currentQuestion); }}
+              onClick={() => { setCoachMode("clue"); }}
             >
               💡 {isRetrying ? "Get a hint" : "Give me a hint"}
             </button>

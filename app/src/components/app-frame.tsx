@@ -66,10 +66,7 @@ const audienceMeta = {
     label: "WonderQuest",
     shortLabel: "Play",
     title: "Your learning adventure starts here.",
-    topLinks: [
-      { href: "/parent",  label: "Family Hub" },
-      { href: "/teacher", label: "Classroom" },
-    ],
+    topLinks: [],
   },
   parent:  { label: "Family Hub",   shortLabel: "Family",    title: "Family Hub"   },
   teacher: { label: "Classroom",    shortLabel: "Classroom", title: "Classroom"    },

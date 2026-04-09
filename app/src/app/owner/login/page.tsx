@@ -3,13 +3,13 @@
 import { useState } from "react";
 
 const C = {
-  bg: "#06071a",
-  card: "#12152e",
-  border: "rgba(255,255,255,0.07)",
+  bg:     "#06071a",
+  card:   "#0d1021",
+  border: "rgba(255,255,255,0.08)",
   violet: "#9b72ff",
-  text: "#f1f5f9",
-  muted: "rgba(241,245,249,0.52)",
-  red: "#fb7185",
+  text:   "#f1f5f9",
+  muted:  "rgba(241,245,249,0.5)",
+  red:    "#fb7185",
 } as const;
 
 function GoogleIcon() {
@@ -25,7 +25,7 @@ function GoogleIcon() {
 
 export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error,   setError]   = useState<string | null>(null);
 
   async function handleGoogle() {
     setError(null);
@@ -43,67 +43,69 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: C.bg,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1rem",
-      }}
-    >
-      <div
-        style={{
-          background: C.card,
-          border: `1px solid ${C.border}`,
-          borderRadius: 12,
-          padding: "2rem",
-          width: "100%",
-          maxWidth: 380,
-        }}
-      >
-        {/* Header */}
-        <div style={{ marginBottom: "1.75rem", textAlign: "center" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              background: `${C.violet}22`,
-              marginBottom: "0.75rem",
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2C9.24 2 7 4.24 7 7v1H5c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2h-2V7c0-2.76-2.24-5-5-5zm0 2c1.66 0 3 1.34 3 3v1H9V7c0-1.66 1.34-3 3-3zm0 9c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
-                fill={C.violet}
-              />
-            </svg>
-          </div>
-          <h1 style={{ color: C.text, fontSize: "1.2rem", fontWeight: 700, margin: 0 }}>
+    <div style={{
+      minHeight: "100vh",
+      background: C.bg,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "1.5rem",
+    }}>
+      {/* Branding */}
+      <div style={{ marginBottom: "2rem", textAlign: "center" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10,
+            background: "linear-gradient(135deg,#9b72ff,#5a30d0)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "1.2rem",
+          }}>🌟</div>
+          <span style={{
+            font: "900 1.4rem system-ui",
+            background: "linear-gradient(135deg,#c3aaff,#9b72ff)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}>WonderQuest</span>
+        </div>
+      </div>
+
+      {/* Card */}
+      <div style={{
+        background: C.card,
+        border: `1px solid ${C.border}`,
+        borderRadius: 16,
+        padding: "2rem",
+        width: "100%",
+        maxWidth: 380,
+      }}>
+        {/* Role badge + heading */}
+        <div style={{ marginBottom: "1.75rem" }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", padding: "3px 12px",
+            borderRadius: 999, background: `${C.violet}18`, color: C.violet,
+            fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
+            marginBottom: "0.85rem",
+          }}>Owner Portal</div>
+          <h1 style={{ color: C.text, fontSize: "1.4rem", fontWeight: 700, margin: "0 0 0.3rem" }}>
             Admin Sign In
           </h1>
-          <p style={{ color: C.muted, fontSize: "0.85rem", margin: "0.35rem 0 0" }}>
-            WonderQuest owner portal
+          <p style={{ color: C.muted, fontSize: "0.85rem", margin: 0, lineHeight: 1.55 }}>
+            Sign in with your registered Google account to access the owner portal.
           </p>
         </div>
 
         {error && (
-          <div
-            style={{
-              background: `${C.red}18`,
-              border: `1px solid ${C.red}44`,
-              borderRadius: 8,
-              padding: "0.6rem 0.75rem",
-              color: C.red,
-              fontSize: "0.85rem",
-              marginBottom: "1.25rem",
-            }}
-          >
+          <div style={{
+            background: `${C.red}18`,
+            border: `1px solid ${C.red}44`,
+            borderRadius: 8,
+            padding: "0.7rem 0.9rem",
+            color: C.red,
+            fontSize: "0.85rem",
+            marginBottom: "1.25rem",
+          }}>
             {error}
           </div>
         )}
@@ -134,15 +136,13 @@ export default function AdminLoginPage() {
           {loading ? "Redirecting…" : <><GoogleIcon />Continue with Google</>}
         </button>
 
-        <p
-          style={{
-            color: C.muted,
-            fontSize: "0.78rem",
-            textAlign: "center",
-            marginTop: "1.25rem",
-            lineHeight: 1.5,
-          }}
-        >
+        <p style={{
+          color: C.muted,
+          fontSize: "0.75rem",
+          textAlign: "center",
+          marginTop: "1.25rem",
+          lineHeight: 1.5,
+        }}>
           Your Google account must be registered by the super admin before you can sign in.
         </p>
       </div>

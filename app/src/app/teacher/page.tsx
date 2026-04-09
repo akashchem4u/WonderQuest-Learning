@@ -162,6 +162,7 @@ export default function TeacherPage() {
   // Auth gate — resolved client-side to avoid hydration mismatch
   const router = useRouter();
   const [authed, setAuthed] = useState(false);
+  const [showTeacherDemo, setShowTeacherDemo] = useState(false);
   useEffect(() => { fetchTeacherId().then(id => setAuthed(!!id)); }, []);
 
   const [activeTab, setActiveTab] = useState<"overview" | "students" | "support">("overview");
@@ -383,12 +384,93 @@ export default function TeacherPage() {
     WebkitTapHighlightColor: "transparent",
   });
 
-  // ── Auth gate ────────────────────────────────────────────────────────────
+  // ── Auth gate — full hero page matching parent login layout ────────────────
   if (!authed) {
+    const TEACHER_FEATURES = ["📊 Real-time class view", "🤖 AI coaching insights", "🎯 Intervention alerts", "📋 Band coverage"];
+    const STUB_CLASS = [
+      { name: "Maya R.", band: "G2–3", sessions: 12, color: C.mint },
+      { name: "Liam T.", band: "K–1",  sessions: 9,  color: C.violet },
+      { name: "Zara K.", band: "G4–5", sessions: 7,  color: C.red },
+      { name: "Noah P.", band: "Pre-K", sessions: 5, color: C.gold },
+    ];
     return (
-      <AppFrame audience="teacher" currentPath="/teacher">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
-          <TeacherGate configured={true} />
+      <AppFrame audience="home" currentPath="/teacher">
+        <div style={{ minHeight: "100vh", background: C.base, fontFamily: "system-ui" }}>
+          <div className="parent-login-grid" style={{ maxWidth: "1100px", margin: "0 auto", padding: "48px 40px 80px", minHeight: "100vh" }}>
+
+            {/* ── Left hero ──────────────────────────────────────────────── */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* Wordmark */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                <div style={{ width: "44px", height: "44px", borderRadius: "12px", background: "linear-gradient(135deg, #38bdf8, #0e7ab0)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.4rem" }}>
+                  🏫
+                </div>
+                <span style={{ font: "900 1.5rem system-ui", background: "linear-gradient(135deg, #c3aaff, #9b72ff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                  WonderQuest
+                </span>
+              </div>
+
+              <h1 style={{ font: "700 2.6rem/1.15 system-ui", color: C.text, maxWidth: "460px", margin: 0 }}>
+                Welcome to{" "}
+                <span style={{ background: "linear-gradient(135deg, #38bdf8, #22c55e)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                  Classroom
+                </span>
+              </h1>
+
+              <p style={{ font: "400 1.05rem/1.7 system-ui", color: C.muted, maxWidth: "420px", margin: 0 }}>
+                View real-time class insights, guide students with AI coaching, and track every child&apos;s progress — all from one dashboard.
+              </p>
+
+              {/* Feature badges */}
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                {TEACHER_FEATURES.map((f) => (
+                  <span key={f} style={{ display: "flex", alignItems: "center", gap: "6px", font: "500 0.75rem system-ui", color: "rgba(180,230,255,0.75)", background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.22)", borderRadius: "20px", padding: "5px 12px" }}>
+                    {f}
+                  </span>
+                ))}
+              </div>
+
+              {/* Sample class preview */}
+              <div style={{ marginTop: "8px", maxWidth: "440px" }}>
+                <button
+                  onClick={() => setShowTeacherDemo((v) => !v)}
+                  style={{ background: "none", border: "none", color: C.muted, fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "system-ui", minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+                >
+                  {showTeacherDemo ? "Hide sample ▲" : "See what Classroom looks like ▼"}
+                </button>
+                {showTeacherDemo && (
+                  <div style={{ marginTop: 16, opacity: 0.85, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, background: C.surface }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      📋 Sample preview — not your real class
+                    </div>
+                    <div style={{ display: "flex", gap: "20px", marginBottom: "16px", flexWrap: "wrap" }}>
+                      {[{ icon: "👥", val: "24", label: "Students" }, { icon: "⭐", val: "1,840", label: "Class stars" }, { icon: "✅", val: "18", label: "Active today" }, { icon: "⚠️", val: "3", label: "Need check-in" }].map((s) => (
+                        <div key={s.label}>
+                          <span style={{ font: "700 1.2rem system-ui", color: C.text, display: "block" }}>{s.icon} {s.val}</span>
+                          <span style={{ font: "400 0.68rem system-ui", color: C.muted }}>{s.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {STUB_CLASS.map((s) => (
+                        <div key={s.name} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <div style={{ width: 28, height: 28, borderRadius: 8, background: `${s.color}22`, border: `1px solid ${s.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: s.color, flexShrink: 0 }}>
+                            {s.name[0]}
+                          </div>
+                          <span style={{ font: "600 0.78rem system-ui", color: C.text, flex: 1 }}>{s.name}</span>
+                          <span style={{ font: "500 0.68rem system-ui", color: s.color, background: `${s.color}15`, padding: "2px 8px", borderRadius: 10 }}>{s.band}</span>
+                          <span style={{ font: "600 0.7rem system-ui", color: C.muted, width: 50, textAlign: "right" }}>{s.sessions} sessions</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Right form card ─────────────────────────────────────────── */}
+            <TeacherGate configured={true} />
+          </div>
         </div>
       </AppFrame>
     );

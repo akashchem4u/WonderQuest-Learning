@@ -657,18 +657,7 @@ export default function ParentAccessPage() {
             fontFamily: "system-ui",
           }}
         >
-          <div
-            style={{
-              maxWidth: "1100px",
-              margin: "0 auto",
-              padding: "48px 40px 80px",
-              display: "grid",
-              gridTemplateColumns: "1fr 420px",
-              gap: "64px",
-              alignItems: "center",
-              minHeight: "100vh",
-            }}
-          >
+          <div className="parent-login-grid" style={{ maxWidth: "1100px", margin: "0 auto", padding: "48px 40px 80px", minHeight: "100vh" }}>
             {/* ── Left hero ───────────────────────────────────────────────── */}
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               {/* Wordmark */}
@@ -861,8 +850,6 @@ export default function ParentAccessPage() {
                 padding: "40px 36px",
                 boxShadow: "0 8px 40px rgba(100,60,200,0.15)",
                 border: "1px solid rgba(155,114,255,0.2)",
-                position: "sticky",
-                top: "24px",
               }}
             >
               <div
@@ -1420,10 +1407,10 @@ export default function ParentAccessPage() {
                           ✅ {s.displayName}
                         </div>
                         <div style={{ fontSize: 11, fontWeight: 700, color: "#58e8c1" }}>
-                          {Math.round(s.masteryRate * 100)}%
+                          {Math.min(100, Math.round(s.masteryRate))}%
                         </div>
                         <div style={{ width: 60, height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2 }}>
-                          <div style={{ width: `${Math.round(s.masteryRate * 100)}%`, height: "100%", background: "#58e8c1", borderRadius: 2 }} />
+                          <div style={{ width: `${Math.min(100, Math.round(s.masteryRate))}%`, height: "100%", background: "#58e8c1", borderRadius: 2 }} />
                         </div>
                       </div>
                     ))}
@@ -1433,10 +1420,10 @@ export default function ParentAccessPage() {
                           📈 {s.displayName}
                         </div>
                         <div style={{ fontSize: 11, fontWeight: 700, color: "#ffd166" }}>
-                          {Math.round(s.masteryRate * 100)}%
+                          {Math.min(100, Math.round(s.masteryRate))}%
                         </div>
                         <div style={{ width: 60, height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2 }}>
-                          <div style={{ width: `${Math.round(s.masteryRate * 100)}%`, height: "100%", background: "#ffd166", borderRadius: 2 }} />
+                          <div style={{ width: `${Math.min(100, Math.round(s.masteryRate))}%`, height: "100%", background: "#ffd166", borderRadius: 2 }} />
                         </div>
                       </div>
                     ))}
@@ -1868,7 +1855,7 @@ export default function ParentAccessPage() {
                           >
                             <div
                               style={{
-                                width: `${skill.masteryRate}%`,
+                                width: `${Math.min(100, Math.round(skill.masteryRate))}%`,
                                 height: "100%",
                                 background: barColor,
                                 borderRadius: "3px",
@@ -1884,7 +1871,7 @@ export default function ParentAccessPage() {
                               flexShrink: 0,
                             }}
                           >
-                            {skill.masteryRate}%
+                            {Math.min(100, Math.round(skill.masteryRate))}%
                           </span>
                         </div>
                       );

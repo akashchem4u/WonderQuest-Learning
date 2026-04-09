@@ -12,6 +12,9 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json() as {
       displayName?: string;
       relationshipLabel?: string;
+      stateCode?: string | null;
+      schoolName?: string | null;
+      isdName?: string | null;
       notificationSettings?: {
         weeklyReports?: boolean;
         milestoneNotifications?: boolean;
@@ -32,6 +35,28 @@ export async function PATCH(request: NextRequest) {
       if (body.relationshipLabel !== undefined) {
         vals.push(body.relationshipLabel);
         sets.push(`relationship_label = $${vals.length}`);
+      }
+      await db.query(
+        `update public.guardian_profiles set ${sets.join(", ")} where id = $1`,
+        vals,
+      );
+    }
+
+    // ── School / curriculum update ──────────────────────────────────────────
+    if (body.stateCode !== undefined || body.schoolName !== undefined || body.isdName !== undefined) {
+      const sets: string[] = ["updated_at = now()"];
+      const vals: unknown[] = [guardianId];
+      if (body.stateCode !== undefined) {
+        vals.push(body.stateCode ?? null);
+        sets.push(`state_code = $${vals.length}`);
+      }
+      if (body.schoolName !== undefined) {
+        vals.push(body.schoolName ?? null);
+        sets.push(`school_name = $${vals.length}`);
+      }
+      if (body.isdName !== undefined) {
+        vals.push(body.isdName ?? null);
+        sets.push(`isd_name = $${vals.length}`);
       }
       await db.query(
         `update public.guardian_profiles set ${sets.join(", ")} where id = $1`,
@@ -63,14 +88,18 @@ export async function PATCH(request: NextRequest) {
       }
 
       const username = row.rows[0].username as string;
-      const storedHash = row.rows[0].pin_hash as string;
+      const storedHash = row.rows[0].pin_hash as string | null;
 
-      if (!body.currentPin) {
-        return NextResponse.json({ error: "Current PIN is required." }, { status: 400 });
+      if (storedHash) {
+        // Existing PIN — require current PIN verification
+        if (!body.currentPin) {
+          return NextResponse.json({ error: "Current PIN is required." }, { status: 400 });
+        }
+        if (!verifyPin(body.currentPin, username, storedHash)) {
+          return NextResponse.json({ error: "Current PIN is incorrect." }, { status: 400 });
+        }
       }
-      if (!verifyPin(body.currentPin, username, storedHash)) {
-        return NextResponse.json({ error: "Current PIN is incorrect." }, { status: 400 });
-      }
+      // No PIN set (SSO account) — allow setting without current PIN
 
       const newHash = hashPin(body.newPin, username);
       await db.query(

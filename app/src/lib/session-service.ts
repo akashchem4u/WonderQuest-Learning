@@ -28,6 +28,9 @@ import { createMilestoneNotifications } from "@/lib/milestone-service";
 type PlaySessionInput = {
   studentId: string;
   sessionMode: string;
+  /** When the child explicitly picks a quest, pass the pushed-row ID + table */
+  chosenQuestId?: string;
+  chosenQuestTable?: "guardian_pushed_activities" | "teacher_pushed_sessions";
 };
 
 type AnswerInput = {
@@ -1234,25 +1237,43 @@ export async function createPlaySession(input: PlaySessionInput) {
 
   await ensureProgressionState(studentRow.id as string);
 
-  // ── Guardian-pushed activity: claim the oldest unconsumed pushed skill ──────
-  // If the guardian has queued a focus skill, fetch it and prepend a question
-  // for that skill to the front of this session.
-  const pushedActivityResult = await db.query(
-    `
-      select id, skill_code
-      from public.guardian_pushed_activities
-      where student_id = $1
-        and consumed_at is null
-      order by pushed_at asc
-      limit 1
-    `,
-    [input.studentId],
-  );
+  // ── Pushed activity: use child's explicit choice if provided, else auto-pick ──
+  let pushedActivity: { id: string; skill_code: string; table: string } | null = null;
 
-  let pushedActivity: { id: string; skill_code: string; table: string } | null =
-    pushedActivityResult.rowCount
-      ? { ...(pushedActivityResult.rows[0] as { id: string; skill_code: string }), table: "guardian_pushed_activities" }
-      : null;
+  if (input.chosenQuestId && input.chosenQuestTable) {
+    // Child explicitly selected a quest from their list
+    const table = input.chosenQuestTable === "teacher_pushed_sessions"
+      ? "public.teacher_pushed_sessions"
+      : "public.guardian_pushed_activities";
+    const chosen = await db.query(
+      `select id, skill_code from ${table} where id = $1 and student_id = $2 and consumed_at is null limit 1`,
+      [input.chosenQuestId, input.studentId],
+    );
+    if (chosen.rowCount) {
+      pushedActivity = {
+        ...(chosen.rows[0] as { id: string; skill_code: string }),
+        table: input.chosenQuestTable,
+      };
+    }
+  }
+
+  if (!pushedActivity) {
+    // Auto-pick: guardian-pushed first (oldest), then teacher-pushed
+    const pushedActivityResult = await db.query(
+      `select id, skill_code
+       from public.guardian_pushed_activities
+       where student_id = $1 and consumed_at is null
+       order by pushed_at asc
+       limit 1`,
+      [input.studentId],
+    );
+    if (pushedActivityResult.rowCount) {
+      pushedActivity = {
+        ...(pushedActivityResult.rows[0] as { id: string; skill_code: string }),
+        table: "guardian_pushed_activities",
+      };
+    }
+  }
 
   // ── Teacher-pushed session: check after guardian pushed (lower priority) ─────
   if (!pushedActivity) {
