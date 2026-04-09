@@ -6,14 +6,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  render-route-check:
+  vercel-route-check:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      RENDER_BASE_URL: https://wonderquest-learning.onrender.com
+      BASE_URL: https://wonderquest-learning.vercel.app
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
       - name: Run production route check
-        run: ./tools/render_post_setup_check.sh "$RENDER_BASE_URL"
+        run: ./tools/render_post_setup_check.sh "$BASE_URL"
+
+  render-redirect-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify Render redirects to Vercel
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-redirs 0 https://wonderquest-learning.onrender.com/)
+          echo "Render / status: $STATUS"
+          if [ "$STATUS" != "308" ] && [ "$STATUS" != "301" ] && [ "$STATUS" != "302" ]; then
+            echo "Expected redirect from Render, got $STATUS"
+            exit 1
+          fi
