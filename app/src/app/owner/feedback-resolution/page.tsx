@@ -50,24 +50,9 @@ interface ResolvedItem {
   resolutionNote: string;
 }
 
-const OPEN_ITEMS: OpenItem[] = [
-  { id: "FB-2039", priority: "P0", title: "Assignment engine silent-failing — no tasks delivered to students", type: "bug", daysOpen: 1, assignee: "Sam Rivera" },
-  { id: "FB-2047", priority: "P0", title: "Audio clips fail to load on Android 13 devices (Chromebook)", type: "bug", daysOpen: 0, assignee: "Jordan Lee" },
-  { id: "FB-2044", priority: "P1", title: "Hint button tap target too small on iPhone SE — misses 30% of taps", type: "ux", daysOpen: 3, assignee: "Priya Nair" },
-  { id: "FB-2042", priority: "P1", title: "Parent progress email shows wrong student name when siblings share device", type: "bug", daysOpen: 4, assignee: "Maya Chen" },
-  { id: "FB-2045", priority: "P1", title: "P3 Social Studies content has incorrect answer for community helpers question", type: "content", daysOpen: 2, assignee: "Jordan Lee" },
-  { id: "FB-2046", priority: "P2", title: "Theme transition causes 1–2s blank flash on older iPads", type: "bug", daysOpen: 5, assignee: "Sam Rivera" },
-  { id: "FB-2040", priority: "P2", title: "Band label text overflows card on narrow screens (320px)", type: "ux", daysOpen: 6, assignee: "Priya Nair" },
-  { id: "FB-2043", priority: "P2", title: "Space Pack — two planet descriptions are duplicated", type: "content", daysOpen: 3, assignee: "Maya Chen" },
-];
+const OPEN_ITEMS: OpenItem[] = [];
 
-const RESOLVED_ITEMS: ResolvedItem[] = [
-  { id: "FB-2041", priority: "P0", title: "SSO token expiry — entire class locked out", type: "bug", resolvedAt: "Today, 11:32 AM", resolutionNote: "JWT refresh TTL misconfigured in deploy. Fixed in hotfix v2.4.8. All sessions re-issued." },
-  { id: "FB-2036", priority: "P1", title: "Voice coach Orbit not audible on iPad mini at 50% volume", type: "bug", resolvedAt: "Yesterday, 4:15 PM", resolutionNote: "Audio normalization updated. Volume floor raised to 65% for voice-coach channel." },
-  { id: "FB-2033", priority: "P1", title: "Teacher assignment panel showed stale cached counts", type: "bug", resolvedAt: "2 days ago", resolutionNote: "Cache TTL reduced to 30s. Force-refresh trigger added on assignment save." },
-  { id: "FB-2029", priority: "P2", title: "Ocean pack thumbnail appears blurry on Retina displays", type: "content", resolvedAt: "3 days ago", resolutionNote: "2x asset re-exported and deployed. All theme pack thumbnails now ship @2x." },
-  { id: "FB-2025", priority: "P2", title: "Progress bar animation jank on low-end Android devices", type: "ux", resolvedAt: "4 days ago", resolutionNote: "Replaced CSS animation with requestAnimationFrame implementation. 60fps on target devices." },
-];
+const RESOLVED_ITEMS: ResolvedItem[] = [];
 
 const typeIcon: Record<IssueType, string> = { bug: "🐛", ux: "🖌️", content: "📝" };
 
