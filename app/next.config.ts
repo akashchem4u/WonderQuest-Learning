@@ -3,28 +3,11 @@ import type { NextConfig } from "next";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const withPWA = require("@ducanh2912/next-pwa").default;
 
-// When CANONICAL_REDIRECT_URL is set (Render), bounce all traffic to Vercel.
-// This keeps old Render URLs working for existing beta testers.
-const CANONICAL_URL = process.env.CANONICAL_REDIRECT_URL;
-
 const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
   // Next 16 defaults build to Turbopack. Keep an explicit empty config so
   // plugin-added webpack hooks don't fail the build-mode compatibility check.
   turbopack: {},
-  ...(CANONICAL_URL
-    ? {
-        async redirects() {
-          return [
-            {
-              source: "/:path*",
-              destination: `${CANONICAL_URL}/:path*`,
-              permanent: true,
-            },
-          ];
-        },
-      }
-    : {}),
 };
 
 export default withPWA({

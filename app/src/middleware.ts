@@ -19,6 +19,13 @@ function redirect(request: NextRequest, to: string, next?: string) {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // ── Canonical redirect (runtime env var — works without rebuild) ─────────────
+  const canonicalUrl = process.env.CANONICAL_REDIRECT_URL;
+  if (canonicalUrl) {
+    const destination = `${canonicalUrl}${pathname}${request.nextUrl.search}`;
+    return NextResponse.redirect(destination, { status: 308 });
+  }
+
   // ── /admin → /owner/login alias ─────────────────────────────────────────────
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
     return redirect(request, "/owner/login");
@@ -51,5 +58,8 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin", "/admin/:path*", "/parent/:path+", "/teacher/:path+", "/owner", "/owner/:path+"],
+  matcher: [
+    // When CANONICAL_REDIRECT_URL is set, catch everything except _next internals
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+  ],
 };
