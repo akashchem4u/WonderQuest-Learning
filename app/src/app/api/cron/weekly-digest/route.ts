@@ -10,7 +10,7 @@ export const maxDuration = 300; // 5 min — process all parents
 export async function GET(request: NextRequest) {
   // Verify this is called by Vercel Cron (or authorized manually)
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
