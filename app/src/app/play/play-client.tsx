@@ -64,6 +64,7 @@ type AnswerPayload = {
   correctAnswer: string;
   needsRetry: boolean;
   sessionCompleted: boolean;
+  currentStreak: number;
   adaptiveQuestion: SessionQuestion | null;
   adaptiveAction: string | null;
   adaptiveMessage: string | null;
@@ -2053,6 +2054,19 @@ function PlayClientInner() {
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>stars earned</div>
                     </div>
                   </div>
+
+                  {/* Streak counter */}
+                  {(answerState?.currentStreak ?? 0) >= 2 ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ fontSize: 32 }}>🔥</span>
+                      <div>
+                        <div style={{ fontSize: 28, fontWeight: 900, color: C.gold, lineHeight: 1 }}>
+                          {answerState!.currentStreak} <span style={{ fontSize: 16, color: C.muted, fontWeight: 700 }}>days</span>
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>day streak</div>
+                      </div>
+                    </div>
+                  ) : null}
 
                   {/* Streak shield indicator */}
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

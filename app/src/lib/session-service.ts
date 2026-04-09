@@ -1514,6 +1514,7 @@ export async function answerQuestion(input: AnswerInput) {
   let totalQuestions = Number(session.rows[0]?.total_questions ?? 0);
   let adaptiveRoute: AdaptiveRoute = null;
   let masteryRecord: StudentSkillMasteryRecord | null = null;
+  let resolvedStreak = 0;
 
   await db.query(
     `
@@ -1728,6 +1729,92 @@ export async function answerQuestion(input: AnswerInput) {
       console.error("WonderQuest assignment completion tracking failed", error);
     }
 
+    // ── Streak persistence ────────────────────────────────────────────────────
+    try {
+      const todayUTC = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+      const yesterdayUTC = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+      const streakRow = await db.query(
+        `select streak_count, last_session_date from public.progression_states where student_id = $1 limit 1`,
+        [input.studentId],
+      );
+
+      const prevStreak = Number(streakRow.rows[0]?.streak_count ?? 0);
+      const lastDate = streakRow.rows[0]?.last_session_date
+        ? String(streakRow.rows[0].last_session_date).slice(0, 10)
+        : null;
+
+      let newStreak: number;
+      if (lastDate === todayUTC) {
+        newStreak = prevStreak; // already played today, no change
+      } else if (lastDate === yesterdayUTC) {
+        newStreak = prevStreak + 1; // consecutive day
+      } else {
+        newStreak = 1; // reset or first session
+      }
+
+      await db.query(
+        `update public.progression_states
+         set streak_count = $2, last_session_date = $3, updated_at = now()
+         where student_id = $1`,
+        [input.studentId, newStreak, todayUTC],
+      );
+
+      // ── Streak milestone notifications ──────────────────────────────────────
+      const STREAK_MILESTONES = [3, 7, 10, 14, 21, 30, 50, 100];
+      if (newStreak !== prevStreak && STREAK_MILESTONES.includes(newStreak)) {
+        try {
+          const identityResult = await db.query(
+            `select display_name from public.student_profiles where id = $1 limit 1`,
+            [input.studentId],
+          );
+          const displayName = String(identityResult.rows[0]?.display_name ?? "Your learner");
+
+          const guardianResult = await db.query(
+            `select guardian_id from public.guardian_student_links where student_id = $1`,
+            [input.studentId],
+          );
+          const guardianIds: string[] = guardianResult.rows
+            .map((r: { guardian_id: unknown }) => String(r.guardian_id ?? ""))
+            .filter(Boolean);
+          const targets = guardianIds.length ? guardianIds : [null];
+
+          for (const guardianId of targets) {
+            const dedup = await db.query(
+              `select 1 from public.student_notifications
+               where student_id = $1
+                 and (($2::uuid is null and guardian_id is null) or guardian_id = $2::uuid)
+                 and type = 'streak'
+                 and value = $3
+                 and created_at >= now() - interval '12 hours'
+               limit 1`,
+              [input.studentId, guardianId, String(newStreak)],
+            );
+            if (!dedup.rowCount) {
+              await db.query(
+                `insert into public.student_notifications
+                   (student_id, guardian_id, type, title, description, value)
+                 values ($1, $2, 'streak', $3, $4, $5)`,
+                [
+                  input.studentId,
+                  guardianId,
+                  `🔥 ${newStreak}-Day Streak!`,
+                  `${displayName} has played ${newStreak} days in a row!`,
+                  String(newStreak),
+                ],
+              );
+            }
+          }
+        } catch (streakNotifError) {
+          console.error("WonderQuest streak milestone notification failed", streakNotifError);
+        }
+      }
+
+      resolvedStreak = newStreak;
+    } catch (streakError) {
+      console.error("WonderQuest streak persistence failed", streakError);
+    }
+
     // ── Auto-advancement check: notify parent if child has mastered ≥80% of essential skills ──
     try {
       const currentBand = session.rows[0].launch_band_code as string;
@@ -1801,6 +1888,7 @@ export async function answerQuestion(input: AnswerInput) {
     correctAnswer: question.correct_answer,
     needsRetry: !isCorrect,
     sessionCompleted,
+    currentStreak: resolvedStreak,
     adaptiveAction: adaptiveRoute?.action ?? null,
     adaptiveMessage: adaptiveRoute?.message ?? null,
     adaptiveQuestion: adaptiveRoute
