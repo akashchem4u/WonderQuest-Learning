@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { US_STATES } from "@/lib/curriculum-frameworks";
 import { SiblingSwitcher } from "@/components/sibling-switcher";
+import { UpgradePrompt } from "@/components/upgrade-prompt";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
@@ -60,6 +61,7 @@ type ParentAccessResponse = {
     id: string;
     username: string;
     displayName: string;
+    plan?: string;
   };
   linkedChild: {
     id: string;
@@ -255,6 +257,7 @@ export default function ParentAccessPage() {
   const [addChildSubmitting, setAddChildSubmitting] = useState(false);
   const [addChildError, setAddChildError] = useState("");
   const [addChildSuccess, setAddChildSuccess] = useState("");
+  const [addChildUpgradeRequired, setAddChildUpgradeRequired] = useState<{ limit: number; plan: string } | null>(null);
   const [lastCreatedChildUsername, setLastCreatedChildUsername] = useState("");
   const [lastCreatedChildDisplayName, setLastCreatedChildDisplayName] = useState("");
 
@@ -551,7 +554,11 @@ export default function ParentAccessPage() {
           coppaConsent: addChildForm.coppaConsent,
         }),
       });
-      const payload = (await response.json()) as { success?: boolean; child?: { displayName: string }; error?: string };
+      const payload = (await response.json()) as { success?: boolean; child?: { displayName: string }; error?: string; limit?: number; plan?: string };
+      if (response.status === 403 && payload.error === "upgrade_required") {
+        setAddChildUpgradeRequired({ limit: payload.limit ?? 1, plan: payload.plan ?? "free" });
+        return;
+      }
       if (!response.ok) throw new Error(payload.error ?? "Could not create child account.");
       setLastCreatedChildUsername(addChildForm.username);
       setLastCreatedChildDisplayName(addChildForm.displayName || payload.child?.displayName || "your child");
@@ -1197,9 +1204,30 @@ export default function ParentAccessPage() {
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>
               {greeting()} · {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </div>
-            <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: C.text, margin: 0 }}>
-              Hello, {result.guardian.displayName} 👋
-            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: C.text, margin: 0 }}>
+                Hello, {result.guardian.displayName} 👋
+              </h1>
+              {(!result.guardian.plan || result.guardian.plan === "free") && (
+                <Link
+                  href="/parent/account#upgrade"
+                  style={{
+                    display: "inline-block",
+                    padding: "3px 10px",
+                    borderRadius: "20px",
+                    background: "rgba(255,209,102,0.12)",
+                    border: "1.5px solid rgba(255,209,102,0.4)",
+                    font: "700 0.7rem system-ui",
+                    color: "#ffd166",
+                    textDecoration: "none",
+                    letterSpacing: "0.02em",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Free Plan · Upgrade
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* ── Sibling Switcher (multi-child only) ───────────────────────── */}
@@ -1781,7 +1809,11 @@ export default function ParentAccessPage() {
                       </div>
                     </div>
 
-                    {addChildError && (
+                    {addChildUpgradeRequired && (
+                      <UpgradePrompt reason="child_limit" limit={addChildUpgradeRequired.limit} />
+                    )}
+
+                    {addChildError && !addChildUpgradeRequired && (
                       <p
                         style={{
                           font: "500 0.82rem system-ui",

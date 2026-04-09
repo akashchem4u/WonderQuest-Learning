@@ -1489,6 +1489,7 @@ function PlayClientInner() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [dailyLimitInfo, setDailyLimitInfo] = useState<{ childName: string; sessionsToday: number; limit: number } | null>(null);
   const [answerState, setAnswerState] = useState<AnswerPayload | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -1557,8 +1558,18 @@ function PlayClientInner() {
         }
         clearTimeout(timeoutId);
 
-        const payload = (await response.json()) as SessionPayload & { error?: string };
+        const payload = (await response.json()) as SessionPayload & { error?: string; sessionsToday?: number; limit?: number };
 
+        if (response.status === 403 && payload.error === "daily_limit_reached") {
+          if (!active) return;
+          setDailyLimitInfo({
+            childName: "",
+            sessionsToday: payload.sessionsToday ?? 3,
+            limit: payload.limit ?? 3,
+          });
+          setLoading(false);
+          return;
+        }
         if (!response.ok) throw new Error(payload.error ?? "Could not start session.");
         if (!active) return;
 
@@ -1846,6 +1857,40 @@ function PlayClientInner() {
     const replayIntent = answerState?.needsRetry && answerState.explainer ? "support" : "prompt";
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.resume();
     speakText(replayText, mode === "slow" ? "support" : replayIntent);
+  }
+
+  // ── Daily limit reached ───────────────────────────────────────────────────
+
+  if (dailyLimitInfo && !loading) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "70vh", padding: "24px 20px" }}>
+          <div style={{ textAlign: "center", maxWidth: 380, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+            <div style={{ fontSize: 52 }}>⭐</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: C.text, lineHeight: 1.2 }}>
+              {dailyLimitInfo.sessionsToday} sessions today!
+            </div>
+            <div style={{ fontSize: 15, color: C.muted, lineHeight: 1.6, maxWidth: 300 }}>
+              You have played all {dailyLimitInfo.limit} free sessions for today. Come back tomorrow, or ask a parent to upgrade to the Family plan for unlimited play.
+            </div>
+            <a
+              href="/parent/account#upgrade"
+              style={{
+                display: "inline-block", padding: "11px 24px",
+                background: "linear-gradient(135deg, #9b72ff, #7c4dff)",
+                borderRadius: "12px", font: "700 0.9rem system-ui",
+                color: "#fff", textDecoration: "none", marginTop: 8,
+              }}
+            >
+              Upgrade to Family plan →
+            </a>
+            <Link href="/child" style={{ font: "600 0.8rem system-ui", color: C.muted, textDecoration: "none" }}>
+              Back to home
+            </Link>
+          </div>
+        </div>
+      </AppFrame>
+    );
   }
 
   // ── Loading state ─────────────────────────────────────────────────────────

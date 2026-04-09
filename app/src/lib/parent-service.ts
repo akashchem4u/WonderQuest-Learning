@@ -638,7 +638,7 @@ export async function restoreParentSession(guardianId: string) {
 
   const guardianResult = await db.query(
     `
-      select id, username, display_name
+      select id, username, display_name, plan
       from public.guardian_profiles
       where id = $1
       limit 1
@@ -662,6 +662,7 @@ export async function restoreParentSession(guardianId: string) {
       id: guardianRow.id as string,
       username: guardianRow.username as string,
       displayName: guardianRow.display_name as string,
+      plan: (guardianRow.plan as string) ?? "free",
     },
     linkedChild: null,
     linkedChildren,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
+import { UpgradePrompt } from "@/components/upgrade-prompt";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
@@ -341,6 +342,7 @@ export default function ParentLinkPage() {
   // Submit state
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [upgradeRequired, setUpgradeRequired] = useState<{ limit: number; plan: string } | null>(null);
 
   function handleQuestNameChange(val: string) {
     const cleaned = val.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20);
@@ -996,7 +998,12 @@ export default function ParentLinkPage() {
               {childName || "Your child"}&apos;s first session will begin from the {selectedBandLabel}. WonderQuest will personalise as they play. They sign in with their quest name and passcode. You can always edit these settings from your dashboard.
             </div>
 
-            {submitError && (
+            {upgradeRequired && (
+              <div style={{ marginBottom: 14 }}>
+                <UpgradePrompt reason="child_limit" limit={upgradeRequired.limit} />
+              </div>
+            )}
+            {submitError && !upgradeRequired && (
               <div style={{ color: "#ff7b6b", font: "400 0.8rem system-ui", marginBottom: 14, padding: "10px 14px", background: "rgba(255,123,107,0.08)", borderRadius: 10 }}>
                 {submitError}
               </div>
@@ -1022,7 +1029,12 @@ export default function ParentLinkPage() {
                     }),
                   });
                   if (!resp.ok) {
-                    const err = await resp.json().catch(() => ({})) as { error?: string };
+                    const err = await resp.json().catch(() => ({})) as { error?: string; limit?: number; plan?: string };
+                    if (resp.status === 403 && err.error === "upgrade_required") {
+                      setUpgradeRequired({ limit: err.limit ?? 1, plan: err.plan ?? "free" });
+                      setSubmitting(false);
+                      return;
+                    }
                     throw new Error(err.error ?? "Something went wrong. Please try again.");
                   }
                   router.push("/parent");

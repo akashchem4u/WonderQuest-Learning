@@ -5,11 +5,39 @@ import {
 } from "@/lib/child-access";
 import { createPlaySession } from "@/lib/prototype-service";
 import { track } from "@/lib/analytics";
+import { db } from "@/lib/db";
+import { canPlaySession, getLimits, type Plan } from "@/lib/plan-limits";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const accessSession = await requireChildAccessSession(request);
+
+    // Plan gate: check daily session limit
+    const limitRow = await db.query(
+      `SELECT gp.plan,
+              COUNT(cs.id) AS sessions_today
+         FROM public.guardian_student_links gsl
+         JOIN public.guardian_profiles gp ON gp.id = gsl.guardian_id
+         LEFT JOIN public.challenge_sessions cs
+           ON cs.student_id = gsl.student_id
+          AND cs.started_at >= CURRENT_DATE
+        WHERE gsl.student_id = $1
+        GROUP BY gp.plan
+        LIMIT 1`,
+      [accessSession.studentId],
+    );
+    const limitData = limitRow.rows[0] as { plan: string; sessions_today: string } | undefined;
+    const plan = (limitData?.plan ?? "free") as Plan;
+    const sessionsToday = parseInt(limitData?.sessions_today ?? "0", 10);
+    if (!canPlaySession(plan, sessionsToday)) {
+      const limit = getLimits(plan).sessionsPerDay as number;
+      return NextResponse.json(
+        { error: "daily_limit_reached", sessionsToday, limit },
+        { status: 403 },
+      );
+    }
+
     const result = await createPlaySession({
       studentId: accessSession.studentId,
       sessionMode: body.sessionMode,

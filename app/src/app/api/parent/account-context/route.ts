@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const { guardianId } = await requireParentAccessSession(request);
 
     const result = await db.query(
-      `select state_code, school_name, isd_name, active_child_id, pin_hash from public.guardian_profiles where id = $1 limit 1`,
+      `select state_code, school_name, isd_name, active_child_id, pin_hash, plan from public.guardian_profiles where id = $1 limit 1`,
       [guardianId],
     );
 
@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
       isd_name: string | null;
       active_child_id: string | null;
       pin_hash: string | null;
+      plan: string | null;
     };
 
     const resolution = resolveFramework(row.state_code, row.isd_name);
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
       hasPin: Boolean(row.pin_hash),
       resolution,
       activeChildId: row.active_child_id ?? null,
+      plan: row.plan ?? "free",
     });
   } catch (error) {
     const status = error instanceof ParentAccessSessionError ? 401 : 400;
