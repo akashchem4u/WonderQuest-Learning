@@ -4,12 +4,13 @@ import { requireOwnerSession } from "@/lib/owner-session";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requireOwnerSession(request);
   if (!auth.ok) return auth.response;
 
-  const feedbackId = params.id?.trim();
+  const { id } = await params;
+  const feedbackId = id?.trim();
   if (!feedbackId) {
     return NextResponse.json({ error: "Feedback ID is required." }, { status: 400 });
   }
