@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ParentAccessSessionError, requireParentAccessSession } from "@/lib/parent-access";
 import { db } from "@/lib/db";
+import { getEssentialSkills, getOnTrackSkills } from "@/lib/curriculum-standards";
 
 const VALID_BANDS = ["PREK", "K1", "G23", "G45"] as const;
 type BandCode = (typeof VALID_BANDS)[number];
@@ -44,6 +45,49 @@ export async function POST(request: NextRequest) {
       `update public.student_profiles set launch_band_code = $1 where id = $2`,
       [launchBandCode, childId],
     );
+
+    // ── Smart grade cascade: push starter quests only for skills not yet mastered ──
+    try {
+      // Get all skills the child has meaningful mastery on (from any band)
+      const masteryResult = await db.query(
+        `select sk.code
+         from public.student_skill_mastery ssm
+         join public.skills sk on sk.id = ssm.skill_id
+         where ssm.student_id = $1 and ssm.mastery_score >= 40`,
+        [childId],
+      );
+      const masteredCodes = new Set<string>(masteryResult.rows.map((r) => String(r.code)));
+
+      // Get essential + on-track skills for the new band, prioritizing essential
+      const essentialSkills = getEssentialSkills(launchBandCode);
+      const onTrackSkills = getOnTrackSkills(launchBandCode);
+      const allNewBandSkills = [...essentialSkills, ...onTrackSkills];
+
+      // Only push skills the child has NOT yet practiced
+      const newSkills = allNewBandSkills
+        .filter((skill) => !masteredCodes.has(skill.code))
+        .slice(0, 3);
+
+      if (newSkills.length > 0) {
+        // Remove any unconsumed auto-generated grade-level quests (old band starters)
+        await db.query(
+          `delete from public.guardian_pushed_activities
+           where student_id = $1 and consumed_at is null and note like 'Grade level:%'`,
+          [childId],
+        );
+
+        // Push up to 3 starter quests for the genuinely new skills
+        for (const skill of newSkills) {
+          await db.query(
+            `insert into public.guardian_pushed_activities (guardian_id, student_id, skill_code, note, pushed_at)
+             values ($1, $2, $3, $4, now())`,
+            [guardianId, childId, skill.code, `Grade level: ${launchBandCode} starter`],
+          );
+        }
+      }
+    } catch {
+      // Non-fatal: band update already succeeded
+    }
 
     return NextResponse.json({ success: true, launchBandCode });
   } catch (error) {

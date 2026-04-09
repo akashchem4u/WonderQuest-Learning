@@ -1171,118 +1171,42 @@ export default function ParentAccessPage() {
   // ─────────────────────────────────────────────────────────────────────────────
 
   const childName = activeChild?.displayName ?? "your child";
+  const isFirstTimer = (activeChildDashboard?.completedSessions ?? 0) === 0;
 
-  const statCardStyle: React.CSSProperties = {
-    background: C.surface,
-    borderRadius: "16px",
-    padding: "20px",
-    border: `1px solid ${C.border}`,
-    fontFamily: "system-ui",
-  };
+  function greeting() {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  }
 
   return (
     <AppFrame audience="parent" currentPath="/parent">
       <div
         style={{
           minHeight: "100vh",
-          background: C.base,
+          background: "linear-gradient(180deg, #13103a 0%, #0e0b26 100%)",
           fontFamily: "system-ui",
           paddingBottom: "env(safe-area-inset-bottom, 80px)",
         }}
       >
-        {/* ── Top nav bar ───────────────────────────────────────────────────── */}
-        <div
-          style={{
-            background: "rgba(255,255,255,0.03)",
-            borderBottom: `1px solid ${C.border}`,
-            padding: "14px 32px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "12px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div
-              style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "10px",
-                background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "1.1rem",
-              }}
-            >
-              🌟
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 80px", fontFamily: "system-ui" }}>
+
+          {/* ── Welcome header ──────────────────────────────────────────────── */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>
+              {greeting()} · {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </div>
-            <span
-              style={{
-                font: "800 1.1rem system-ui",
-                background: "linear-gradient(135deg, #c3aaff, #9b72ff)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              WonderQuest
-            </span>
+            <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: C.text, margin: 0 }}>
+              Hello, {result.guardian.displayName} 👋
+            </h1>
           </div>
 
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-            {DASHBOARD_NAV.map((nav) => (
-              <Link
-                key={nav.href}
-                href={nav.href}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  padding: "6px 14px",
-                  borderRadius: "8px",
-                  background: "rgba(155,114,255,0.08)",
-                  border: "1px solid rgba(155,114,255,0.15)",
-                  font: "600 0.78rem system-ui",
-                  color: "rgba(195,170,255,0.8)",
-                  textDecoration: "none",
-                  minHeight: 44,
-                  touchAction: "manipulation",
-                  WebkitTapHighlightColor: "transparent",
-                }}
-              >
-                <span>{nav.icon}</span>
-                {nav.label}
-              </Link>
-            ))}
-          </div>
-
-          <div
-            style={{
-              font: "600 0.8rem system-ui",
-              color: C.muted,
-            }}
-          >
-            👋 {result.guardian.displayName}
-          </div>
-        </div>
-
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "0 auto",
-            padding: "32px 36px 0",
-          }}
-        >
           {/* ── Sibling Switcher (multi-child only) ───────────────────────── */}
           {result.linkedChildren.length > 1 && (
-            <div style={{ marginBottom: "24px" }}>
-              <div style={{ font: "700 0.75rem system-ui", color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span>Your children</span>
-                <Link href="/parent/wrong-child" style={{ font: "500 0.72rem system-ui", color: C.violet, textDecoration: "none", opacity: 0.8 }}>
-                  Wrong child? →
-                </Link>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                Your children
               </div>
               <SiblingSwitcher
                 children={result.linkedChildren}
@@ -1292,337 +1216,127 @@ export default function ParentAccessPage() {
             </div>
           )}
 
-          {/* ── Child hero card ────────────────────────────────────────────── */}
+          {/* ── Child hero card ─────────────────────────────────────────────── */}
           {activeChild && (
-            <div
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(155,114,255,0.1) 0%, rgba(88,232,193,0.06) 100%)",
-                borderRadius: "20px",
-                padding: "28px",
-                border: "1px solid rgba(155,114,255,0.2)",
-                marginBottom: "24px",
-                display: "grid",
-                gridTemplateColumns: "auto 1fr auto",
-                gap: "24px",
-                alignItems: "center",
-              }}
-            >
-              {/* Avatar */}
-              <div
-                style={{
-                  width: "72px",
-                  height: "72px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, rgba(155,114,255,0.3), rgba(88,232,193,0.2))",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "2rem",
-                  flexShrink: 0,
-                  border: "2px solid rgba(155,114,255,0.3)",
-                }}
-              >
-                {getAvatarSymbol(activeChild.avatarKey)}
-              </div>
+            <div style={{
+              background: "linear-gradient(135deg, rgba(155,114,255,0.16) 0%, rgba(88,232,193,0.08) 100%)",
+              borderRadius: 20,
+              padding: "22px 24px",
+              border: "1px solid rgba(155,114,255,0.25)",
+              marginBottom: 20,
+            }}>
+              <div style={{ display: "flex", gap: 18, alignItems: "flex-start", flexWrap: "wrap" }}>
+                {/* Avatar + name */}
+                <div style={{ display: "flex", gap: 14, alignItems: "center", flex: 1, minWidth: 200 }}>
+                  <div style={{
+                    width: 64, height: 64, borderRadius: "50%",
+                    background: "linear-gradient(135deg, rgba(155,114,255,0.35), rgba(88,232,193,0.25))",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "1.8rem", flexShrink: 0,
+                    border: "2px solid rgba(155,114,255,0.4)",
+                    boxShadow: "0 4px 16px rgba(155,114,255,0.25)",
+                  }}>
+                    {getAvatarSymbol(activeChild.avatarKey)}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "1.2rem", fontWeight: 800, color: C.text }}>{activeChild.displayName}</div>
+                    <div style={{
+                      display: "inline-flex", alignItems: "center", gap: 5, marginTop: 4,
+                      padding: "3px 10px", borderRadius: 999,
+                      background: "rgba(155,114,255,0.15)",
+                      border: `1.5px solid ${getBandColor(activeChild.launchBandCode)}`,
+                      fontSize: 11, fontWeight: 700, color: "rgba(215,195,255,0.95)",
+                    }}>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: getBandColor(activeChild.launchBandCode), flexShrink: 0 }} />
+                      {getBandLabel(activeChild.launchBandCode)} · Level {activeChild.currentLevel}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+                      Last active: {formatLastActive(activeChildDashboard?.lastSessionAt ?? null)}
+                    </div>
+                  </div>
+                </div>
 
-              {/* Name + band + stats */}
-              <div>
-                <div
-                  style={{
-                    font: "700 1.3rem system-ui",
-                    color: C.text,
-                    marginBottom: "6px",
-                  }}
-                >
-                  {activeChild.displayName}
-                </div>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    padding: "3px 12px",
-                    borderRadius: "16px",
-                    marginBottom: "14px",
-                    background: "rgba(155,114,255,0.12)",
-                    border: `1.5px solid ${getBandColor(activeChild.launchBandCode)}`,
-                    font: "700 0.72rem system-ui",
-                    color: "rgba(195,170,255,0.9)",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      background: getBandColor(activeChild.launchBandCode),
-                      flexShrink: 0,
-                    }}
-                  />
-                  {getBandLabel(activeChild.launchBandCode)} · Level {activeChild.currentLevel}
-                </div>
-                <div style={{ display: "flex", gap: "28px", flexWrap: "wrap" }}>
+                {/* Stats row */}
+                <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
                   {[
-                    { val: `⭐ ${activeChild.totalPoints}`, label: "Stars earned" },
-                    { val: `${activeChildDashboard?.completedSessions ?? 0}`, label: "Sessions" },
-                    { val: `🔥 ${streakDays}`, label: "Day streak" },
-                    { val: `${activeChild.badgeCount}`, label: "Badges" },
+                    { icon: "⭐", val: activeChild.totalPoints, label: "Stars" },
+                    { icon: "📚", val: activeChildDashboard?.completedSessions ?? 0, label: "Sessions" },
+                    { icon: "🔥", val: streakDays, label: "Streak" },
+                    { icon: "🏅", val: activeChild.badgeCount, label: "Badges" },
                   ].map((s) => (
-                    <div key={s.label}>
-                      <span
-                        style={{
-                          font: "900 1.25rem system-ui",
-                          color: C.text,
-                          display: "block",
-                        }}
-                      >
-                        {s.val}
-                      </span>
-                      <span
-                        style={{
-                          font: "400 0.68rem system-ui",
-                          color: C.muted,
-                          display: "block",
-                          marginTop: "1px",
-                        }}
-                      >
-                        {s.label}
-                      </span>
+                    <div key={s.label} style={{ textAlign: "center", minWidth: 48 }}>
+                      <div style={{ fontSize: "1.3rem", fontWeight: 900, color: C.text }}>{s.icon} {s.val}</div>
+                      <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{s.label}</div>
                     </div>
                   ))}
                 </div>
-              </div>
 
-              {/* Skill snapshot */}
-              {activeChildDashboard && (activeChildDashboard.strengths.length > 0 || activeChildDashboard.supportAreas.length > 0) && (
-                <div style={{ marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
-                    Skill Snapshot
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {activeChildDashboard.strengths.slice(0, 2).map(s => (
-                      <div key={s.skillCode} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          ✅ {s.displayName}
-                        </div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "#58e8c1" }}>
-                          {Math.min(100, Math.round(s.masteryRate))}%
-                        </div>
-                        <div style={{ width: 60, height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2 }}>
-                          <div style={{ width: `${Math.min(100, Math.round(s.masteryRate))}%`, height: "100%", background: "#58e8c1", borderRadius: 2 }} />
-                        </div>
-                      </div>
-                    ))}
-                    {activeChildDashboard.supportAreas.slice(0, 2).map(s => (
-                      <div key={s.skillCode} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          📈 {s.displayName}
-                        </div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "#ffd166" }}>
-                          {Math.min(100, Math.round(s.masteryRate))}%
-                        </div>
-                        <div style={{ width: 60, height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2 }}>
-                          <div style={{ width: `${Math.min(100, Math.round(s.masteryRate))}%`, height: "100%", background: "#ffd166", borderRadius: 2 }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <a href="/parent/report" style={{ fontSize: 11, color: "#9b72ff", textDecoration: "none", marginTop: 8, display: "inline-block" }}>
-                    Full skill report →
-                  </a>
-                </div>
-              )}
-
-              {/* CTAs */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <Link
-                  href="/parent/report"
-                  style={{
-                    display: "block",
-                    textAlign: "center",
-                    padding: "10px 20px",
+                {/* Primary CTA */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                  <Link href="/parent/report" style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    padding: "10px 18px", borderRadius: 10,
                     background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
-                    color: "#fff",
-                    borderRadius: "10px",
-                    font: "600 0.82rem system-ui",
-                    textDecoration: "none",
+                    color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 700,
                     whiteSpace: "nowrap",
-                  }}
-                >
-                  📊 Weekly Report →
-                </Link>
-                <Link
-                  href="/parent/practice"
-                  style={{
-                    display: "block",
-                    textAlign: "center",
-                    padding: "9px 20px",
-                    background: C.surface,
-                    color: C.muted,
-                    border: `1.5px solid ${C.border}`,
-                    borderRadius: "10px",
-                    font: "600 0.78rem system-ui",
-                    textDecoration: "none",
-                    whiteSpace: "nowrap",
-                    minHeight: 44,
-                    touchAction: "manipulation",
-                    WebkitTapHighlightColor: "transparent",
-                  }}
-                >
-                  💡 Practice Ideas
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (resetPinFor === activeChild?.id) {
-                      setResetPinFor(null);
-                      setNewPin("");
-                      setConfirmPin("");
-                      setResetError("");
-                      setResetSuccess(false);
-                    } else {
-                      setResetPinFor(activeChild?.id ?? null);
-                      setNewPin("");
-                      setConfirmPin("");
-                      setResetError("");
-                      setResetSuccess(false);
-                    }
-                  }}
-                  style={{
-                    display: "block",
-                    textAlign: "center",
-                    padding: "9px 20px",
-                    background: C.surface,
-                    color: C.muted,
-                    border: `1.5px solid ${C.border}`,
-                    borderRadius: "10px",
-                    font: "600 0.78rem system-ui",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    minHeight: 44,
-                    touchAction: "manipulation",
-                    WebkitTapHighlightColor: "transparent",
-                  }}
-                >
-                  🔑 Reset PIN
-                </button>
+                  }}>
+                    📊 Full Report →
+                  </Link>
+                  <button type="button"
+                    onClick={() => {
+                      if (resetPinFor === activeChild?.id) {
+                        setResetPinFor(null); setNewPin(""); setConfirmPin(""); setResetError(""); setResetSuccess(false);
+                      } else {
+                        setResetPinFor(activeChild?.id ?? null); setNewPin(""); setConfirmPin(""); setResetError(""); setResetSuccess(false);
+                      }
+                    }}
+                    style={{
+                      padding: "8px 18px", borderRadius: 10, cursor: "pointer",
+                      background: "rgba(255,255,255,0.06)", border: "1.5px solid rgba(255,255,255,0.12)",
+                      color: C.muted, fontSize: 12, fontWeight: 600, fontFamily: "system-ui",
+                      whiteSpace: "nowrap",
+                    }}>
+                    🔑 Reset PIN
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
           {/* ── Reset PIN inline form ──────────────────────────────────────── */}
           {resetPinFor && activeChild && resetPinFor === activeChild.id && (
-            <div
-              style={{
-                background: "rgba(155,114,255,0.06)",
-                borderRadius: "16px",
-                padding: "20px 24px",
-                border: "1px solid rgba(155,114,255,0.2)",
-                marginBottom: "24px",
-              }}
-            >
-              <div
-                style={{
-                  font: "600 0.9rem system-ui",
-                  color: C.text,
-                  marginBottom: "14px",
-                }}
-              >
+            <div style={{
+              background: "rgba(155,114,255,0.07)", borderRadius: 16,
+              padding: "18px 22px", border: "1px solid rgba(155,114,255,0.2)", marginBottom: 20,
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>
                 Reset PIN for {activeChild.displayName}
               </div>
               {resetSuccess ? (
-                <div
-                  style={{
-                    font: "600 0.9rem system-ui",
-                    color: C.mint,
-                    padding: "12px 0",
-                  }}
-                >
-                  PIN updated ✓
-                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: C.mint }}>PIN updated ✓</div>
               ) : (
-                <form onSubmit={handleResetPin} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                <form onSubmit={handleResetPin} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                     <div style={{ flex: "1 1 140px" }}>
                       <label style={labelStyle}>New PIN</label>
-                      <input
-                        type="password"
-                        inputMode="numeric"
-                        maxLength={4}
-                        placeholder="4 digits"
-                        value={newPin}
-                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        required
-                        style={inputStyle}
-                      />
+                      <input type="password" inputMode="numeric" maxLength={4} placeholder="4 digits" value={newPin}
+                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))} required style={inputStyle} />
                     </div>
                     <div style={{ flex: "1 1 140px" }}>
                       <label style={labelStyle}>Confirm PIN</label>
-                      <input
-                        type="password"
-                        inputMode="numeric"
-                        maxLength={4}
-                        placeholder="4 digits"
-                        value={confirmPin}
-                        onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        required
-                        style={inputStyle}
-                      />
+                      <input type="password" inputMode="numeric" maxLength={4} placeholder="4 digits" value={confirmPin}
+                        onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))} required style={inputStyle} />
                     </div>
                   </div>
-                  {resetError && (
-                    <p
-                      style={{
-                        font: "400 0.82rem system-ui",
-                        color: C.coral,
-                        margin: 0,
-                      }}
-                    >
-                      {resetError}
-                    </p>
-                  )}
-                  <div style={{ display: "flex", gap: "10px" }}>
-                    <button
-                      type="submit"
-                      disabled={resetSubmitting}
-                      style={{
-                        padding: "10px 22px",
-                        background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: "10px",
-                        font: "600 0.85rem system-ui",
-                        cursor: resetSubmitting ? "not-allowed" : "pointer",
-                        opacity: resetSubmitting ? 0.7 : 1,
-                        minHeight: 44,
-                        touchAction: "manipulation",
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      {resetSubmitting ? "Saving…" : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setResetPinFor(null);
-                        setNewPin("");
-                        setConfirmPin("");
-                        setResetError("");
-                      }}
-                      style={{
-                        padding: "10px 18px",
-                        background: C.surface,
-                        color: C.muted,
-                        border: `1.5px solid ${C.border}`,
-                        borderRadius: "10px",
-                        font: "600 0.85rem system-ui",
-                        cursor: "pointer",
-                        minHeight: 44,
-                        touchAction: "manipulation",
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
+                  {resetError && <p style={{ fontSize: 13, color: C.coral, margin: 0 }}>{resetError}</p>}
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button type="submit" disabled={resetSubmitting} style={{
+                      padding: "10px 22px", background: "linear-gradient(135deg, #9b72ff, #5a30d0)", color: "#fff",
+                      border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: resetSubmitting ? "not-allowed" : "pointer",
+                      opacity: resetSubmitting ? 0.7 : 1, minHeight: 44, fontFamily: "system-ui",
+                    }}>{resetSubmitting ? "Saving…" : "Save"}</button>
+                    <button type="button" onClick={() => { setResetPinFor(null); setNewPin(""); setConfirmPin(""); setResetError(""); }}
+                      style={{ padding: "10px 18px", background: "rgba(255,255,255,0.05)", color: C.muted, border: "1.5px solid rgba(255,255,255,0.10)", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 44, fontFamily: "system-ui" }}>
                       Cancel
                     </button>
                   </div>
@@ -1631,137 +1345,116 @@ export default function ParentAccessPage() {
             </div>
           )}
 
-          {/* ── Quick stats ────────────────────────────────────────────────── */}
-          {activeChildDashboard && (
-            <div className="stat-grid-4" style={{ marginBottom: "24px" }}>
+          {/* ── First-timer: Getting Started guide ─────────────────────────── */}
+          {isFirstTimer && activeChild && (
+            <div style={{
+              background: "linear-gradient(135deg, rgba(88,232,193,0.10) 0%, rgba(155,114,255,0.08) 100%)",
+              border: "1.5px solid rgba(88,232,193,0.25)",
+              borderRadius: 18, padding: "22px 24px", marginBottom: 20,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.mint, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+                Getting Started
+              </div>
+              <div style={{ fontSize: "1.05rem", fontWeight: 700, color: C.text, marginBottom: 16 }}>
+                {activeChild.displayName} hasn&apos;t played yet — here&apos;s how it works
+              </div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {[
+                  { step: "1", icon: "🎮", title: "Child plays a quest", body: `Give ${activeChild.displayName} their username and PIN. They log in at the Child portal and start a quest.` },
+                  { step: "2", icon: "📊", title: "You see progress here", body: "After each session, skill scores, stars, and activity appear on this dashboard — updated in real time." },
+                  { step: "3", icon: "🎯", title: "Push learning goals", body: "Use Learning Plan to suggest specific skills. The AI adapts questions to your child's current level." },
+                ].map((item) => (
+                  <div key={item.step} style={{
+                    flex: "1 1 180px",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                    borderRadius: 14, padding: "14px 16px",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <div style={{
+                        width: 26, height: 26, borderRadius: "50%",
+                        background: "rgba(88,232,193,0.2)", border: "1.5px solid rgba(88,232,193,0.4)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 11, fontWeight: 900, color: C.mint, flexShrink: 0,
+                      }}>{item.step}</div>
+                      <span style={{ fontSize: "1.1rem" }}>{item.icon}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{item.title}</span>
+                    </div>
+                    <p style={{ fontSize: 12, color: C.muted, margin: 0, lineHeight: 1.5 }}>{item.body}</p>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Link href="/child" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "9px 16px", borderRadius: 10,
+                  background: "rgba(88,232,193,0.18)", border: "1.5px solid rgba(88,232,193,0.35)",
+                  color: C.mint, textDecoration: "none", fontSize: 13, fontWeight: 700,
+                }}>
+                  🎮 Go to Child Portal →
+                </Link>
+                <Link href="/parent/benchmarks" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "9px 16px", borderRadius: 10,
+                  background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(255,255,255,0.12)",
+                  color: C.muted, textDecoration: "none", fontSize: 13, fontWeight: 600,
+                }}>
+                  ℹ️ How scoring works →
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* ── Stat tiles ─────────────────────────────────────────────────── */}
+          {activeChildDashboard && !isFirstTimer && (
+            <div className="stat-grid-4" style={{ marginBottom: 20 }}>
               {[
-                {
-                  icon: "⭐",
-                  val: activeChild?.totalPoints ?? 0,
-                  label: "Stars earned",
-                  delta: `Level ${activeChild?.currentLevel ?? 1}`,
-                  color: C.gold,
-                },
-                {
-                  icon: "📚",
-                  val: activeChildDashboard.completedSessions,
-                  label: "Sessions completed",
-                  delta: formatMinutes(activeChildDashboard.totalTimeSpentMs) + " total",
-                  color: C.violet,
-                },
-                {
-                  icon: "⏱️",
-                  val: formatMinutes(activeChildDashboard.effectiveTimeSpentMs),
-                  label: "Effective time",
-                  delta: formatPercent(activeChildDashboard.averageEffectiveness) + " engagement",
-                  color: C.mint,
-                },
-                {
-                  icon: "🏅",
-                  val: activeChild?.badgeCount ?? 0,
-                  label: "Badges earned",
-                  delta: `${activeChild?.trophyCount ?? 0} trophies`,
-                  color: C.coral,
-                },
+                { icon: "⭐", val: activeChild?.totalPoints ?? 0, label: "Stars earned", sub: `Level ${activeChild?.currentLevel ?? 1}`, bg: "rgba(255,209,102,0.08)", border: "rgba(255,209,102,0.25)", color: C.gold },
+                { icon: "📚", val: activeChildDashboard.completedSessions, label: "Sessions done", sub: formatMinutes(activeChildDashboard.totalTimeSpentMs) + " total", bg: "rgba(155,114,255,0.08)", border: "rgba(155,114,255,0.25)", color: C.violet },
+                { icon: "⏱", val: formatMinutes(activeChildDashboard.effectiveTimeSpentMs), label: "Focused time", sub: formatPercent(activeChildDashboard.averageEffectiveness) + " engagement", bg: "rgba(88,232,193,0.07)", border: "rgba(88,232,193,0.22)", color: C.mint },
+                { icon: "🏅", val: activeChild?.badgeCount ?? 0, label: "Badges earned", sub: `${activeChild?.trophyCount ?? 0} trophies`, bg: "rgba(255,123,107,0.08)", border: "rgba(255,123,107,0.22)", color: C.coral },
               ].map((tile) => (
-                <div key={tile.label} style={statCardStyle}>
-                  <div style={{ fontSize: "1.2rem", marginBottom: "10px" }}>{tile.icon}</div>
-                  <span
-                    style={{
-                      font: "900 1.5rem system-ui",
-                      color: C.text,
-                      display: "block",
-                      marginBottom: "2px",
-                    }}
-                  >
-                    {tile.val}
-                  </span>
-                  <div
-                    style={{
-                      font: "400 0.72rem system-ui",
-                      color: C.muted,
-                    }}
-                  >
-                    {tile.label}
-                  </div>
-                  <div
-                    style={{
-                      font: "600 0.7rem system-ui",
-                      marginTop: "6px",
-                      color: tile.color,
-                    }}
-                  >
-                    ↑ {tile.delta}
-                  </div>
+                <div key={tile.label} style={{
+                  background: tile.bg, borderRadius: 16, padding: "18px 20px",
+                  border: `1px solid ${tile.border}`,
+                  borderLeft: `3px solid ${tile.color}`,
+                }}>
+                  <div style={{ fontSize: "1.1rem", marginBottom: 8 }}>{tile.icon}</div>
+                  <div style={{ fontSize: "1.45rem", fontWeight: 900, color: C.text }}>{tile.val}</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{tile.label}</div>
+                  <div style={{ fontSize: 11, color: tile.color, fontWeight: 600, marginTop: 5 }}>{tile.sub}</div>
                 </div>
               ))}
             </div>
           )}
 
           {/* ── Learning Plan CTA ──────────────────────────────────────────── */}
-          {activeChild && (
-            <Link
-              href="/parent/suggestions"
-              style={{ textDecoration: "none", display: "block", marginBottom: "24px" }}
-            >
-              <div
-                style={{
-                  background: "linear-gradient(135deg, rgba(155,114,255,0.18), rgba(88,232,193,0.10))",
-                  border: "1px solid rgba(155,114,255,0.3)",
-                  borderRadius: "18px",
-                  padding: "22px 26px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "18px",
-                  transition: "box-shadow 0.2s",
-                  boxShadow: "0 4px 24px rgba(100,60,200,0.1)",
-                }}
-              >
-                <div
-                  style={{
-                    width: "52px",
-                    height: "52px",
-                    borderRadius: "14px",
-                    background: "linear-gradient(135deg, #9b72ff, #58e8c1)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "1.6rem",
-                    flexShrink: 0,
-                  }}
-                >
-                  🎯
-                </div>
+          {activeChild && !isFirstTimer && (
+            <Link href="/parent/suggestions" style={{ textDecoration: "none", display: "block", marginBottom: 20 }}>
+              <div style={{
+                background: "linear-gradient(135deg, rgba(155,114,255,0.16), rgba(88,232,193,0.09))",
+                border: "1px solid rgba(155,114,255,0.3)",
+                borderRadius: 18, padding: "20px 24px",
+                display: "flex", alignItems: "center", gap: 16,
+                boxShadow: "0 4px 20px rgba(100,60,200,0.12)",
+              }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 14,
+                  background: "linear-gradient(135deg, #9b72ff, #58e8c1)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "1.5rem", flexShrink: 0,
+                }}>🎯</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      font: "700 1.05rem system-ui",
-                      color: "#f0f6ff",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Learning Plan
-                  </div>
-                  <div
-                    style={{
-                      font: "400 0.82rem system-ui",
-                      color: "rgba(255,255,255,0.55)",
-                    }}
-                  >
-                    See recommended activities and push sessions to {activeChild.displayName}
+                  <div style={{ fontSize: "1rem", fontWeight: 700, color: C.text, marginBottom: 3 }}>Learning Plan</div>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)" }}>
+                    Recommended skills and push-to-play sessions for {activeChild.displayName}
                   </div>
                 </div>
-                <div
-                  style={{
-                    font: "600 0.85rem system-ui",
-                    color: "#9b72ff",
-                    padding: "8px 16px",
-                    background: "rgba(155,114,255,0.15)",
-                    borderRadius: "10px",
-                    border: "1px solid rgba(155,114,255,0.25)",
-                    flexShrink: 0,
-                  }}
-                >
+                <div style={{
+                  fontSize: 13, fontWeight: 600, color: C.violet,
+                  padding: "7px 14px", background: "rgba(155,114,255,0.15)",
+                  borderRadius: 10, border: "1px solid rgba(155,114,255,0.25)", flexShrink: 0,
+                }}>
                   View Plan →
                 </div>
               </div>
@@ -1769,236 +1462,118 @@ export default function ParentAccessPage() {
           )}
 
           {/* ── 2-col: skills + activity ───────────────────────────────────── */}
-          {activeChildDashboard && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "18px",
-                marginBottom: "24px",
-              }}
-            >
-              {/* Skills practiced */}
-              <div
-                style={{
-                  background: C.surface,
-                  borderRadius: "16px",
-                  padding: "22px",
-                  border: `1px solid ${C.border}`,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: "16px",
-                  }}
-                >
-                  <span style={{ font: "700 0.95rem system-ui", color: C.text }}>
-                    Skills practiced
-                  </span>
-                  <Link
-                    href="/parent/report"
-                    style={{
-                      font: "500 0.75rem system-ui",
-                      color: C.violet,
-                      textDecoration: "none",
-                    }}
-                  >
-                    See all →
-                  </Link>
+          {activeChildDashboard && !isFirstTimer && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 20 }}>
+              {/* Skills panel */}
+              <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, padding: "20px 22px", border: "1px solid rgba(255,255,255,0.10)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Skills snapshot</span>
+                  <Link href="/parent/report" style={{ fontSize: 12, color: C.violet, textDecoration: "none" }}>See all →</Link>
                 </div>
-
                 {allSkills.length > 0 ? (
-                  <>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {allSkills.slice(0, 5).map((skill) => {
-                      const barColor = skill.masteryRate >= 75 ? C.violet : C.gold;
+                      const pct = Math.min(100, Math.round(skill.masteryRate));
+                      const barColor = pct >= 75 ? C.mint : pct >= 50 ? C.violet : C.gold;
                       return (
-                        <div
-                          key={skill.skillCode}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "12px",
-                            marginBottom: "12px",
-                          }}
-                        >
-                          <span
-                            style={{
-                              font: "600 0.8rem system-ui",
-                              color: C.text,
-                              width: "120px",
-                              flexShrink: 0,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {skill.displayName}
-                          </span>
-                          <div
-                            style={{
-                              flex: 1,
-                              height: "6px",
-                              background: "rgba(255,255,255,0.08)",
-                              borderRadius: "3px",
-                              overflow: "hidden",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: `${Math.min(100, Math.round(skill.masteryRate))}%`,
-                                height: "100%",
-                                background: barColor,
-                                borderRadius: "3px",
-                              }}
-                            />
+                        <div key={skill.skillCode}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.8)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "75%" }}>
+                              {skill.displayName}
+                            </span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: barColor, flexShrink: 0 }}>{pct}%</span>
                           </div>
-                          <span
-                            style={{
-                              font: "600 0.7rem system-ui",
-                              color: C.muted,
-                              width: "32px",
-                              textAlign: "right",
-                              flexShrink: 0,
-                            }}
-                          >
-                            {Math.min(100, Math.round(skill.masteryRate))}%
-                          </span>
+                          <div style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 3, overflow: "hidden" }}>
+                            <div style={{ width: `${pct}%`, height: "100%", background: barColor, borderRadius: 3, transition: "width 0.5s" }} />
+                          </div>
                         </div>
                       );
                     })}
-
                     {activeChildDashboard.supportAreas[0] && (
-                      <div
-                        style={{
-                          marginTop: "14px",
-                          padding: "10px 12px",
-                          background: "rgba(88,232,193,0.08)",
-                          borderRadius: "8px",
-                          border: "1px solid rgba(88,232,193,0.2)",
-                          font: "400 0.76rem/1.4 system-ui",
-                          color: C.mint,
-                        }}
-                      >
-                        💡{" "}
-                        {buildParentSkillAction(
-                          activeChildDashboard.supportAreas[0].skillCode,
-                          activeChildDashboard.supportAreas[0].displayName,
-                        )}
+                      <div style={{
+                        marginTop: 8, padding: "10px 12px",
+                        background: "rgba(88,232,193,0.08)", borderRadius: 8,
+                        border: "1px solid rgba(88,232,193,0.18)",
+                        fontSize: 12, color: C.mint, lineHeight: 1.5,
+                      }}>
+                        💡 {buildParentSkillAction(activeChildDashboard.supportAreas[0].skillCode, activeChildDashboard.supportAreas[0].displayName)}
                       </div>
                     )}
-                  </>
+                  </div>
                 ) : (
-                  <p
-                    style={{
-                      font: "400 0.82rem system-ui",
-                      color: C.muted,
-                      margin: 0,
-                    }}
-                  >
-                    Skills appear after a few sessions.
-                  </p>
+                  <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>Skills appear after a few sessions.</p>
                 )}
               </div>
 
-              {/* Recent activity */}
-              <div
-                style={{
-                  background: C.surface,
-                  borderRadius: "16px",
-                  padding: "22px",
-                  border: `1px solid ${C.border}`,
-                }}
-              >
-                <div
-                  style={{
-                    font: "700 0.95rem system-ui",
-                    color: C.text,
-                    marginBottom: "14px",
-                  }}
-                >
-                  Recent activity
-                </div>
+              {/* Recent activity panel */}
+              <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, padding: "20px 22px", border: "1px solid rgba(255,255,255,0.10)" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 14 }}>Recent sessions</div>
                 {activeChildDashboard.recentSessions.length > 0 ? (
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {activeChildDashboard.recentSessions.slice(0, 5).map((session) => {
-                      const dotColor =
-                        session.effectivenessScore && session.effectivenessScore >= 75
-                          ? C.violet
-                          : session.effectivenessScore && session.effectivenessScore >= 50
-                            ? C.gold
-                            : C.mint;
+                  <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                    {activeChildDashboard.recentSessions.slice(0, 5).map((session, i) => {
+                      const score = session.effectivenessScore;
+                      const dotColor = score && score >= 75 ? C.mint : score && score >= 50 ? C.gold : C.coral;
                       return (
-                        <li
-                          key={session.id}
-                          style={{
-                            display: "flex",
-                            alignItems: "flex-start",
-                            gap: "12px",
-                            padding: "10px 0",
-                            borderBottom: `1px solid ${C.border}`,
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "10px",
-                              height: "10px",
-                              borderRadius: "50%",
-                              background: dotColor,
-                              flexShrink: 0,
-                              marginTop: "4px",
-                            }}
-                          />
-                          <div style={{ flex: 1 }}>
-                            <div
-                              style={{
-                                font: "400 0.82rem/1.4 system-ui",
-                                color: C.muted,
-                              }}
-                            >
-                              <strong
-                                style={{ fontWeight: 700, color: C.text }}
-                              >
-                                {childName}
-                              </strong>{" "}
-                              completed a {formatSessionMode(session.sessionMode).toLowerCase()} session
-                              {session.effectivenessScore !== null
-                                ? ` · ${session.effectivenessScore}% engagement`
-                                : ""}
+                        <div key={session.id} style={{
+                          display: "flex", gap: 12, padding: "10px 0",
+                          borderBottom: i < 4 ? "1px solid rgba(255,255,255,0.07)" : "none",
+                        }}>
+                          <div style={{ width: 10, height: 10, borderRadius: "50%", background: dotColor, flexShrink: 0, marginTop: 4 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", lineHeight: 1.4 }}>
+                              <strong style={{ color: C.text }}>{childName}</strong> · {formatSessionMode(session.sessionMode).toLowerCase()} session
+                              {score !== null ? <span style={{ color: dotColor, fontWeight: 700 }}> · {score}%</span> : ""}
                             </div>
-                            <div
-                              style={{
-                                font: "400 0.7rem system-ui",
-                                color: "rgba(255,255,255,0.3)",
-                                marginTop: "2px",
-                              }}
-                            >
+                            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
                               {formatLastSeen(session.startedAt)}
                             </div>
                           </div>
-                        </li>
+                        </div>
                       );
                     })}
-                  </ul>
+                    <Link href="/parent/quiz-review" style={{ display: "inline-block", marginTop: 10, fontSize: 12, color: C.violet, textDecoration: "none" }}>
+                      View full quiz review →
+                    </Link>
+                  </div>
                 ) : (
-                  <p
-                    style={{
-                      font: "400 0.82rem system-ui",
-                      color: C.muted,
-                      margin: 0,
-                    }}
-                  >
-                    Activity appears here after the first lesson.
-                  </p>
+                  <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>Activity appears after the first lesson.</p>
                 )}
               </div>
             </div>
           )}
 
+          {/* ── Feature navigation cards ────────────────────────────────────── */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+              Tools &amp; Reports
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+              {[
+                { href: "/parent/report",            icon: "📊", title: "Weekly Report",    desc: "Sessions, skills, and time breakdown.",       color: C.violet },
+                { href: "/parent/quiz-review",        icon: "🔍", title: "Quiz Review",      desc: "Question-by-question session replay.",         color: C.mint },
+                { href: "/parent/suggestions",        icon: "🎯", title: "Learning Plan",    desc: "AI-recommended skills and push sessions.",    color: C.gold },
+                { href: "/parent/practice-planner",   icon: "📅", title: "Practice Planner", desc: "Schedule weekly learning goals.",              color: C.coral },
+                { href: "/parent/family",             icon: "👧", title: "Children",         desc: "Manage profiles, bands, and accounts.",       color: C.violet },
+                { href: "/parent/benchmarks",         icon: "ℹ️", title: "How It Works",     desc: "Bands, mastery scores, and stars explained.", color: C.mint },
+              ].map((card) => (
+                <Link key={card.href} href={card.href} style={{
+                  display: "block", padding: "16px 18px",
+                  background: "rgba(255,255,255,0.04)",
+                  borderRadius: 14, border: "1px solid rgba(255,255,255,0.09)",
+                  textDecoration: "none",
+                  borderTop: `3px solid ${card.color}40`,
+                  transition: "background 0.15s",
+                }}>
+                  <div style={{ fontSize: "1.3rem", marginBottom: 8 }}>{card.icon}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: card.color, marginBottom: 3 }}>{card.title}</div>
+                  <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.4 }}>{card.desc}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
           {/* ── Add a child ───────────────────────────────────────────────── */}
-          <div style={{ marginBottom: "24px" }}>
+          <div style={{ marginBottom: 20 }}>
             {!showAddChild ? (
               <button
                 type="button"
@@ -2006,13 +1581,13 @@ export default function ParentAccessPage() {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: "8px",
+                  gap: 8,
                   padding: "10px 20px",
-                  borderRadius: "10px",
+                  borderRadius: 10,
                   border: "1.5px solid rgba(155,114,255,0.35)",
                   background: "rgba(155,114,255,0.07)",
                   color: "rgba(195,170,255,0.85)",
-                  font: "600 0.85rem system-ui",
+                  fontSize: 13, fontWeight: 600,
                   cursor: "pointer",
                   fontFamily: "system-ui",
                 }}
@@ -2383,81 +1958,6 @@ export default function ParentAccessPage() {
             </div>
           )}
 
-          {/* ── Navigation cards ──────────────────────────────────────────── */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-              gap: "14px",
-              marginBottom: "32px",
-            }}
-          >
-            {[
-              {
-                href: "/parent/report",
-                icon: "📊",
-                title: "Weekly Report",
-                desc: "Full breakdown of sessions, skills, and time.",
-                color: C.violet,
-              },
-              {
-                href: "/parent/practice",
-                icon: "💡",
-                title: "Practice Ideas",
-                desc: "Simple activities to try at home this week.",
-                color: C.mint,
-              },
-              {
-                href: "/parent/family",
-                icon: "👨‍👩‍👧",
-                title: "Family Hub",
-                desc: "Manage children, settings, and notifications.",
-                color: C.gold,
-              },
-              {
-                href: "/parent/benchmarks",
-                icon: "ℹ️",
-                title: "How it works",
-                desc: "Understand bands, mastery scores, and stars.",
-                color: C.coral,
-              },
-            ].map((card) => (
-              <Link
-                key={card.href}
-                href={card.href}
-                style={{
-                  display: "block",
-                  padding: "20px",
-                  background: C.surface,
-                  borderRadius: "16px",
-                  border: `1px solid ${C.border}`,
-                  textDecoration: "none",
-                  transition: "border-color 0.15s",
-                }}
-              >
-                <div style={{ fontSize: "1.5rem", marginBottom: "10px" }}>
-                  {card.icon}
-                </div>
-                <div
-                  style={{
-                    font: "700 0.9rem system-ui",
-                    color: card.color,
-                    marginBottom: "4px",
-                  }}
-                >
-                  {card.title}
-                </div>
-                <div
-                  style={{
-                    font: "400 0.78rem/1.4 system-ui",
-                    color: C.muted,
-                  }}
-                >
-                  {card.desc}
-                </div>
-              </Link>
-            ))}
-          </div>
         </div>
       </div>
     </AppFrame>

@@ -25,6 +25,11 @@ interface FeedbackItem {
   category: string;
   urgency: string;
   summary: string;
+  message: string;
+  context: Record<string, unknown>;
+  submittedByRole: string;
+  routingTarget: string;
+  reviewerNote: string | null;
   createdAt: string;
   studentId: string | null;
   guardianId: string | null;
@@ -59,6 +64,17 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+const CATEGORY_META: Record<string, { icon: string; color: string }> = {
+  bug:             { icon: "🐛", color: RED },
+  enhancement:     { icon: "💡", color: AMBER },
+  "feature":       { icon: "✨", color: VIOLET },
+  "product-insight": { icon: "💬", color: BLUE },
+  content:         { icon: "📖", color: "#38bdf8" },
+  safety:          { icon: "🛡️", color: "#f43f5e" },
+  general:         { icon: "💬", color: MUTED },
+  praise:          { icon: "🎉", color: MINT },
+};
+
 // ── Inner component (uses useSearchParams) ────────────────────────────────────
 function FeedbackPageInner() {
   const searchParams = useSearchParams();
@@ -67,34 +83,66 @@ function FeedbackPageInner() {
 
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "resolved">(statusParam);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [reviewNote, setReviewNote] = useState("");
+  const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch(`/api/owner/feedback?status=${statusFilter}&limit=50`)
+    fetch(`/api/owner/feedback?status=${statusFilter}&limit=100`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((data) => {
+      .then((data: { items: FeedbackItem[]; total: number; categoryCounts?: Record<string, number> }) => {
         setItems(data.items ?? []);
         setTotal(data.total ?? 0);
+        setCategoryCounts(data.categoryCounts ?? {});
         setActiveIdx(0);
       })
-      .catch((e) => setError(e.message))
+      .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, [statusFilter]);
 
-  const activeItem = items[activeIdx] ?? null;
+  const filteredItems = categoryFilter === "all"
+    ? items
+    : items.filter((i) => i.category === categoryFilter);
+
+  const activeItem = filteredItems[activeIdx] ?? null;
   const openCount = items.filter((i) => i.resolved !== "resolved").length;
 
   function handleFilterChange(f: "all" | "open" | "resolved") {
     setStatusFilter(f);
+    setCategoryFilter("all");
     router.replace(`?status=${f}`, { scroll: false });
+  }
+
+  async function handleResolve(action: "resolve" | "reopen") {
+    if (!activeItem) return;
+    setResolving(true);
+    try {
+      const res = await fetch(`/api/owner/feedback/${activeItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, reviewerNote: reviewNote.trim() || undefined }),
+      });
+      if (res.ok) {
+        setItems((prev) => prev.map((item) =>
+          item.id === activeItem.id
+            ? { ...item, resolved: action === "resolve" ? "resolved" : "pending", reviewerNote: reviewNote.trim() || item.reviewerNote }
+            : item,
+        ));
+        setReviewNote("");
+      }
+    } finally {
+      setResolving(false);
+    }
   }
 
   return (
@@ -190,53 +238,49 @@ function FeedbackPageInner() {
             }}
           >
             {/* Queue header + filters */}
-            <div
-              style={{
-                padding: "14px 16px",
-                borderBottom: `1px solid ${BORDER}`,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: TEXT,
-                  marginBottom: 10,
-                }}
-              >
+            <div style={{ padding: "12px 14px", borderBottom: `1px solid ${BORDER}` }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: TEXT, marginBottom: 8 }}>
                 Feedback Queue{" "}
-                <span style={{ color: MUTED, fontWeight: 400 }}>
-                  ({loading ? "…" : `${total} total`})
-                </span>
+                <span style={{ color: MUTED, fontWeight: 400 }}>({loading ? "…" : `${total}`})</span>
               </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {(
-                  [
-                    { key: "all", label: "All" },
-                    { key: "open", label: "Open" },
-                    { key: "resolved", label: "Resolved" },
-                  ] as { key: "all" | "open" | "resolved"; label: string }[]
-                ).map((f) => {
+              {/* Status filter */}
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
+                {([
+                  { key: "all", label: "All" },
+                  { key: "open", label: "Open" },
+                  { key: "resolved", label: "Resolved" },
+                ] as { key: "all" | "open" | "resolved"; label: string }[]).map((f) => {
                   const active = statusFilter === f.key;
                   return (
-                    <span
-                      key={f.key}
-                      onClick={() => handleFilterChange(f.key)}
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: "3px 9px",
-                        borderRadius: 8,
-                        cursor: "pointer",
-                        background: active ? MINT : "rgba(255,255,255,0.07)",
-                        color: active ? "#010409" : MUTED,
-                      }}
-                    >
-                      {f.label}
-                    </span>
+                    <span key={f.key} onClick={() => handleFilterChange(f.key)} style={{
+                      fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 8, cursor: "pointer",
+                      background: active ? MINT : "rgba(255,255,255,0.07)", color: active ? "#010409" : MUTED,
+                    }}>{f.label}</span>
                   );
                 })}
               </div>
+              {/* Category filter chips */}
+              {!loading && Object.keys(categoryCounts).length > 0 && (
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                  <span onClick={() => setCategoryFilter("all")} style={{
+                    fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 6, cursor: "pointer",
+                    background: categoryFilter === "all" ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.05)",
+                    color: categoryFilter === "all" ? TEXT : MUTED,
+                  }}>All types</span>
+                  {Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]).map(([cat, cnt]) => {
+                    const meta = CATEGORY_META[cat] ?? { icon: "💬", color: MUTED };
+                    const active = categoryFilter === cat;
+                    return (
+                      <span key={cat} onClick={() => { setCategoryFilter(cat); setActiveIdx(0); }} style={{
+                        fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 6, cursor: "pointer",
+                        background: active ? `${meta.color}30` : "rgba(255,255,255,0.05)",
+                        color: active ? meta.color : MUTED,
+                        border: active ? `1px solid ${meta.color}50` : "1px solid transparent",
+                      }}>{meta.icon} {cat} ({cnt})</span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Feedback list */}
@@ -256,97 +300,39 @@ function FeedbackPageInner() {
                   No feedback items found.
                 </div>
               )}
-              {!loading &&
-                !error &&
-                items.map((item, idx) => {
-                  const isActive = idx === activeIdx;
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => setActiveIdx(idx)}
-                      style={{
-                        padding: "11px 14px",
-                        borderBottom: `1px solid rgba(255,255,255,0.04)`,
-                        cursor: "pointer",
-                        background: isActive ? "rgba(80,232,144,0.06)" : "transparent",
-                        borderLeft: isActive ? `3px solid ${MINT}` : "3px solid transparent",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          marginBottom: 4,
-                        }}
-                      >
-                        <span
-                          style={{
-                            ...urgencyStyle(item.urgency),
-                            fontSize: 9,
-                            fontWeight: 800,
-                            padding: "1px 5px",
-                            borderRadius: 4,
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          {item.urgency}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 9,
-                            color: "rgba(255,255,255,0.3)",
-                            fontWeight: 700,
-                            textTransform: "capitalize",
-                          }}
-                        >
-                          {item.category}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 9,
-                            color: "rgba(255,255,255,0.2)",
-                            marginLeft: "auto",
-                          }}
-                        >
-                          {timeAgo(item.createdAt)}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: "rgba(255,255,255,0.7)",
-                          lineHeight: 1.3,
-                          marginBottom: 4,
-                        }}
-                      >
-                        {item.summary || "(no summary)"}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: "rgba(255,255,255,0.25)",
-                          marginBottom: 5,
-                        }}
-                      >
-                        {item.guardianId ? `Guardian ${item.guardianId.slice(0, 8)}…` : ""}
-                        {item.studentId ? ` · Student ${item.studentId.slice(0, 8)}…` : ""}
-                      </div>
-                      <span
-                        style={{
-                          ...resolvedStyle(item.resolved),
-                          fontSize: 9,
-                          fontWeight: 700,
-                          padding: "1px 6px",
-                          borderRadius: 4,
-                          textTransform: "capitalize",
-                        }}
-                      >
-                        {item.resolved}
+              {!loading && !error && filteredItems.length === 0 && (
+                <div style={{ padding: "20px 14px", fontSize: 11, color: MUTED }}>No items match this filter.</div>
+              )}
+              {!loading && !error && filteredItems.map((item, idx) => {
+                const isActive = idx === activeIdx;
+                const catMeta = CATEGORY_META[item.category] ?? { icon: "💬", color: MUTED };
+                return (
+                  <div key={item.id} onClick={() => { setActiveIdx(idx); setReviewNote(""); }} style={{
+                    padding: "10px 13px",
+                    borderBottom: `1px solid rgba(255,255,255,0.04)`,
+                    cursor: "pointer",
+                    background: isActive ? "rgba(80,232,144,0.06)" : "transparent",
+                    borderLeft: isActive ? `3px solid ${MINT}` : "3px solid transparent",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                      <span style={{ fontSize: 11 }}>{catMeta.icon}</span>
+                      <span style={{ ...urgencyStyle(item.urgency), fontSize: 9, fontWeight: 800, padding: "1px 5px", borderRadius: 4, textTransform: "uppercase" }}>
+                        {item.urgency}
                       </span>
+                      {item.submittedByRole === "beta-tester" && (
+                        <span style={{ fontSize: 9, fontWeight: 800, padding: "1px 5px", borderRadius: 4, background: "rgba(255,209,102,0.18)", color: AMBER }}>BETA</span>
+                      )}
+                      <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginLeft: "auto" }}>{timeAgo(item.createdAt)}</span>
                     </div>
-                  );
-                })}
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", lineHeight: 1.3, marginBottom: 4 }}>
+                      {item.summary || item.message.slice(0, 80) || "(no summary)"}
+                    </div>
+                    <span style={{ ...resolvedStyle(item.resolved), fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4, textTransform: "capitalize" }}>
+                      {item.resolved}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -480,95 +466,78 @@ function FeedbackPageInner() {
                   </div>
                 </div>
 
+                {/* Full message */}
+                {(() => {
+                  const ctx = activeItem.context as Record<string, unknown>;
+                  const area = ctx?.area ? String(ctx.area) : null;
+                  const device = ctx?.deviceType ? String(ctx.deviceType) : null;
+                  const browser = ctx?.browser ? String(ctx.browser) : null;
+                  const testerName = ctx?.testerName ? String(ctx.testerName) : null;
+                  const testerEmail = ctx?.testerEmail ? String(ctx.testerEmail) : null;
+                  return (
+                <div style={{ background: SURFACE, borderRadius: 10, padding: "12px 14px", marginBottom: 14, border: `1px solid rgba(255,255,255,0.05)` }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: MUTED, marginBottom: 6 }}>Full message</div>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                    {activeItem.message || "(no message)"}
+                  </div>
+                  {area && (
+                    <div style={{ marginTop: 8, fontSize: 10, color: MUTED }}>
+                      Area: <strong style={{ color: "rgba(255,255,255,0.6)" }}>{area}</strong>
+                      {device ? ` · ${device}` : ""}
+                      {browser ? ` · ${browser}` : ""}
+                    </div>
+                  )}
+                  {testerName && (
+                    <div style={{ marginTop: 4, fontSize: 10, color: AMBER }}>
+                      Tester: {testerName}{testerEmail ? ` · ${testerEmail}` : ""}
+                    </div>
+                  )}
+                </div>
+                  );
+                })()}
+
                 {/* Action row */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    marginBottom: 16,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {(
-                    [
-                      { label: "✓ Mark resolved", bg: MINT, color: "#010409", border: "none" },
-                      { label: "↑ Bump priority", bg: BLUE, color: "#fff", border: "none" },
-                      {
-                        label: "🔔 Escalate",
-                        bg: "rgba(248,81,73,0.15)",
-                        color: RED,
-                        border: `1px solid rgba(248,81,73,0.3)`,
-                      },
-                      { label: "✕ Dismiss", bg: "rgba(255,255,255,0.07)", color: MUTED, border: "none" },
-                    ] as const
-                  ).map((btn) => (
-                    <button
-                      key={btn.label}
-                      style={{
-                        padding: "7px 14px",
-                        borderRadius: 8,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        fontFamily: "system-ui",
-                        background: btn.bg,
-                        color: btn.color,
-                        border: btn.border ?? "none",
-                      }}
-                    >
-                      {btn.label}
+                <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+                  {activeItem.resolved !== "resolved" ? (
+                    <button onClick={() => void handleResolve("resolve")} disabled={resolving} style={{
+                      padding: "7px 14px", borderRadius: 8, fontSize: 11, fontWeight: 700,
+                      cursor: resolving ? "not-allowed" : "pointer", fontFamily: "system-ui",
+                      background: MINT, color: "#010409", border: "none", opacity: resolving ? 0.7 : 1,
+                    }}>
+                      {resolving ? "Saving…" : "✓ Mark resolved"}
                     </button>
-                  ))}
+                  ) : (
+                    <button onClick={() => void handleResolve("reopen")} disabled={resolving} style={{
+                      padding: "7px 14px", borderRadius: 8, fontSize: 11, fontWeight: 700,
+                      cursor: resolving ? "not-allowed" : "pointer", fontFamily: "system-ui",
+                      background: "rgba(255,255,255,0.07)", color: MUTED, border: "none",
+                    }}>
+                      ↩ Reopen
+                    </button>
+                  )}
                 </div>
 
-                {/* Reply to reporter */}
+                {/* Reviewer note */}
                 <div style={{ marginBottom: 18 }}>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.06em",
-                      color: MUTED,
-                      marginBottom: 6,
-                    }}
-                  >
-                    Reply to reporter (delivered via platform notification)
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: MUTED, marginBottom: 6 }}>
+                    Reviewer note (saved with resolution)
                   </div>
+                  {activeItem.reviewerNote && !reviewNote && (
+                    <div style={{ fontSize: 11, color: MINT, marginBottom: 6, fontStyle: "italic" }}>
+                      Previous note: {activeItem.reviewerNote}
+                    </div>
+                  )}
                   <textarea
-                    placeholder="Type your reply here…"
+                    placeholder="e.g. Fixed in v2.1.4 — hint button tap target increased to 44px"
+                    value={reviewNote}
+                    onChange={(e) => setReviewNote(e.target.value)}
                     style={{
-                      width: "100%",
-                      padding: "8px 10px",
-                      background: SURFACE,
-                      border: `1px solid rgba(255,255,255,0.1)`,
-                      borderRadius: 8,
-                      fontSize: 11,
-                      fontFamily: "system-ui",
-                      color: "rgba(255,255,255,0.7)",
-                      resize: "none",
-                      minHeight: 72,
-                      outline: "none",
-                      display: "block",
-                      boxSizing: "border-box",
+                      width: "100%", padding: "8px 10px", background: SURFACE,
+                      border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 8,
+                      fontSize: 11, fontFamily: "system-ui", color: "rgba(255,255,255,0.7)",
+                      resize: "none", minHeight: 64, outline: "none", display: "block", boxSizing: "border-box",
                     }}
                   />
-                  <button
-                    style={{
-                      marginTop: 6,
-                      padding: "6px 14px",
-                      background: MINT,
-                      color: "#010409",
-                      border: "none",
-                      borderRadius: 7,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontFamily: "system-ui",
-                    }}
-                  >
-                    Send reply
-                  </button>
                 </div>
 
                 {/* Priority auto-triage spec callout */}

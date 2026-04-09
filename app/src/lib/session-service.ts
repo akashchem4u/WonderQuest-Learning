@@ -22,6 +22,7 @@ import {
 } from "@/lib/mastery-service";
 import { syncTeacherInterventionSignals } from "@/lib/intervention-service";
 import { createMilestoneNotifications } from "@/lib/milestone-service";
+import { getEssentialSkills } from "@/lib/curriculum-standards";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1300,6 +1301,44 @@ export async function createPlaySession(input: PlaySessionInput) {
     (studentRow.preferred_theme_code as string | undefined) ?? null,
   );
 
+  // ── Auto-advancement stretch: inject 1 next-band question if child is outperforming ──
+  try {
+    const currentBand = studentRow.launch_band_code as string;
+    const nextBand = getNeighborBand(currentBand, "next");
+    if (nextBand) {
+      const essentialCodes = getEssentialSkills(currentBand).map((s) => s.code);
+      if (essentialCodes.length >= 2) {
+        const masteryCheck = await db.query(
+          `select
+             count(*) filter (where ssm.mastery_score >= 70) as mastered_count,
+             count(sk.id) as total_count
+           from public.skills sk
+           left join public.student_skill_mastery ssm
+             on ssm.skill_id = sk.id and ssm.student_id = $1
+           where sk.code = any($2::text[])`,
+          [input.studentId, essentialCodes],
+        );
+        const masteredCount = Number(masteryCheck.rows[0]?.mastered_count ?? 0);
+        const totalCount = Number(masteryCheck.rows[0]?.total_count ?? 0);
+        const masteryPct = totalCount > 0 ? masteredCount / totalCount : 0;
+
+        if (masteryPct >= 0.70 && masteredCount >= 2) {
+          const [stretchQ] = await findQuestions({
+            launchBands: [nextBand],
+            orderBy: "difficulty_asc",
+            limit: 1,
+            excludeQuestionKeys: selectedQuestions.map((q) => q.question_key),
+          });
+          if (stretchQ) {
+            selectedQuestions.push(stretchQ);
+          }
+        }
+      }
+    }
+  } catch {
+    // Non-fatal: continue with original question set
+  }
+
   // If a pushed activity was found, prepend a question for that skill
   if (pushedActivity) {
     const pushedQuestion = await pickQuestion(
@@ -1687,6 +1726,72 @@ export async function answerQuestion(input: AnswerInput) {
       });
     } catch (error) {
       console.error("WonderQuest assignment completion tracking failed", error);
+    }
+
+    // ── Auto-advancement check: notify parent if child has mastered ≥80% of essential skills ──
+    try {
+      const currentBand = session.rows[0].launch_band_code as string;
+      const nextBand = getNeighborBand(currentBand, "next");
+      const essentialCodes = getEssentialSkills(currentBand).map((s) => s.code);
+      if (nextBand && essentialCodes.length >= 3) {
+        const advCheck = await db.query(
+          `select
+             count(*) filter (where ssm.mastery_score >= 80) as mastered_count,
+             count(sk.id) as total_count
+           from public.skills sk
+           left join public.student_skill_mastery ssm
+             on ssm.skill_id = sk.id and ssm.student_id = $1
+           where sk.code = any($2::text[])`,
+          [input.studentId, essentialCodes],
+        );
+        const masteredCount = Number(advCheck.rows[0]?.mastered_count ?? 0);
+        const totalCount = Number(advCheck.rows[0]?.total_count ?? 0);
+        const advPct = totalCount > 0 ? masteredCount / totalCount : 0;
+
+        if (advPct >= 0.80) {
+          const studentId = input.studentId;
+          const [studentRow2] = (await db.query(
+            `select display_name from public.student_profiles where id = $1`,
+            [studentId],
+          )).rows;
+          const displayName = String(studentRow2?.display_name ?? "Your learner");
+
+          const guardianResult = await db.query(
+            `select guardian_id from public.guardian_student_links where student_id = $1`,
+            [studentId],
+          );
+          const BAND_LABEL: Record<string, string> = {
+            PREK: "Pre-K", K1: "K–1", G23: "Grades 2–3", G45: "Grades 4–5",
+          };
+          const curLabel = BAND_LABEL[currentBand] ?? currentBand;
+          const nextLabel = BAND_LABEL[nextBand] ?? nextBand;
+
+          for (const { guardian_id: guardianId } of guardianResult.rows) {
+            const dedup = await db.query(
+              `select 1 from public.student_notifications
+               where student_id = $1 and guardian_id = $2 and type = 'advancement_ready'
+               and created_at >= now() - interval '7 days' limit 1`,
+              [studentId, guardianId],
+            );
+            if (!dedup.rowCount) {
+              await db.query(
+                `insert into public.student_notifications
+                   (student_id, guardian_id, type, title, description, value)
+                 values ($1, $2, 'advancement_ready', $3, $4, $5)`,
+                [
+                  studentId,
+                  guardianId,
+                  `${displayName} may be ready to advance! 🚀`,
+                  `${displayName} has mastered ${masteredCount} of ${totalCount} essential ${curLabel} skills. Consider moving them to ${nextLabel}.`,
+                  currentBand,
+                ],
+              );
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("WonderQuest auto-advancement check failed", error);
     }
   }
 
