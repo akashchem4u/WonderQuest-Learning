@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
-// next-pwa is a CommonJS module; use require to avoid ESM/CJS issues
+// @ducanh2912/next-pwa is SWC-compatible (drop-in for next-pwa v5)
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const withPWA = require("next-pwa");
+const withPWA = require("@ducanh2912/next-pwa").default;
 
 const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
