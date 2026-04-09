@@ -17,13 +17,13 @@ const C = {
 
 const CONTENT_QUEUE: never[] = [];
 
-const LANGUAGE_BANKS = [];
+const LANGUAGE_BANKS: { name: string; score: number }[] = [];
 
-const IMAGE_REVIEW = [];
+const IMAGE_REVIEW: { category: string; total: number; reviewed: number }[] = [];
 
-const ACTIVITY_LOG = [];
+const ACTIVITY_LOG: { ts: string; target: string; action: string; reviewer: string; verdict: string }[] = [];
 
-const ALERT_THRESHOLDS = [];
+const ALERT_THRESHOLDS: { label: string; value: string; desc: string }[] = [];
 
 export default async function SafetyReviewPage() {
   const configured = isOwnerAccessConfigured();

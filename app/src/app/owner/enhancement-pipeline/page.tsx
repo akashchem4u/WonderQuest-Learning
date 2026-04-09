@@ -103,9 +103,9 @@ const CAT_FILTERS: { key: Category | "all"; label: string }[] = [
 ];
 
 // BAR_ROWS is derived from live data when available; fallback provided below
-const BAR_ROWS_FALLBACK = [];
+const BAR_ROWS_FALLBACK: { label: string; pct: number; count: number; color: string }[] = [];
 
-const TIMELINE_ITEMS = [];
+const TIMELINE_ITEMS: { ver: string; chipBg: string; chipColor: string; chipLabel: string; n: number | string; sub: string }[] = [];
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function EnhancementPipelinePage() {

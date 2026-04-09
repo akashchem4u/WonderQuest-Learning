@@ -23,7 +23,7 @@ const C = {
 } as const;
 
 // ── Compliance items ───────────────────────────────────────────────────────────
-const COMPLIANCE_ITEMS = [];
+const COMPLIANCE_ITEMS: { label: string; desc: string; detail: string; lastReviewed: string }[] = [];
 
 // ── Audit log entries ─────────────────────────────────────────────────────────
 type LogCategory = "Privacy" | "Content" | "Ops" | "Security" | "Release" | "Account";
@@ -48,7 +48,7 @@ const DOT_COLORS: Record<LogCategory, string> = {
 const LOG_ENTRIES: LogEntry[] = [];
 
 // ── Retention policy rows ─────────────────────────────────────────────────────
-const RETENTION_ROWS = [];
+const RETENTION_ROWS: { category: string; period: string; note: string }[] = [];
 
 export default async function GovernancePage() {
   const configured = isOwnerAccessConfigured();

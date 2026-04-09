@@ -30,7 +30,7 @@ const C = {
 } as const;
 
 // ── Stubbed data ──────────────────────────────────────────────────────────────
-const TOP_STATS = [];
+const TOP_STATS: { label: string; value: string; delta: string; deltaColor: string }[] = [];
 
 type BandSummary = {
   code: string;
@@ -65,11 +65,11 @@ type ErrorSubject = {
 
 const ERROR_BY_SUBJECT: ErrorSubject[] = [];
 
-const STATUS_SUMMARY = [];
+const STATUS_SUMMARY: { label: string; value: string; color: string }[] = [];
 
-const RECENT_ACTIONS = [];
+const RECENT_ACTIONS: { title: string; meta: string }[] = [];
 
-const AUTO_FLAGS = [];
+const AUTO_FLAGS: { label: string; value: string }[] = [];
 
 export default async function OwnerContentPage() {
   const configured = isOwnerAccessConfigured();
