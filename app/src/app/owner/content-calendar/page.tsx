@@ -54,57 +54,13 @@ const statusBg: Record<BatchStatus, string> = {
   Live: "rgba(56,189,248,0.12)",
 };
 
-const WEEKS: WeekPlan[] = [
-  {
-    weekOf: "Apr 6–12",
-    weekLabel: "This Week",
-    questionsReleasing: 48,
-    bandTargets: ["P0", "P1", "P2"],
-    themeFocus: "Space & Planets",
-    highlight: "🚀 Space Pack launch — Planet Patrol goes live Apr 7",
-  },
-  {
-    weekOf: "Apr 13–19",
-    weekLabel: "Week 2",
-    questionsReleasing: 32,
-    bandTargets: ["P2", "P3"],
-    themeFocus: "Community Helpers",
-    highlight: "P3 Social Studies Quest Batch — curriculum-aligned",
-  },
-  {
-    weekOf: "Apr 20–26",
-    weekLabel: "Week 3",
-    questionsReleasing: 56,
-    bandTargets: ["P0", "P1", "P2", "P3"],
-    themeFocus: "Reading Foundations Q2",
-    highlight: "🔖 Largest batch of Q2 — P0 priority reading block",
-  },
-  {
-    weekOf: "Apr 27–May 3",
-    weekLabel: "Week 4",
-    questionsReleasing: 24,
-    bandTargets: ["P1", "P2"],
-    themeFocus: "Creative Arts — Sketch Lab",
-    highlight: "Arts pack pending child safety review before go",
-  },
-];
+const WEEKS: WeekPlan[] = [];
 
-const BATCHES: ContentBatch[] = [
-  { id: "CB-041", name: "Space Pack — Planet Patrol", band: "P0–P2", questions: 48, status: "Approved", owner: "Maya Chen", targetRelease: "Apr 7, 2026", version: "v2.5.1" },
-  { id: "CB-042", name: "P3 Social Studies Quest Batch", band: "P3", questions: 32, status: "Review", owner: "Jordan Lee", targetRelease: "Apr 14, 2026", version: "v2.5.2" },
-  { id: "CB-043", name: "Reading Foundations Q2 — P0 Block", band: "P0", questions: 30, status: "Approved", owner: "Maya Chen", targetRelease: "Apr 22, 2026", version: "v2.5.4" },
-  { id: "CB-044", name: "Reading Foundations Q2 — P1–P3 Extension", band: "P1–P3", questions: 26, status: "Review", owner: "Sam Rivera", targetRelease: "Apr 22, 2026", version: "v2.5.4" },
-  { id: "CB-045", name: "Arts Pack — Sketch Lab", band: "P1–P2", questions: 24, status: "Review", owner: "Jordan Lee", targetRelease: "Apr 28, 2026", version: "v2.5.5" },
-  { id: "CB-046", name: "Ocean Adventure — Deep Sea Pack", band: "P0–P2", questions: 40, status: "Draft", owner: "Priya Nair", targetRelease: "May 6, 2026", version: "v2.6.1" },
-  { id: "CB-047", name: "Math Mastery Q2 — Addition & Subtraction", band: "P1–P2", questions: 44, status: "Draft", owner: "Sam Rivera", targetRelease: "May 13, 2026", version: "v2.6.2" },
-  { id: "CB-048", name: "Science Explorers — Weather & Seasons", band: "P2–P3", questions: 36, status: "Draft", owner: "Priya Nair", targetRelease: "May 20, 2026", version: "v2.6.3" },
-  { id: "CB-049", name: "Phonics Sprint — P0 Intensive", band: "P0", questions: 50, status: "Draft", owner: "Maya Chen", targetRelease: "Jun 2, 2026", version: "v2.7.0" },
-  { id: "CB-050", name: "End-of-Year Review Pack — All Bands", band: "P0–P5", questions: 80, status: "Draft", owner: "Jordan Lee", targetRelease: "Jun 15, 2026", version: "v2.7.2" },
-];
+const BATCHES: ContentBatch[] = [];
 
 // Calculate next release
 const nextRelease = BATCHES.find((b) => b.status === "Approved");
-const daysToNextRelease = 1;
+const daysToNextRelease = 0;
 
 // Stats
 const liveCount = BATCHES.filter((b) => b.status === "Live").length;
