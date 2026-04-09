@@ -660,19 +660,19 @@ function getVoiceSettings(launchBandCode: string, intent: "prompt" | "support") 
   return intent === "prompt" ? { rate: 0.92, pitch: 1.0 } : { rate: 0.88, pitch: 0.98 };
 }
 
-function renderAnswerContent(question: SessionQuestion, answer: string, compact = false) {
+function renderAnswerContent(question: SessionQuestion, answer: string, compact = false, preK = false) {
   if (isCountSkill(question) && /^\d+$/.test(answer)) {
     return (
       <>
         <div className="answer-visual-stack">
-          <div className="answer-token-row" aria-hidden="true">
+          <div className={preK ? "answer-token-row answer-token-row--prek" : "answer-token-row"} aria-hidden="true">
             {Array.from({ length: Number(answer) }, (_, index) => (
-              <span className="answer-token" key={`${answer}-${index}`}>{getCountSceneToken(question)}</span>
+              <span className={preK ? "answer-token answer-token--prek" : "answer-token"} key={`${answer}-${index}`}>{getCountSceneToken(question)}</span>
             ))}
           </div>
-          <strong>{answer}</strong>
+          {!preK && <strong>{answer}</strong>}
         </div>
-        {!compact ? <small>Count the pictures, then tap the matching group.</small> : null}
+        {!compact && !preK ? <small>Count the pictures, then tap the matching group.</small> : null}
       </>
     );
   }
@@ -680,21 +680,21 @@ function renderAnswerContent(question: SessionQuestion, answer: string, compact 
     return (
       <>
         <div className="answer-visual-stack">
-          <span className={`shape-preview shape-${answer}`} aria-hidden="true" />
-          <strong>{answer}</strong>
+          <span className={preK ? `shape-preview shape-preview--prek shape-${answer}` : `shape-preview shape-${answer}`} aria-hidden="true" />
+          {!preK && <strong>{answer}</strong>}
         </div>
-        {!compact ? <small>Tap the shape you hear.</small> : null}
+        {!compact && !preK ? <small>Tap the shape you hear.</small> : null}
       </>
     );
   }
   if (isLetterSkill(question)) {
+    // Letter IS the visual — keep it, just make it larger for pre-K
     return (
       <>
         <div className="answer-visual-stack">
-          <span className="letter-preview" aria-hidden="true">{answer}</span>
-          <strong>{answer}</strong>
+          <span className={preK ? "letter-preview letter-preview--prek" : "letter-preview"} aria-hidden="true">{answer}</span>
         </div>
-        {!compact ? <small>Tap the letter you hear.</small> : null}
+        {!compact && !preK ? <small>Tap the letter you hear.</small> : null}
       </>
     );
   }
@@ -703,10 +703,10 @@ function renderAnswerContent(question: SessionQuestion, answer: string, compact 
     return (
       <>
         <div className="answer-visual-stack">
-          <span className="emoji-scene-token" aria-hidden="true">{preview.icon}</span>
-          <strong>{answer}</strong>
+          <span className={preK ? "emoji-scene-token emoji-scene-token--prek" : "emoji-scene-token"} aria-hidden="true">{preview.icon}</span>
+          {!preK && <strong>{answer}</strong>}
         </div>
-        {!compact ? <small>{preview.helper}</small> : null}
+        {!compact && !preK ? <small>{preview.helper}</small> : null}
       </>
     );
   }
@@ -714,17 +714,16 @@ function renderAnswerContent(question: SessionQuestion, answer: string, compact 
     return (
       <>
         <div className="answer-visual-stack">
-          <span className="number-preview" aria-hidden="true">{answer}</span>
-          <strong>{answer}</strong>
+          <span className={preK ? "number-preview number-preview--prek" : "number-preview"} aria-hidden="true">{answer}</span>
         </div>
-        {!compact ? <small>Tap to lock in this answer.</small> : null}
+        {!compact && !preK ? <small>Tap to lock in this answer.</small> : null}
       </>
     );
   }
   return (
     <>
       <strong>{answer}</strong>
-      <small>Tap to lock in this answer.</small>
+      {!preK && <small>Tap to lock in this answer.</small>}
     </>
   );
 }
@@ -1564,7 +1563,8 @@ function PlayClientInner() {
 
         setSession(payload);
         setProgression(payload.progression);
-        setAssistMode(voiceSupportRef.current ? "voice" : "visual");
+        // Pre-K kids can't read — always default to picture-only mode
+        setAssistMode(payload.student.launchBandCode === "PREK" ? "visual" : voiceSupportRef.current ? "voice" : "visual");
         setIsSpeaking(false);
         setCoachMode("listen");
         setPlayedWelcomeVoice(false);
@@ -2410,7 +2410,7 @@ function PlayClientInner() {
                           ...(isEliminated ? { opacity: 0.3, textDecoration: "line-through", cursor: "not-allowed" } : {}),
                         }}
                       >
-                        {renderAnswerContent(currentQuestion, answer, true)}
+                        {renderAnswerContent(currentQuestion, answer, true, session.student.launchBandCode === "PREK")}
                       </button>
                     );
                   })}
