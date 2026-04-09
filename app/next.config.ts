@@ -15,6 +15,7 @@ export default withPWA({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
+  customWorkerSrc: "service-worker",
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com/,

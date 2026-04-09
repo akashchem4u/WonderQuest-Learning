@@ -2,7 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { subscribeToPush, unsubscribeFromPush } from "@/lib/push-client";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -586,12 +587,13 @@ const DELIVERY_OPTIONS: DeliveryOption[] = [
 
 // Maps toggle ID → notification_preferences DB column (null = UI-only, not persisted)
 const SETTING_DB_FIELD: Record<string, string | null> = {
-  badge:   "email_milestone_alerts",
-  levelup: "email_milestone_alerts",
-  weekly:  "email_weekly_digest",
-  session: "push_session_complete",
-  streak:  "push_streak_reminder",
-  inact:   null,
+  badge:       "email_milestone_alerts",
+  levelup:     "email_milestone_alerts",
+  weekly:      "email_weekly_digest",
+  session:     "push_session_complete",
+  streak:      "push_streak_reminder",
+  inact:       null,
+  playreminder: "push_streak_reminder",
 };
 
 function SettingsPanel() {
@@ -599,6 +601,8 @@ function SettingsPanel() {
   const [delivery, setDelivery] = useState<string[]>(["email", "inapp"]);
   const [prefsLoading, setPrefsLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
   // Load preferences from DB on mount
   useEffect(() => {
@@ -614,13 +618,57 @@ function SettingsPanel() {
               return s;
             }),
           );
+          // Reflect push_streak_reminder pref in the play-reminder push toggle
+          if (typeof p["push_streak_reminder"] === "boolean") {
+            setPushEnabled(Boolean(p["push_streak_reminder"]));
+          }
         }
       })
       .catch(() => { /* silently use defaults */ })
       .finally(() => setPrefsLoading(false));
   }, []);
 
+  const handlePushToggle = useCallback(async () => {
+    if (pushLoading) return;
+    setPushLoading(true);
+    try {
+      if (!pushEnabled) {
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+        const ok = await subscribeToPush(vapidKey);
+        if (ok) {
+          setPushEnabled(true);
+          await fetch("/api/parent/notification-preferences", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ push_streak_reminder: true }),
+          });
+          setSaveStatus("saved");
+          setTimeout(() => setSaveStatus("idle"), 2000);
+        }
+      } else {
+        await unsubscribeFromPush();
+        setPushEnabled(false);
+        await fetch("/api/parent/notification-preferences", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ push_streak_reminder: false }),
+        });
+        setSaveStatus("saved");
+        setTimeout(() => setSaveStatus("idle"), 2000);
+      }
+    } catch {
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus("idle"), 4000);
+    } finally {
+      setPushLoading(false);
+    }
+  }, [pushEnabled, pushLoading]);
+
   function toggleSetting(id: string) {
+    if (id === "playreminder") {
+      void handlePushToggle();
+      return;
+    }
     const field = SETTING_DB_FIELD[id];
     setSettings((prev) => {
       const next = prev.map((s) => (s.id === id ? { ...s, on: !s.on } : s));
@@ -728,6 +776,43 @@ function SettingsPanel() {
             <Toggle on={s.on} onToggle={() => toggleSetting(s.id)} />
           </div>
         ))}
+        {/* Play reminder push notification toggle */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            padding: "11px 0",
+          }}
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: "rgba(88,232,193,0.12)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "0.85rem",
+              flexShrink: 0,
+            }}
+          >
+            🎮
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ font: "600 0.84rem system-ui", color: TEXT }}>
+              Hasn&apos;t played today
+            </div>
+            <div style={{ font: "400 0.72rem system-ui", color: MUTED }}>
+              Push notification at 5 PM if no session that day
+              {pushLoading && (
+                <span style={{ marginLeft: 6, color: VIOLET }}> — requesting…</span>
+              )}
+            </div>
+          </div>
+          <Toggle on={pushEnabled} onToggle={() => void handlePushToggle()} />
+        </div>
       </div>
 
       {/* Delivery prefs */}
