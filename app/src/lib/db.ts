@@ -9,8 +9,9 @@ declare global {
   var __wonderquestPoolErrorHook: boolean | undefined;
 }
 
-function requireEnv(name: string) {
-  const value = process.env[name];
+function requireEnv(name: string, options?: { trim?: boolean }) {
+  const rawValue = process.env[name];
+  const value = options?.trim ? rawValue?.trim() : rawValue;
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
@@ -18,22 +19,25 @@ function requireEnv(name: string) {
 }
 
 export function hasDatabaseConfig() {
+  const hasValue = (name: string) => Boolean(process.env[name]?.trim());
   return Boolean(
-    process.env.SUPABASE_DB_HOST &&
-      process.env.SUPABASE_DB_PORT &&
-      process.env.SUPABASE_DB_NAME &&
-      process.env.SUPABASE_DB_USER &&
-      process.env.SUPABASE_DB_PASSWORD,
+    hasValue("SUPABASE_DB_HOST") &&
+      hasValue("SUPABASE_DB_PORT") &&
+      hasValue("SUPABASE_DB_NAME") &&
+      hasValue("SUPABASE_DB_USER") &&
+      hasValue("SUPABASE_DB_PASSWORD"),
   );
 }
 
 function createPool() {
   return new Pool({
-    host: requireEnv("SUPABASE_DB_HOST"),
-    port: Number(requireEnv("SUPABASE_DB_PORT")),
-    database: requireEnv("SUPABASE_DB_NAME"),
-    user: requireEnv("SUPABASE_DB_USER"),
-    password: requireEnv("SUPABASE_DB_PASSWORD"),
+    // Normalize copied secrets so trailing newlines in hosting dashboards do
+    // not break DNS lookup or auth for pooled Postgres connections.
+    host: requireEnv("SUPABASE_DB_HOST", { trim: true }),
+    port: Number(requireEnv("SUPABASE_DB_PORT", { trim: true })),
+    database: requireEnv("SUPABASE_DB_NAME", { trim: true }),
+    user: requireEnv("SUPABASE_DB_USER", { trim: true }),
+    password: requireEnv("SUPABASE_DB_PASSWORD", { trim: true }),
     ssl: {
       rejectUnauthorized: false,
     },
