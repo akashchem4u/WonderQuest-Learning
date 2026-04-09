@@ -2315,7 +2315,7 @@ function PlayClientInner() {
           </div>
 
           {/* ── Main area: question zone + right rail ── */}
-          <div style={s.playMain}>
+          <div style={s.playMain} className="play-shell-inner">
 
             {/* Question zone */}
             <div style={{

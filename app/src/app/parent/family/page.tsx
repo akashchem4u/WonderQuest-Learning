@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { setActiveChildId } from "@/lib/active-child";
@@ -38,6 +38,7 @@ interface LinkedChild {
   username: string;
   avatarKey: string;
   launchBandCode: string;
+  deactivatedAt: string | null;
   totalPoints: number;
   currentLevel: number;
   badgeCount: number;
@@ -129,6 +130,52 @@ function sessionsThisWeek(dashboards: ChildDashboard[]): number {
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────────
+
+// ── Deactivate/reactivate toggle ───────────────────────────────────────────────
+
+function DeactivateButton({ child, onToggle }: { child: LinkedChild; onToggle: () => void }) {
+  const [busy, setBusy] = React.useState(false);
+  const isDeactivated = Boolean(child.deactivatedAt);
+
+  async function handleClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    const action = isDeactivated ? "reactivate" : "pause";
+    const confirmed = window.confirm(
+      isDeactivated
+        ? `Reactivate ${child.displayName}'s account? They'll be able to log in again.`
+        : `Pause ${child.displayName}'s account? They won't be able to log in until you reactivate.`
+    );
+    if (!confirmed) return;
+    setBusy(true);
+    try {
+      await fetch("/api/parent/deactivate-child", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childId: child.id, deactivate: !isDeactivated }),
+      });
+      onToggle();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={busy}
+      style={{
+        display: "block", width: "100%", padding: "9px 0",
+        background: isDeactivated ? "rgba(88,232,193,0.08)" : "rgba(255,123,107,0.08)",
+        border: isDeactivated ? "1.5px solid rgba(88,232,193,0.3)" : "1.5px solid rgba(255,123,107,0.3)",
+        color: isDeactivated ? C.mint : C.coral,
+        borderRadius: "10px", font: "600 0.8rem system-ui", cursor: "pointer",
+        fontFamily: "system-ui", opacity: busy ? 0.6 : 1,
+      }}
+    >
+      {busy ? "Updating…" : isDeactivated ? "✅ Reactivate" : "⏸ Pause account"}
+    </button>
+  );
+}
 
 export default function FamilyHubPage() {
   const router = useRouter();
@@ -261,24 +308,41 @@ export default function FamilyHubPage() {
                       <div style={{ height: "100%", width: `${barPct}%`, background: bandColor, borderRadius: "2px" }} />
                     </div>
 
-                    {/* CTA */}
-                    <a
-                      href={`/parent/report?studentId=${child.id}`}
-                      onClick={(e) => { e.stopPropagation(); setActiveChildId(child.id); }}
-                      style={{
-                        display: "block",
-                        padding: "10px 0",
-                        background: `${bandColor}22`,
-                        border: `1.5px solid ${bandColor}55`,
-                        color: bandColor,
-                        borderRadius: "10px",
-                        font: "600 0.8rem system-ui",
-                        textAlign: "center",
-                        textDecoration: "none",
-                      }}
-                    >
-                      📊 See {child.displayName}&apos;s report →
-                    </a>
+                    {/* Deactivated badge */}
+                    {child.deactivatedAt && (
+                      <div style={{ fontSize: 10, fontWeight: 700, color: C.coral, background: "rgba(255,123,107,0.1)", border: "1px solid rgba(255,123,107,0.25)", borderRadius: 6, padding: "3px 8px", textAlign: "center", marginBottom: 8 }}>
+                        Account Paused
+                      </div>
+                    )}
+
+                    {/* CTA buttons */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <a
+                        href={`/parent/report?studentId=${child.id}`}
+                        onClick={(e) => { e.stopPropagation(); setActiveChildId(child.id); }}
+                        style={{
+                          display: "block", padding: "9px 0",
+                          background: `${bandColor}22`, border: `1.5px solid ${bandColor}55`,
+                          color: bandColor, borderRadius: "10px",
+                          font: "600 0.8rem system-ui", textAlign: "center", textDecoration: "none",
+                        }}
+                      >
+                        📊 Report →
+                      </a>
+                      <a
+                        href={`/parent/quiz-review?childId=${child.id}`}
+                        onClick={(e) => { e.stopPropagation(); setActiveChildId(child.id); }}
+                        style={{
+                          display: "block", padding: "9px 0",
+                          background: "rgba(155,114,255,0.08)", border: "1.5px solid rgba(155,114,255,0.25)",
+                          color: "#9b72ff", borderRadius: "10px",
+                          font: "600 0.8rem system-ui", textAlign: "center", textDecoration: "none",
+                        }}
+                      >
+                        🔍 Quiz Review →
+                      </a>
+                      <DeactivateButton child={child} onToggle={() => window.location.reload()} />
+                    </div>
                   </div>
                 );
               })}
