@@ -6,6 +6,7 @@ import { AppFrame } from "@/components/app-frame";
 import { US_STATES } from "@/lib/curriculum-frameworks";
 import { SiblingSwitcher } from "@/components/sibling-switcher";
 import { UpgradePrompt } from "@/components/upgrade-prompt";
+import { ClassEnrollmentCard } from "@/components/class-enrollment-card";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
@@ -261,12 +262,6 @@ export default function ParentAccessPage() {
   const [lastCreatedChildUsername, setLastCreatedChildUsername] = useState("");
   const [lastCreatedChildDisplayName, setLastCreatedChildDisplayName] = useState("");
 
-  // Join class state
-  const [showJoinClass, setShowJoinClass] = useState(false);
-  const [joinClassCode, setJoinClassCode] = useState("");
-  const [joinClassSubmitting, setJoinClassSubmitting] = useState(false);
-  const [joinClassError, setJoinClassError] = useState("");
-  const [joinClassSuccess, setJoinClassSuccess] = useState("");
 
   // Reset PIN state
   const [resetPinFor, setResetPinFor] = useState<string | null>(null);
@@ -1570,6 +1565,16 @@ export default function ParentAccessPage() {
             </div>
           )}
 
+          {/* ── Class enrollment ─────────────────────────────────────────────── */}
+          {activeChild && (
+            <div style={{ marginBottom: 20, maxWidth: 480 }}>
+              <ClassEnrollmentCard
+                studentId={activeChild.id}
+                studentName={activeChild.displayName}
+              />
+            </div>
+          )}
+
           {/* ── Feature navigation cards ────────────────────────────────────── */}
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
@@ -1861,134 +1866,6 @@ export default function ParentAccessPage() {
             )}
           </div>
 
-          {/* ── Join a class ──────────────────────────────────────────────── */}
-          {activeChildId && (
-            <div style={{ marginBottom: "24px" }}>
-              {!showJoinClass ? (
-                <button
-                  type="button"
-                  onClick={() => { setShowJoinClass(true); setJoinClassCode(""); setJoinClassError(""); setJoinClassSuccess(""); }}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "10px 20px",
-                    borderRadius: "10px",
-                    border: "1.5px solid rgba(56,189,248,0.35)",
-                    background: "rgba(56,189,248,0.07)",
-                    color: "rgba(147,219,255,0.85)",
-                    font: "600 0.85rem system-ui",
-                    cursor: "pointer",
-                    fontFamily: "system-ui",
-                  }}
-                >
-                  + Join a class
-                </button>
-              ) : (
-                <div
-                  style={{
-                    background: "rgba(56,189,248,0.06)",
-                    border: "1.5px solid rgba(56,189,248,0.25)",
-                    borderRadius: "14px",
-                    padding: "18px 20px",
-                    maxWidth: "480px",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-                    <span style={{ font: "700 0.95rem system-ui", color: C.text }}>Join a teacher&apos;s class</span>
-                    <button
-                      type="button"
-                      onClick={() => { setShowJoinClass(false); setJoinClassError(""); setJoinClassSuccess(""); }}
-                      style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: "1rem", fontFamily: "system-ui" }}
-                    >
-                      &#x2715;
-                    </button>
-                  </div>
-
-                  {joinClassSuccess ? (
-                    <div
-                      style={{
-                        padding: "12px 14px",
-                        borderRadius: "10px",
-                        background: "rgba(80,232,144,0.1)",
-                        border: "1px solid rgba(80,232,144,0.3)",
-                        color: "#50e890",
-                        font: "600 0.85rem system-ui",
-                      }}
-                    >
-                      {joinClassSuccess}
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", flexWrap: "wrap" }}>
-                      <input
-                        type="text"
-                        placeholder="Class code (e.g. AB12CD)"
-                        value={joinClassCode}
-                        onChange={(e) => setJoinClassCode(e.target.value.toUpperCase().slice(0, 6))}
-                        maxLength={6}
-                        style={{
-                          flex: 1,
-                          minWidth: "140px",
-                          padding: "10px 14px",
-                          borderRadius: "10px",
-                          border: "1.5px solid rgba(56,189,248,0.3)",
-                          background: "rgba(255,255,255,0.04)",
-                          color: C.text,
-                          font: "700 1rem system-ui",
-                          letterSpacing: "0.12em",
-                          fontFamily: "monospace",
-                          outline: "none",
-                        }}
-                      />
-                      <button
-                        type="button"
-                        disabled={joinClassSubmitting || joinClassCode.length < 4}
-                        onClick={async () => {
-                          setJoinClassSubmitting(true);
-                          setJoinClassError("");
-                          try {
-                            const res = await fetch("/api/parent/join-class", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ classCode: joinClassCode, studentId: activeChildId }),
-                            });
-                            const data = await res.json() as { ok?: boolean; teacherName?: string; error?: string };
-                            if (!res.ok || data.error) {
-                              setJoinClassError(data.error ?? "Could not join class.");
-                            } else {
-                              setJoinClassSuccess(`Joined ${data.teacherName ?? "teacher"}\u2019s class!`);
-                            }
-                          } catch {
-                            setJoinClassError("Network error. Please try again.");
-                          } finally {
-                            setJoinClassSubmitting(false);
-                          }
-                        }}
-                        style={{
-                          padding: "10px 20px",
-                          borderRadius: "10px",
-                          border: "none",
-                          background: joinClassCode.length >= 4 ? "rgba(56,189,248,0.85)" : "rgba(56,189,248,0.3)",
-                          color: "#0f172a",
-                          font: "700 0.85rem system-ui",
-                          cursor: joinClassCode.length >= 4 && !joinClassSubmitting ? "pointer" : "not-allowed",
-                          fontFamily: "system-ui",
-                          transition: "background 0.15s",
-                        }}
-                      >
-                        {joinClassSubmitting ? "Joining\u2026" : "Join"}
-                      </button>
-                      {joinClassError && (
-                        <div style={{ width: "100%", font: "500 0.82rem system-ui", color: "#ff6b6b", marginTop: "4px" }}>
-                          {joinClassError}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
 
         </div>
       </div>

@@ -32,3 +32,25 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  const { guardianId } = await requireParentAccessSession(request);
+  const body = await request.json() as { studentId?: string; teacherId?: string };
+  const studentId = (body.studentId ?? "").trim();
+  const teacherId = (body.teacherId ?? "").trim();
+
+  if (!studentId || !teacherId) return NextResponse.json({ error: "Missing params" }, { status: 400 });
+
+  // Verify ownership
+  const link = await db.query(
+    `SELECT 1 FROM public.guardian_student_links WHERE guardian_id=$1 AND student_id=$2 LIMIT 1`,
+    [guardianId, studentId]
+  );
+  if (!link.rowCount) return NextResponse.json({ error: "Not found" }, { status: 403 });
+
+  await db.query(
+    `UPDATE public.teacher_student_roster SET active=false WHERE teacher_id=$1 AND student_id=$2`,
+    [teacherId, studentId]
+  );
+  return NextResponse.json({ ok: true });
+}
