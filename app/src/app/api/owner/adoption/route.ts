@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
         MAX(cs.started_at) as last_session_at,
         COUNT(DISTINCT cs.id) FILTER (WHERE cs.started_at >= now() - interval '7 days') as sessions_7d
       FROM public.teacher_profiles tp
-      LEFT JOIN public.teacher_student_links tsl ON tsl.teacher_id = tp.id
-      LEFT JOIN public.challenge_sessions cs ON cs.student_id = tsl.student_id
+      LEFT JOIN public.teacher_student_roster tsr ON tsr.teacher_id = tp.id
+      LEFT JOIN public.challenge_sessions cs ON cs.student_id = tsr.student_id
       GROUP BY tp.id, tp.display_name, tp.username, tp.school_name
       ORDER BY sessions_7d DESC, session_count DESC
       LIMIT 20
@@ -31,42 +31,43 @@ export async function GET(request: NextRequest) {
       SELECT
         COALESCE(tp.school_name, 'Unknown School') as school_name,
         COUNT(DISTINCT tp.id) as teacher_count,
-        COUNT(DISTINCT tsl.student_id) as student_count,
+        COUNT(DISTINCT tsr.student_id) as student_count,
         COUNT(DISTINCT cs.id) as total_sessions,
         COUNT(DISTINCT cs.id) FILTER (WHERE cs.started_at >= now() - interval '7 days') as sessions_7d,
         MAX(cs.started_at) as last_activity_at
       FROM public.teacher_profiles tp
-      LEFT JOIN public.teacher_student_links tsl ON tsl.teacher_id = tp.id
-      LEFT JOIN public.challenge_sessions cs ON cs.student_id = tsl.student_id
+      LEFT JOIN public.teacher_student_roster tsr ON tsr.teacher_id = tp.id
+      LEFT JOIN public.challenge_sessions cs ON cs.student_id = tsr.student_id
       GROUP BY COALESCE(tp.school_name, 'Unknown School')
       ORDER BY sessions_7d DESC
       LIMIT 15
     `);
 
-    // Funnel: signups → first session → week 2 active → week 4 active
+    // Funnel: signups → first session → active by day 7 → active by day 30
     const funnel = await db.query(`
+      WITH first_sessions AS (
+        SELECT student_id, MIN(started_at) as first_at
+        FROM public.challenge_sessions
+        GROUP BY student_id
+      )
       SELECT
         COUNT(DISTINCT sp.id) as total_students,
-        COUNT(DISTINCT cs1.student_id) as had_first_session,
+        COUNT(DISTINCT fs.student_id) as had_first_session,
         COUNT(DISTINCT cs7.student_id) as active_by_day7,
         COUNT(DISTINCT cs30.student_id) as active_by_day30
       FROM public.student_profiles sp
+      LEFT JOIN first_sessions fs ON fs.student_id = sp.id
       LEFT JOIN (
-        SELECT DISTINCT student_id FROM public.challenge_sessions
-      ) cs1 ON cs1.student_id = sp.id
-      LEFT JOIN (
-        SELECT DISTINCT student_id FROM public.challenge_sessions
-        WHERE started_at >= (
-          SELECT MIN(started_at) FROM public.challenge_sessions cs2
-          WHERE cs2.student_id = challenge_sessions.student_id
-        ) + interval '7 days'
+        SELECT DISTINCT cs.student_id
+        FROM public.challenge_sessions cs
+        JOIN first_sessions f ON f.student_id = cs.student_id
+        WHERE cs.started_at >= f.first_at + interval '7 days'
       ) cs7 ON cs7.student_id = sp.id
       LEFT JOIN (
-        SELECT DISTINCT student_id FROM public.challenge_sessions
-        WHERE started_at >= (
-          SELECT MIN(started_at) FROM public.challenge_sessions cs3
-          WHERE cs3.student_id = challenge_sessions.student_id
-        ) + interval '30 days'
+        SELECT DISTINCT cs.student_id
+        FROM public.challenge_sessions cs
+        JOIN first_sessions f ON f.student_id = cs.student_id
+        WHERE cs.started_at >= f.first_at + interval '30 days'
       ) cs30 ON cs30.student_id = sp.id
     `);
 
