@@ -5,6 +5,7 @@ import {
   getRequestIpAddress,
   getRequestUserAgent,
 } from "@/lib/parent-access";
+import { hashPin } from "@/lib/pin";
 import { db } from "@/lib/db";
 
 const AVATARS = [
@@ -24,6 +25,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const suffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const guardianUsername = `guest_${suffix}`;
+    const studentUsername = `explorer_${suffix}`;
+
+    // Generate simple 4-digit PINs for both accounts
+    const parentPin = String(Math.floor(1000 + Math.random() * 9000));
+    const childPin = "0000";
+
+    const parentPinHash = hashPin(parentPin, guardianUsername);
+    const childPinHash = hashPin(childPin, studentUsername);
 
     // Insert guardian
     const guardianResult = await db.query(
@@ -32,7 +42,7 @@ export async function POST(request: NextRequest) {
         VALUES ($1, $2, $3, true, now() + interval '24 hours')
         RETURNING id
       `,
-      [`guest_${suffix}`, "Guest", ""],
+      [guardianUsername, "Guest", parentPinHash],
     );
 
     const guardianId = guardianResult.rows[0].id as string;
@@ -47,7 +57,7 @@ export async function POST(request: NextRequest) {
         VALUES ($1, $2, $3, $4, $5, true)
         RETURNING id
       `,
-      [`explorer_${suffix}`, "Explorer", "0000", avatarKey, "K1"],
+      [studentUsername, "Explorer", childPinHash, avatarKey, "K1"],
     );
 
     const studentId = studentResult.rows[0].id as string;
@@ -78,7 +88,15 @@ export async function POST(request: NextRequest) {
       userAgent,
     });
 
-    const response = NextResponse.json({ ok: true }, { status: 201 });
+    const response = NextResponse.json({
+      ok: true,
+      credentials: {
+        parentUsername: guardianUsername,
+        parentPin,
+        childUsername: studentUsername,
+        childPin,
+      },
+    }, { status: 201 });
     response.cookies.set({
       name: PARENT_SESSION_COOKIE_NAME,
       value: accessSession.token,
