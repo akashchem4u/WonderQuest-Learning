@@ -1,11 +1,15 @@
 import webpush from "web-push";
 import { db } from "./db";
 
-webpush.setVapidDetails(
-  "mailto:hello@wonderquest.app",
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-);
+let vapidInitialized = false;
+function ensureVapid() {
+  if (vapidInitialized) return;
+  const pub = process.env.VAPID_PUBLIC_KEY;
+  const priv = process.env.VAPID_PRIVATE_KEY;
+  if (!pub || !priv) throw new Error("VAPID keys not configured");
+  webpush.setVapidDetails("mailto:hello@wonderquest.app", pub, priv);
+  vapidInitialized = true;
+}
 
 export async function sendPushToGuardian(
   guardianId: string,
@@ -15,6 +19,7 @@ export async function sendPushToGuardian(
     `SELECT endpoint, p256dh, auth FROM public.push_subscriptions WHERE guardian_id = $1`,
     [guardianId],
   );
+  ensureVapid();
   for (const sub of subs.rows) {
     try {
       await webpush.sendNotification(
