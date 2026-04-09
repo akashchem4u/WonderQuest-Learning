@@ -654,11 +654,8 @@ function ParentWeeklyReportPageInner() {
       >
         {/* ── Top nav ────────────────────────────────────────────────────────── */}
         <div
-          style={{
-            padding: "20px 32px 0",
-            maxWidth: 960,
-            margin: "0 auto",
-          }}
+          className="page-content-pad"
+          style={{ paddingBottom: 0 }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
             <Link

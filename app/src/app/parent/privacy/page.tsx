@@ -225,7 +225,7 @@ export default function ParentPrivacyPage() {
           {summary && !loadingSummary && (
             <>
               {/* Stats row */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
+              <div className="stat-grid-3" style={{ gap: 12, marginBottom: 20 }}>
                 <div style={{ background: C.surface2, borderRadius: 8, padding: "12px 14px" }}>
                   <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.violet }}>{summary.dataSummary.sessionsCount}</p>
                   <p style={{ margin: "2px 0 0", fontSize: 11, color: C.muted }}>Sessions</p>

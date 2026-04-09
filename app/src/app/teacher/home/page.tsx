@@ -351,14 +351,7 @@ export default function TeacherHomePage() {
         )}
 
         {/* ── Quick stats ───────────────────────────────────────────────────── */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4,1fr)",
-            gap: 14,
-            marginBottom: 28,
-          }}
-        >
+        <div className="stat-grid-4" style={{ marginBottom: 28 }}>
           <StatCard
             value={loading ? "…" : String(totalStudents)}
             label="Total students"
@@ -399,13 +392,7 @@ export default function TeacherHomePage() {
           >
             Quick Actions
           </h2>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4,1fr)",
-              gap: 12,
-            }}
-          >
+          <div className="stat-grid-4" style={{ gap: 12 }}>
             <ActionButton
               emoji="📋"
               label="View class roster"

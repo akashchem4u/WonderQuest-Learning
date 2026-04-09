@@ -1210,13 +1210,7 @@ export default function ParentBenchmarksPage() {
             ))}
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "12px",
-            }}
-          >
+          <div className="stat-grid-3" style={{ gap: "12px" }}>
             {[
               {
                 label: "10–15 min",

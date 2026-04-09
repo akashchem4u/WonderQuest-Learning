@@ -469,7 +469,7 @@ export default function PracticePlannerPage() {
 
                 {/* Stats summary */}
                 {(report.stats.sessions > 0 || report.stats.starsEarned > 0) && (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 16 }}>
+                  <div className="stat-grid-3" style={{ gap: 10, marginTop: 16 }}>
                     {[
                       { label: "Sessions", value: String(report.stats.sessions) },
                       { label: "Stars earned", value: String(report.stats.starsEarned) },

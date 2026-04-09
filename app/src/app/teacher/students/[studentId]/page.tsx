@@ -373,14 +373,7 @@ export default function TeacherStudentReportPage() {
         </div>
 
         {/* ── Stats row ── */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 14,
-            padding: "24px 28px 0",
-          }}
-        >
+        <div className="stat-grid-4" style={{ gap: 14, padding: "24px 28px 0" }}>
           {[
             { val: String(stats.totalSessions), lbl: "Total sessions" },
             { val: `${stats.avgAccuracyPct}%`, lbl: "Accuracy" },

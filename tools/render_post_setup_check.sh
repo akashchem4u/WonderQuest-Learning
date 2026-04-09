@@ -148,13 +148,19 @@ check_route_contains_any "/parent" "Parent route loads" \
 check_route_contains_any "/owner" "Owner gate loads" \
   "Ops Console" \
   "WQ Console" \
-  "Good morning"
+  "Good morning" \
+  "Owner Portal" \
+  "Admin Sign In" \
+  "owner portal"
 check_route_contains_any "/teacher" "Teacher gate loads" \
   "Sign in to Classroom" \
   "Sign in to teacher dashboard" \
   "Teacher access" \
   "Enter your teacher access code" \
-  "Enter your teacher username and password."
+  "Enter your teacher username and password." \
+  "Classroom" \
+  "Welcome back" \
+  "Access code"
 
 section "Runtime Signal Checks"
 home_tmp="$(mktemp)"

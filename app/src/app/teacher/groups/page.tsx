@@ -1069,7 +1069,7 @@ export default function TeacherGroupsPage() {
                   {activeEngGroup && (
                     <>
                       {/* Stats row */}
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+                      <div className="stat-grid-3" style={{ gap: 12, marginBottom: 24 }}>
                         {[
                           { val: activeEngGroup.stats.started, label: "Students Started", color: activeEngGroup.accentColor },
                           { val: String(activeEngGroup.stats.sessions), label: "Sessions This Week", color: C.green },

@@ -1633,14 +1633,7 @@ export default function ParentAccessPage() {
 
           {/* ── Quick stats ────────────────────────────────────────────────── */}
           {activeChildDashboard && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "14px",
-                marginBottom: "24px",
-              }}
-            >
+            <div className="stat-grid-4" style={{ marginBottom: "24px" }}>
               {[
                 {
                   icon: "⭐",

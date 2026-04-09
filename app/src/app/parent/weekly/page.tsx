@@ -442,7 +442,7 @@ export default function ParentWeeklyPage() {
               </SectionCard>
 
               {/* Summary stats */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 24 }}>
+              <div className="stat-grid-4" style={{ gap: 12, marginBottom: 24 }}>
                 {[
                   { icon: "🎯", value: stats?.sessions ?? 0, label: "Sessions" },
                   { icon: "⏱️", value: `${stats?.learningMinutes ?? 0}m`, label: "Learning time" },

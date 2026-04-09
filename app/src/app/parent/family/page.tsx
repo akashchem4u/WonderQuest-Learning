@@ -179,7 +179,7 @@ export default function FamilyHubPage() {
           </div>
 
           {/* Combined family stats */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "28px" }}>
+          <div className="stat-grid-4" style={{ marginBottom: "28px" }}>
             {[
               { icon: "⭐", val: loading ? "—" : String(totalStars), label: "Total stars", color: C.gold },
               { icon: "🏅", val: loading ? "—" : String(totalBadges), label: "Badges combined", color: C.violet },

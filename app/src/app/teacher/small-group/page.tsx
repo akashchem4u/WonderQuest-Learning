@@ -362,7 +362,7 @@ export default function SmallGroupPage() {
             <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
               {tiers.map((tier) => (<button key={tier} style={groupTabStyle(tier)} onClick={() => setActiveGroup(tier)}>{TIER_CONFIG[tier].label}</button>))}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+            <div className="stat-grid-3" style={{ gap: 12, marginBottom: 24 }}>
               {[
                 { val: engStudents.filter((s) => s.sessionsLast7d > 0).length + "/" + engStudents.length, lbl: "Students Active", color: engCol },
                 { val: String(engStudents.reduce((sum, s) => sum + s.sessionsLast7d, 0)), lbl: "Sessions This Week", color: C.green },
