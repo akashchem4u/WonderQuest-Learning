@@ -450,6 +450,7 @@ export async function accessParent(
         insert into public.guardian_profiles (
           email,
           password_hash,
+          pin_hash,
           display_name,
           username,
           relationship_label,
@@ -458,7 +459,7 @@ export async function accessParent(
           isd_name,
           state_code
         )
-        values ($1, $2, $3, $4, 'parent', false, $5, $6, $7)
+        values ($1, $2, '', $3, $4, 'parent', false, $5, $6, $7)
         returning id, username, display_name
       `,
       [email, passwordHash, displayName, username, schoolName, isdName, stateCode],
