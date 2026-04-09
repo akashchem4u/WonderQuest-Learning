@@ -63,7 +63,13 @@ const BAND_WORD_LIMITS: Record<
 };
 
 function envFlag(name: string, fallback = false) {
-  const value = process.env[name];
+  const rawValue = process.env[name];
+  const value = rawValue
+    ?.trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\\[rn]/g, "")
+    .trim()
+    .toLowerCase();
   if (!value) {
     return fallback;
   }
@@ -95,7 +101,7 @@ function getAdaptiveWaitMs() {
 }
 
 export function isLiveQuestionGenerationEnabled() {
-  return envFlag("OPENAI_QUESTION_GENERATION_ENABLED", true) && Boolean(process.env.OPENAI_API_KEY);
+  return envFlag("OPENAI_QUESTION_GENERATION_ENABLED", true) && Boolean(process.env.OPENAI_API_KEY?.trim());
 }
 
 function getBandLabel(launchBandCode: string) {
