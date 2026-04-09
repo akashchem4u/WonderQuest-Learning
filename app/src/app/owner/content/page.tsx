@@ -30,13 +30,7 @@ const C = {
 } as const;
 
 // ── Stubbed data ──────────────────────────────────────────────────────────────
-const TOP_STATS = [
-  { label: "Total Skills", value: "284", delta: "+12 this month", deltaColor: C.mint },
-  { label: "Published Live", value: "278", delta: "97.9%", deltaColor: C.mint },
-  { label: "Under Review", value: "3", delta: "+2 vs last month", deltaColor: C.amber },
-  { label: "Blocked", value: "3", delta: "Locked from delivery", deltaColor: C.amber },
-  { label: "Error Reports", value: "14", delta: "7d rolling", deltaColor: C.amber },
-];
+const TOP_STATS = [];
 
 type BandSummary = {
   code: string;
@@ -48,12 +42,7 @@ type BandSummary = {
   blocked: number;
 };
 
-const BANDS: BandSummary[] = [
-  { code: "P0", label: "P0 Pre-K", color: C.bandP0, skills: 42, live: 41, review: 1, blocked: 0 },
-  { code: "P1", label: "P1 K-1", color: C.bandP1, skills: 68, live: 66, review: 2, blocked: 0 },
-  { code: "P2", label: "P2 G2-3", color: C.bandP2, skills: 96, live: 93, review: 0, blocked: 3 },
-  { code: "P3", label: "P3 G4-5", color: C.bandP3, skills: 78, live: 78, review: 0, blocked: 0 },
-];
+const BANDS: BandSummary[] = [];
 
 type ReviewItem = {
   priority: "HIGH" | "MED";
@@ -65,53 +54,7 @@ type ReviewItem = {
   statusColor: string;
 };
 
-const REVIEW_QUEUE: ReviewItem[] = [
-  {
-    priority: "HIGH",
-    title: "Fractions: Mixed Numbers — wrong answer marked correct",
-    meta: "Reported by: Teacher, Maplewood School · 2d ago · 8 teacher reports + auto-flag",
-    band: "P2 G2-3",
-    bandColor: C.bandP2,
-    status: "Blocked",
-    statusColor: C.red,
-  },
-  {
-    priority: "HIGH",
-    title: "Division: Remainders — unclear question wording",
-    meta: "Reported by: 3 teachers, multiple schools · 5d ago",
-    band: "P2 G2-3",
-    bandColor: C.bandP2,
-    status: "Blocked",
-    statusColor: C.red,
-  },
-  {
-    priority: "MED",
-    title: "Phonics: Consonant Blends — image asset broken on iOS",
-    meta: "Auto-detected: asset 404 · CDN issue · 1d ago",
-    band: "P1 K-1",
-    bandColor: C.bandP1,
-    status: "Review",
-    statusColor: C.amber,
-  },
-  {
-    priority: "MED",
-    title: "Subtraction: Borrowing — difficulty calibration off (skip rate 78%)",
-    meta: "Auto-flag: skip rate >60% threshold triggered · 3d ago",
-    band: "P0 Pre-K",
-    bandColor: C.bandP0,
-    status: "Review",
-    statusColor: C.amber,
-  },
-  {
-    priority: "MED",
-    title: "Reading Comprehension: Main Idea — locked per release gate warning",
-    meta: "Release gate: v2.5 warning item. Locked at launch. Curriculum review pending.",
-    band: "P1 K-1",
-    bandColor: C.bandP1,
-    status: "Blocked",
-    statusColor: C.red,
-  },
-];
+const REVIEW_QUEUE: ReviewItem[] = [];
 
 type ErrorSubject = {
   subject: string;
@@ -120,34 +63,13 @@ type ErrorSubject = {
   color: string;
 };
 
-const ERROR_BY_SUBJECT: ErrorSubject[] = [
-  { subject: "Mathematics", reports: "8 reports", pct: 68, color: C.red },
-  { subject: "Reading", reports: "3 reports", pct: 25, color: C.amber },
-  { subject: "Phonics", reports: "2 reports", pct: 20, color: C.amber },
-  { subject: "Vocabulary", reports: "1 report", pct: 8, color: C.mint },
-  { subject: "Spelling", reports: "0 reports", pct: 0, color: C.mint },
-];
+const ERROR_BY_SUBJECT: ErrorSubject[] = [];
 
-const STATUS_SUMMARY = [
-  { label: "Published live", value: "278", color: C.mint },
-  { label: "Under review (skill live)", value: "3", color: C.amber },
-  { label: "Blocked (delivery locked)", value: "3", color: C.red },
-  { label: "Draft / unreleased", value: "32", color: C.muted },
-  { label: "Total in catalogue", value: "316", color: C.text },
-];
+const STATUS_SUMMARY = [];
 
-const RECENT_ACTIONS = [
-  { title: "Fractions: Equivalent — Review resolved, published", meta: "3d ago · Curriculum team" },
-  { title: "Addition: 3-digit — New skill published", meta: "5d ago · v2.5 release" },
-  { title: "Phonics: Long Vowels — Asset update (image replaced)", meta: "6d ago · Content team" },
-];
+const RECENT_ACTIONS = [];
 
-const AUTO_FLAGS = [
-  { label: "Skip rate", value: "> 60%" },
-  { label: "Wrong-as-correct", value: "> 2 reports" },
-  { label: "Asset 404", value: "Instant" },
-  { label: "Avg session abort mid-skill", value: "> 40%" },
-];
+const AUTO_FLAGS = [];
 
 export default async function OwnerContentPage() {
   const configured = isOwnerAccessConfigured();

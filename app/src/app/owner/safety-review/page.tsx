@@ -17,39 +17,13 @@ const C = {
 
 const CONTENT_QUEUE: never[] = [];
 
-const LANGUAGE_BANKS = [
-  { name: "Math — Numbers & Counting", score: 100 },
-  { name: "Math — Shapes & Patterns",  score: 100 },
-  { name: "Reading — Phonics",         score: 100 },
-  { name: "Reading — Comprehension",   score: 100 },
-  { name: "Science — Animals",         score: 100 },
-  { name: "Science — Weather",         score: 100 },
-  { name: "Social Studies — Community",score: 100 },
-  { name: "Arts — Colors & Music",     score: 100 },
-];
+const LANGUAGE_BANKS = [];
 
-const IMAGE_REVIEW = [
-  { category: "Skill illustrations",  total: 142, reviewed: 142 },
-  { category: "Character assets",     total: 38,  reviewed: 38  },
-  { category: "Background scenes",    total: 24,  reviewed: 24  },
-  { category: "UI icons",             total: 91,  reviewed: 91  },
-];
+const IMAGE_REVIEW = [];
 
-const ACTIVITY_LOG = [
-  { ts: "Apr 6, 2026 08:30", reviewer: "R. Patel",   action: "Language scan", target: "Math — Numbers Q-bank",   verdict: "approved" },
-  { ts: "Apr 5, 2026 16:45", reviewer: "Auto-scan",  action: "Image review",  target: "Character set v2.1",      verdict: "approved" },
-  { ts: "Apr 5, 2026 14:10", reviewer: "S. Kim",     action: "Language scan", target: "Science — Animals Q-bank", verdict: "approved" },
-  { ts: "Apr 4, 2026 11:22", reviewer: "T. Nguyen",  action: "Image review",  target: "Background scenes v3.0",   verdict: "approved" },
-  { ts: "Apr 3, 2026 09:05", reviewer: "R. Patel",   action: "Language scan", target: "Reading — Phonics Q-bank", verdict: "approved" },
-];
+const ACTIVITY_LOG = [];
 
-const ALERT_THRESHOLDS = [
-  { label: "Skip rate trigger",             value: "60%",   desc: "Flag content with skip rate above this threshold" },
-  { label: "Anxiety language keyword list", value: "32 terms", desc: "Auto-flag any question bank match" },
-  { label: "PII scan sensitivity",          value: "High",  desc: "Flag any probable surname or email pattern" },
-  { label: "WCAG contrast threshold",       value: "AA",    desc: "Minimum required contrast ratio for all content" },
-  { label: "Alt-text missing alert",        value: "1 image", desc: "Alert fires if even one image lacks alt text" },
-];
+const ALERT_THRESHOLDS = [];
 
 export default async function SafetyReviewPage() {
   const configured = isOwnerAccessConfigured();

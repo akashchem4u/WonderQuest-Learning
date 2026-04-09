@@ -45,46 +45,7 @@ const TAGS: Record<string, Tag> = {
   admin:    { label: "Admin",    color: C.blue,   bg: "rgba(37,99,235,0.15)" },
 };
 
-const COLUMNS: Column[] = [
-  {
-    id: "now", label: "Now", color: C.mint,
-    cards: [
-      { title: "Bulk assignment tool for teachers", tags: [TAGS.teacher, TAGS.infra], effort: "M", source: "23 feedback requests", evidence: 0.92, evidenceColor: C.mint },
-      { title: "Parent weekly report PDF export", tags: [TAGS.parent], effort: "S", source: "17 requests", evidence: 0.68, evidenceColor: C.mint },
-      { title: "P3 G4–5 content expansion (+40 skills)", tags: [TAGS.child, TAGS.content], effort: "L", source: "Internal: retention data", evidence: 0.80, evidenceColor: "#58e8c1" },
-      { title: "Class-level assignment analytics for teachers", tags: [TAGS.teacher], effort: "M", source: "11 requests", evidence: 0.44, evidenceColor: C.mint },
-    ],
-  },
-  {
-    id: "next", label: "Next", color: "#58e8c1",
-    cards: [
-      { title: "Calendar integration (parent-teacher scheduling)", tags: [TAGS.parent, TAGS.teacher], effort: "M", source: "19 requests", evidence: 0.76, evidenceColor: "#58e8c1" },
-      { title: "District-level admin dashboard", tags: [TAGS.owner, TAGS.admin], effort: "L", source: "4 district prospects", evidence: 0.40, evidenceColor: C.mint },
-      { title: "Adaptive engine difficulty personalisation V2", tags: [TAGS.child, TAGS.infra], effort: "XL", source: "Retention metric gap", evidence: 0.60, evidenceColor: C.violet },
-      { title: "Push notification for parent inactivity alerts", tags: [TAGS.parent], effort: "S", source: "8 requests", evidence: 0.32, evidenceColor: C.violet },
-      { title: "Content error self-service for curriculum team", tags: [TAGS.content], effort: "M", source: "Internal ops", evidence: 0.50, evidenceColor: "#58e8c1" },
-    ],
-  },
-  {
-    id: "later", label: "Later", color: C.muted,
-    cards: [
-      { title: "Interactive achievement showcase for students", tags: [TAGS.child], effort: "M", source: "6 requests", evidence: 0.24, evidenceColor: C.violet },
-      { title: "Teacher-to-teacher resource sharing", tags: [TAGS.teacher], effort: "L", source: "4 requests", evidence: 0.16, evidenceColor: C.violet },
-      { title: "Offline mode for tablets (schools with poor WiFi)", tags: [TAGS.child, TAGS.infra], effort: "XL", source: "3 school requests", evidence: 0.12, evidenceColor: C.violet },
-      { title: "Multi-language content (Spanish pilot)", tags: [TAGS.content, TAGS.child], effort: "XL", source: "Market research", evidence: 0.20, evidenceColor: C.violet },
-      { title: "API for SIS integration (Clever/ClassLink)", tags: [TAGS.infra, TAGS.admin], effort: "L", source: "5 district asks", evidence: 0.20, evidenceColor: C.violet },
-      { title: "Subscription gifting / family referral program", tags: [TAGS.parent], effort: "S", source: "Growth strategy", evidence: 0.10, evidenceColor: C.violet },
-    ],
-  },
-  {
-    id: "wont", label: "Won't Build", color: "rgba(255,255,255,0.2)",
-    cards: [
-      { title: "Built-in video calling (teacher-parent)", tags: [TAGS.teacher, TAGS.parent], effort: "XL", source: "COPPA/FERPA complexity", evidence: 0, evidenceColor: C.muted, dim: true },
-      { title: "Social leaderboards (student vs student)", tags: [TAGS.child], effort: "M", source: "Not aligned with mission", evidence: 0, evidenceColor: C.muted, dim: true },
-      { title: "In-app purchases for cosmetic items", tags: [TAGS.child], effort: "M", source: "COPPA: under-13 purchases", evidence: 0, evidenceColor: C.muted, dim: true },
-    ],
-  },
-];
+const COLUMNS: Column[] = [];
 
 const QUARTERS = ["Q1", "Q2", "Q3", "Q4"];
 

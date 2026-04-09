@@ -52,65 +52,7 @@ type GateCategory = {
   borderColor?: string;
 };
 
-const CATEGORIES: GateCategory[] = [
-  {
-    icon: "🧪",
-    name: "Quality",
-    score: "25/25 ✓",
-    pillStatus: "pass",
-    items: [
-      { status: "pass", text: "Test coverage >= 80%", val: "84%" },
-      { status: "pass", text: "Zero open P0 bugs", val: "0 open" },
-      { status: "pass", text: "Zero open P1 bugs", val: "0 open" },
-      { status: "pass", text: "Regression suite passes", val: "312/312" },
-    ],
-  },
-  {
-    icon: "⚡",
-    name: "Performance",
-    score: "6/25 ✗ BLOCKER",
-    pillStatus: "fail",
-    borderColor: "rgba(248,81,73,0.3)",
-    items: [
-      { status: "fail", text: "p95 latency <= 200ms (all critical routes)", val: "210ms ✗" },
-      { status: "pass", text: "p99 latency <= 500ms", val: "348ms ✓" },
-      { status: "pass", text: "Lighthouse mobile >= 85", val: "88 ✓" },
-      { status: "pass", text: "Load test: 5k concurrent users", val: "Passed" },
-    ],
-    blockerMsg: "BLOCKER: Adaptive engine p95 = 210ms, exceeds 200ms threshold. Caused by N+1 query in assignment priority lookup (PR #892). Must fix before launch.",
-  },
-  {
-    icon: "📚",
-    name: "Content",
-    score: "16/20 ⚠",
-    pillStatus: "warn",
-    borderColor: "rgba(245,158,11,0.2)",
-    items: [
-      { status: "pass", text: "Question bank validation (new questions)", val: "Passed" },
-      { status: "pass", text: "COPPA scan — no PII in question text", val: "Clean" },
-      { status: "warn", text: "Curriculum review — Fractions: Mixed Numbers", val: "Pending" },
-    ],
-    warnMsg: "WARNING: Curriculum review pending for 1 new skill. Not a hard blocker — that skill will be locked at launch. Review expected within 3 days.",
-  },
-  {
-    icon: "🔒",
-    name: "Privacy & Compliance",
-    score: "20/20 ✓",
-    pillStatus: "pass",
-    items: [
-      { status: "pass", text: "FERPA audit — no new student PII exposure", val: "Clean" },
-      { status: "pass", text: "COPPA compliance", val: "Clean" },
-      { status: "pass", text: "Data residency — US-only verified", val: "Verified" },
-    ],
-  },
-  {
-    icon: "✍️",
-    name: "Stakeholder Sign-off",
-    score: "10/10 ✓",
-    pillStatus: "pass",
-    items: [],
-  },
-];
+const CATEGORIES: GateCategory[] = [];
 
 type SignoffPerson = {
   initial: string;
@@ -120,11 +62,7 @@ type SignoffPerson = {
   avatarColor: string;
 };
 
-const SIGNOFFS: SignoffPerson[] = [
-  { initial: "A", name: "Avi M.", role: "Founder", date: "Mar 22", avatarColor: "#2563eb" },
-  { initial: "K", name: "Kavya R.", role: "Lead Engineer", date: "Mar 21", avatarColor: "#475569" },
-  { initial: "C", name: "Chen W.", role: "Curriculum Lead", date: "Mar 20", avatarColor: "#9b72ff" },
-];
+const SIGNOFFS: SignoffPerson[] = [];
 
 // ── Sub-functions ─────────────────────────────────────────────────────────────
 function pillStyle(status: "pass" | "fail" | "warn"): React.CSSProperties {
