@@ -7,6 +7,8 @@ import { US_STATES } from "@/lib/curriculum-frameworks";
 import { SiblingSwitcher } from "@/components/sibling-switcher";
 import { UpgradePrompt } from "@/components/upgrade-prompt";
 import { ClassEnrollmentCard } from "@/components/class-enrollment-card";
+import { GuestBanner } from "@/components/guest-banner";
+import { ConvertAccountModal } from "@/components/convert-account-modal";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
@@ -63,6 +65,7 @@ type ParentAccessResponse = {
     username: string;
     displayName: string;
     plan?: string;
+    isGuest?: boolean;
   };
   linkedChild: {
     id: string;
@@ -242,6 +245,8 @@ export default function ParentAccessPage() {
   const [forgotNewPassword, setForgotNewPassword] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
+  const [showConvert, setShowConvert] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ParentAccessResponse | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
@@ -383,6 +388,13 @@ export default function ParentAccessPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleGuestLogin() {
+    setGuestLoading(true);
+    const res = await fetch("/api/parent/guest", { method: "POST" });
+    if (res.ok) window.location.href = "/parent";
+    else setGuestLoading(false);
   }
 
   async function handleRegister(event: React.FormEvent<HTMLFormElement>) {
@@ -972,6 +984,35 @@ export default function ParentAccessPage() {
                       New to WonderQuest? Set up your family account →
                     </Link>
                   </div>
+
+                  {/* Guest divider + button */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
+                    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.1)" }} />
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>or</span>
+                    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.1)" }} />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGuestLogin}
+                    disabled={guestLoading}
+                    style={{
+                      width: "100%",
+                      padding: "10px 13px",
+                      borderRadius: "12px",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      background: "rgba(255,255,255,0.05)",
+                      color: guestLoading ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.7)",
+                      fontSize: "0.875rem",
+                      fontFamily: "system-ui",
+                      cursor: guestLoading ? "not-allowed" : "pointer",
+                      opacity: guestLoading ? 0.5 : 1,
+                      transition: "background 0.15s, color 0.15s",
+                      minHeight: 44,
+                      touchAction: "manipulation",
+                    }}
+                  >
+                    {guestLoading ? "Setting up\u2026" : "Try as Guest \u2014 no sign-up needed"}
+                  </button>
                 </form>
               )}
 
@@ -1192,6 +1233,12 @@ export default function ParentAccessPage() {
           paddingBottom: "env(safe-area-inset-bottom, 80px)",
         }}
       >
+        {result.guardian.isGuest && <GuestBanner onConvert={() => setShowConvert(true)} />}
+        <ConvertAccountModal
+          open={showConvert}
+          onClose={() => setShowConvert(false)}
+          onSuccess={() => { setShowConvert(false); window.location.reload(); }}
+        />
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 80px", fontFamily: "system-ui" }}>
 
           {/* ── Welcome header ──────────────────────────────────────────────── */}
