@@ -1,4 +1,5 @@
 /// <reference lib="webworker" />
+export type {}; // isolate module scope — prevents conflict with dom lib's `self`
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -17,6 +18,6 @@ self.addEventListener("push", (event: PushEvent) => {
 self.addEventListener("notificationclick", (event: NotificationEvent) => {
   event.notification.close();
   event.waitUntil(
-    clients.openWindow((event.notification.data as { url: string }).url),
+    self.clients.openWindow((event.notification.data as { url: string }).url),
   );
 });
