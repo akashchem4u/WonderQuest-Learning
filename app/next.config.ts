@@ -5,7 +5,9 @@ const withPWA = require("@ducanh2912/next-pwa").default;
 
 const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
+  // Next 16 defaults build to Turbopack. Keep an explicit empty config so
+  // plugin-added webpack hooks don't fail the build-mode compatibility check.
+  turbopack: {},
 };
 
 export default withPWA({
