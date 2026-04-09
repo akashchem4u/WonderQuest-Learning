@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       userAgent,
     });
 
-    void track(result.guardian.id, "parent_login", { method: "password" });
+    void track(result.guardian.id, "parent_login", { method: "password" }, ipAddress ?? undefined);
     const response = NextResponse.json(result);
     response.cookies.set({
       name: PARENT_SESSION_COOKIE_NAME,

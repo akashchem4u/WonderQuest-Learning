@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
         ipAddress,
         userAgent,
       });
-      void track(result.guardian.id, "parent_login", { method: "google", isNew: result.isNew });
+      void track(result.guardian.id, "parent_login", { method: "google", isNew: result.isNew }, ipAddress ?? undefined);
       if (result.isNew) {
         void sendParentWelcomeEmail({ toEmail: email, toName: result.guardian.displayName });
       }
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         );
       }
       const session = await createTeacherDbSession(result.teacher.id, ipAddress, userAgent);
-      void track(result.teacher.id, "teacher_login", { method: "google" });
+      void track(result.teacher.id, "teacher_login", { method: "google" }, ipAddress ?? undefined);
 
       const response = NextResponse.json({ ok: true, redirectTo: "/teacher" });
       // Shared-access middleware cookie (soft gate — needed for middleware)

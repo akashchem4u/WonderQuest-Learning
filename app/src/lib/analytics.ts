@@ -29,15 +29,21 @@ type EventProps = Record<string, string | number | boolean | null>;
  * Fire a server-side analytics event.
  * distinctId should be a non-PII identifier — use student/guardian/teacher DB id.
  * Never pass names, emails, usernames, or IP addresses as distinctId or properties.
+ * Pass ip to enable PostHog geo-resolution (city, country, region).
  */
 export async function track(
   distinctId: string,
   event: EventName,
   properties?: EventProps,
+  ip?: string,
 ): Promise<void> {
   if (!client) return;
   try {
-    client.capture({ distinctId, event, properties: properties ?? {} });
+    client.capture({
+      distinctId,
+      event,
+      properties: { ...(properties ?? {}), ...(ip ? { $ip: ip } : {}) },
+    });
     // flushAt:1 means the event is dispatched immediately after capture.
     // No explicit flush needed; errors are silently swallowed.
   } catch {
