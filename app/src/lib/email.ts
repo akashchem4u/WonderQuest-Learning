@@ -21,6 +21,29 @@ function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://wonderquest.app";
 }
 
+// ─── Generic transactional send ───────────────────────────────────────────────
+
+export async function sendEmail(input: {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+}): Promise<void> {
+  const resend = client();
+  if (!resend) return;
+
+  const { to, subject, html, text } = input;
+  await resend.emails.send({
+    from: fromEmail,
+    to,
+    subject,
+    html,
+    ...(text ? { text } : {}),
+  }).catch((err: unknown) => {
+    console.error("[email] sendEmail failed:", err);
+  });
+}
+
 // ─── Admin invite ─────────────────────────────────────────────────────────────
 
 export async function sendAdminInviteEmail(input: {
