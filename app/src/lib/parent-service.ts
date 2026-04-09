@@ -441,22 +441,27 @@ export async function accessParent(
     const isdName = input.isdName?.trim() || null;
     const stateCode = input.stateCode?.trim().toUpperCase() || null;
 
+    // Generate a unique username from the email prefix
+    const usernameBase = email.split("@")[0].replace(/[^a-z0-9_]/gi, "").toLowerCase().slice(0, 24) || "user";
+    const username = usernameBase + "_" + Math.random().toString(36).slice(2, 6);
+
     const inserted = await db.query(
       `
         insert into public.guardian_profiles (
           email,
           password_hash,
           display_name,
+          username,
           relationship_label,
           email_verified,
           school_name,
           isd_name,
           state_code
         )
-        values ($1, $2, $3, 'parent', false, $4, $5, $6)
+        values ($1, $2, $3, $4, 'parent', false, $5, $6, $7)
         returning id, username, display_name
       `,
-      [email, passwordHash, displayName, schoolName, isdName, stateCode],
+      [email, passwordHash, displayName, username, schoolName, isdName, stateCode],
     );
 
     const guardianRow = inserted.rows[0];
