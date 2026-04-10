@@ -1058,9 +1058,9 @@ export default function ParentNotificationsPage() {
           ? (notifsData.notifications as ApiNotification[]).map(apiNotifToNotification)
           : [];
 
-      // Milestones first, then sessions; fall back to STUB only if both are empty
+      // Milestones first, then sessions; show empty state if none (no fake stub data)
       const live = [...milestoneNotifs, ...sessionNotifs];
-      setNotifs(live.length > 0 ? live : STUB);
+      setNotifs(live);
       setNotifsLoading(false);
 
       // Mark unread milestone notifications as read
