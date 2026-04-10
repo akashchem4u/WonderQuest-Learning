@@ -75,12 +75,26 @@ const CATEGORY_META: Record<string, { icon: string; color: string }> = {
   praise:          { icon: "🎉", color: MINT },
 };
 
+interface PublicFeedbackRow {
+  id: string;
+  name: string | null;
+  email: string | null;
+  role: string | null;
+  rating: number | null;
+  message: string;
+  source: string;
+  created_at: string;
+}
+
 // ── Inner component (uses useSearchParams) ────────────────────────────────────
 function FeedbackPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const statusParam = (searchParams.get("status") ?? "all") as "all" | "open" | "resolved";
 
+  const [tab, setTab] = useState<"inapp" | "public">("inapp");
+
+  // In-app feedback state
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [total, setTotal] = useState(0);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
@@ -91,6 +105,20 @@ function FeedbackPageInner() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [reviewNote, setReviewNote] = useState("");
   const [resolving, setResolving] = useState(false);
+
+  // Public feedback state
+  const [publicRows, setPublicRows] = useState<PublicFeedbackRow[]>([]);
+  const [publicLoading, setPublicLoading] = useState(false);
+  const [publicActiveIdx, setPublicActiveIdx] = useState(0);
+
+  useEffect(() => {
+    if (tab !== "public" || publicRows.length > 0) return;
+    setPublicLoading(true);
+    fetch("/api/owner/public-feedback")
+      .then(r => r.json())
+      .then((d: { feedback: PublicFeedbackRow[] }) => setPublicRows(d.feedback ?? []))
+      .finally(() => setPublicLoading(false));
+  }, [tab, publicRows.length]);
 
   useEffect(() => {
     setLoading(true);
@@ -171,27 +199,25 @@ function FeedbackPageInner() {
             <span style={{ fontSize: 14, fontWeight: 900, color: TEXT }}>
               WQ <span style={{ color: MINT }}>Console</span>
             </span>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: TEXT,
-                letterSpacing: "0.04em",
-              }}
-            >
+            <span style={{ fontSize: 11, fontWeight: 800, color: TEXT, letterSpacing: "0.04em" }}>
               💬 Feedback Workbench
             </span>
-            {!loading && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  background: AMBER,
-                  color: "#1a1440",
-                  borderRadius: 4,
-                  padding: "1px 6px",
-                }}
-              >
+            {/* Tab switcher */}
+            <div style={{ display: "flex", gap: 4, marginLeft: 12 }}>
+              {([
+                { key: "inapp", label: "In-App" },
+                { key: "public", label: `Public${publicRows.length ? ` (${publicRows.length})` : ""}` },
+              ] as { key: "inapp" | "public"; label: string }[]).map(t => (
+                <button key={t.key} onClick={() => setTab(t.key)} style={{
+                  fontSize: 10, fontWeight: 700, padding: "2px 10px", borderRadius: 6,
+                  cursor: "pointer", border: "none", fontFamily: "system-ui",
+                  background: tab === t.key ? VIOLET : "rgba(255,255,255,0.07)",
+                  color: tab === t.key ? "#fff" : MUTED,
+                }}>{t.label}</button>
+              ))}
+            </div>
+            {tab === "inapp" && !loading && (
+              <span style={{ fontSize: 10, fontWeight: 800, background: AMBER, color: "#1a1440", borderRadius: 4, padding: "1px 6px" }}>
                 {openCount} open
               </span>
             )}
@@ -218,8 +244,65 @@ function FeedbackPageInner() {
           </div>
         </div>
 
+        {/* ── Public feedback tab ─────────────────────────────────────────── */}
+        {tab === "public" && (
+          <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 24px 48px" }}>
+            {publicLoading && <p style={{ color: MUTED, textAlign: "center", padding: 60 }}>Loading…</p>}
+            {!publicLoading && publicRows.length === 0 && (
+              <div style={{ textAlign: "center", padding: "60px 0", color: MUTED, border: `1px dashed ${BORDER}`, borderRadius: 14 }}>
+                <p style={{ fontSize: 32, margin: "0 0 10px" }}>📭</p>
+                <p style={{ margin: 0 }}>No public feedback yet</p>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              {/* List */}
+              <div style={{ width: 280, flexShrink: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                {publicRows.map((row, idx) => (
+                  <div key={row.id} onClick={() => setPublicActiveIdx(idx)} style={{
+                    padding: "10px 12px", borderRadius: 10, cursor: "pointer",
+                    background: idx === publicActiveIdx ? "rgba(155,114,255,0.12)" : SURFACE,
+                    border: `1px solid ${idx === publicActiveIdx ? VIOLET + "55" : BORDER}`,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      {row.rating && <span style={{ color: AMBER, fontSize: 11 }}>{"★".repeat(row.rating)}</span>}
+                      {row.role && <span style={{ fontSize: 9, fontWeight: 700, color: VIOLET, background: VIOLET + "22", padding: "1px 6px", borderRadius: 4, textTransform: "capitalize" }}>{row.role}</span>}
+                      <span style={{ fontSize: 9, color: MUTED, marginLeft: "auto" }}>{timeAgo(row.created_at)}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", lineHeight: 1.3 }}>
+                      {row.message.slice(0, 70)}{row.message.length > 70 ? "…" : ""}
+                    </div>
+                    {row.name && <div style={{ fontSize: 10, color: MUTED, marginTop: 3 }}>— {row.name}</div>}
+                  </div>
+                ))}
+              </div>
+              {/* Detail */}
+              {publicRows[publicActiveIdx] && (
+                <div style={{ flex: 1, background: SURFACE, borderRadius: 12, padding: "16px 20px", border: `1px solid ${BORDER}`, alignSelf: "flex-start" }}>
+                  {(() => {
+                    const r = publicRows[publicActiveIdx];
+                    return (
+                      <>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                          {r.rating && <span style={{ color: AMBER, fontSize: 16 }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>}
+                          {r.role && <span style={{ fontSize: 10, fontWeight: 700, color: VIOLET, background: VIOLET + "22", padding: "2px 8px", borderRadius: 6, textTransform: "capitalize" }}>{r.role}</span>}
+                          <span style={{ fontSize: 10, color: MUTED, marginLeft: "auto" }}>{new Date(r.created_at).toLocaleString()}</span>
+                        </div>
+                        <p style={{ fontSize: 13, color: TEXT, lineHeight: 1.6, whiteSpace: "pre-wrap", margin: "0 0 14px" }}>{r.message}</p>
+                        <div style={{ display: "flex", gap: 16, fontSize: 11, color: MUTED }}>
+                          {r.name && <span>👤 {r.name}</span>}
+                          {r.email && <a href={`mailto:${r.email}`} style={{ color: "#2dd4bf", textDecoration: "none" }}>✉ {r.email}</a>}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── 2-panel workbench ────────────────────────────────────────────── */}
-        <div
+        {tab === "inapp" && <div
           style={{
             display: "flex",
             maxWidth: 1100,
@@ -644,7 +727,7 @@ function FeedbackPageInner() {
               </Link>
             </div>
           </div>
-        </div>
+        </div>}
       </main>
     </AppFrame>
   );

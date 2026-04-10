@@ -60,8 +60,7 @@ const NAV = [
       { icon: "⌂", label: "Overview",     href: "/owner",          active: true  },
       { icon: "⬡", label: "Route Health", href: "/owner/routes",   active: false },
       { icon: "⬆", label: "Release Gate", href: "/owner/release",  active: false },
-      { icon: "◎", label: "Feedback",        href: "/owner/feedback",        active: false, badge: true },
-      { icon: "📝", label: "Public Feedback", href: "/owner/public-feedback", active: false },
+      { icon: "◎", label: "Feedback", href: "/owner/feedback", active: false, badge: true },
     ],
   },
   {
