@@ -251,6 +251,8 @@ export default function ParentAccessPage() {
   const [result, setResult] = useState<ParentAccessResponse | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [showAddChild, setShowAddChild] = useState(false);
+  const [showBandPicker, setShowBandPicker] = useState(false);
+  const [bandUpdating, setBandUpdating] = useState(false);
   const [addChildForm, setAddChildForm] = useState({
     displayName: "",
     username: "",
@@ -1310,16 +1312,61 @@ export default function ParentAccessPage() {
                   </div>
                   <div>
                     <div style={{ fontSize: "1.2rem", fontWeight: 800, color: C.text }}>{activeChild.displayName}</div>
-                    <div style={{
-                      display: "inline-flex", alignItems: "center", gap: 5, marginTop: 4,
-                      padding: "3px 10px", borderRadius: 999,
-                      background: "rgba(155,114,255,0.15)",
-                      border: `1.5px solid ${getBandColor(activeChild.launchBandCode)}`,
-                      fontSize: 11, fontWeight: 700, color: "rgba(215,195,255,0.95)",
-                    }}>
+                    <button
+                      onClick={() => setShowBandPicker(v => !v)}
+                      title="Change grade level"
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 5, marginTop: 4,
+                        padding: "3px 10px", borderRadius: 999,
+                        background: "rgba(155,114,255,0.15)",
+                        border: `1.5px solid ${getBandColor(activeChild.launchBandCode)}`,
+                        fontSize: 11, fontWeight: 700, color: "rgba(215,195,255,0.95)",
+                        cursor: "pointer",
+                      }}
+                    >
                       <span style={{ width: 7, height: 7, borderRadius: "50%", background: getBandColor(activeChild.launchBandCode), flexShrink: 0 }} />
                       {getBandLabel(activeChild.launchBandCode)} · Level {activeChild.currentLevel}
-                    </div>
+                      <span style={{ fontSize: 9, opacity: 0.6, marginLeft: 2 }}>✎</span>
+                    </button>
+                    {showBandPicker && (
+                      <div style={{
+                        display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8,
+                        padding: "10px 12px", borderRadius: 12,
+                        background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)",
+                      }}>
+                        {([
+                          { code: "PREK", label: "🐣 Pre-K", sub: "Ages 4–5" },
+                          { code: "K1",   label: "⚽ K–1",   sub: "Ages 5–7" },
+                          { code: "G23",  label: "🚀 Gr 2–3", sub: "Ages 7–9" },
+                          { code: "G45",  label: "🏗️ Gr 4–5", sub: "Ages 9–11" },
+                        ] as const).map(b => (
+                          <button
+                            key={b.code}
+                            disabled={bandUpdating || b.code === activeChild.launchBandCode}
+                            onClick={async () => {
+                              setBandUpdating(true);
+                              const res = await fetch("/api/parent/update-child-band", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ childId: activeChild.id, launchBandCode: b.code }),
+                              });
+                              if (res.ok) window.location.reload();
+                              else setBandUpdating(false);
+                            }}
+                            style={{
+                              padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                              cursor: b.code === activeChild.launchBandCode ? "default" : "pointer",
+                              border: `1.5px solid ${b.code === activeChild.launchBandCode ? "#9b72ff" : "rgba(255,255,255,0.12)"}`,
+                              background: b.code === activeChild.launchBandCode ? "rgba(155,114,255,0.2)" : "rgba(255,255,255,0.04)",
+                              color: b.code === activeChild.launchBandCode ? "#c4a0ff" : "rgba(255,255,255,0.6)",
+                              opacity: bandUpdating ? 0.5 : 1,
+                            }}
+                          >
+                            {b.label} <span style={{ opacity: 0.5, fontWeight: 400 }}>{b.sub}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
                       Last active: {formatLastActive(activeChildDashboard?.lastSessionAt ?? null)}
                     </div>
