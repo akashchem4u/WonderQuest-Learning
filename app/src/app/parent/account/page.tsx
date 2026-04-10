@@ -126,6 +126,22 @@ export default function ParentAccountPage() {
   // Danger zone confirmation
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteChecked, setDeleteChecked] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError,   setDeleteError]   = useState<string | null>(null);
+
+  async function handleDeleteAccount() {
+    if (!deleteChecked) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    const res = await fetch("/api/parent/delete-account", { method: "DELETE" });
+    if (res.ok) {
+      window.location.href = "/";
+    } else {
+      const data = await res.json() as { error?: string };
+      setDeleteError(data.error ?? "Something went wrong. Please try again.");
+      setDeleteLoading(false);
+    }
+  }
 
   // PIN reset modal (child)
   const [pinResetChildId,   setPinResetChildId]   = useState<string | null>(null);
@@ -1187,21 +1203,25 @@ export default function ParentAccountPage() {
                     <span style={{ fontSize: 13, color: MUTED }}>I understand my account will be deleted after 90 days</span>
                   </label>
                 </div>
+                {deleteError && (
+                  <p style={{ fontSize: 12, color: RED, margin: "0 0 8px" }}>{deleteError}</p>
+                )}
                 <div style={{ display: "flex", gap: 10 }}>
                   <button
-                    disabled={!deleteChecked}
+                    disabled={!deleteChecked || deleteLoading}
+                    onClick={() => void handleDeleteAccount()}
                     style={{
                       flex: 1, padding: 12,
                       background: deleteChecked ? RED : "rgba(248,81,73,0.2)",
                       color: "#fff", border: "none", borderRadius: 10,
                       fontSize: 14, fontWeight: 700, fontFamily: "system-ui",
-                      cursor: deleteChecked ? "pointer" : "not-allowed",
-                      opacity: deleteChecked ? 1 : 0.6,
+                      cursor: deleteChecked && !deleteLoading ? "pointer" : "not-allowed",
+                      opacity: deleteChecked && !deleteLoading ? 1 : 0.6,
                       minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                     }}
-                  >Yes, delete my account</button>
+                  >{deleteLoading ? "Deleting…" : "Yes, delete my account"}</button>
                   <button
-                    onClick={() => { setDeleteConfirm(false); setDeleteChecked(false); }}
+                    onClick={() => { setDeleteConfirm(false); setDeleteChecked(false); setDeleteError(null); }}
                     style={{
                       flex: 1, padding: 12, background: "rgba(255,255,255,0.06)",
                       color: MUTED, border: "none", borderRadius: 10,
