@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { isValidOwnerAccessToken, OWNER_COOKIE_NAME } from "@/lib/owner-access";
 
 export const ADMIN_SESSION_COOKIE = "wonderquest-admin-session";
 const SESSION_TTL_HOURS = 8;
@@ -83,6 +84,13 @@ type AdminSessionResult =
 export function requireAdminSession(
   request: NextRequest,
 ): AdminSessionResult | Promise<AdminSessionResult> {
+  // 1. Owner access code cookie — grants full admin access
+  const ownerToken = request.cookies.get(OWNER_COOKIE_NAME)?.value?.trim() ?? "";
+  if (isValidOwnerAccessToken(ownerToken)) {
+    return { ok: true, adminId: "owner", role: "owner", displayName: "Owner" };
+  }
+
+  // 2. Admin session cookie (Google OAuth admin)
   const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value ?? "";
   if (!token) {
     return {

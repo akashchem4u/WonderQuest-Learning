@@ -729,23 +729,6 @@ function TeachersTab() {
   );
 }
 
-// ── Deactivate notice banner ──────────────────────────────────────────────────
-function DeactivateBanner() {
-  const [dismissed, setDismissed] = useState(false);
-  if (dismissed) return null;
-  return (
-    <div style={{ background: "rgba(245,158,11,0.08)", border: `1px solid rgba(245,158,11,0.25)`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
-      <span style={{ fontSize: 18 }}>⏸️</span>
-      <div style={{ flex: 1 }}>
-        <p style={{ color: C.amber, fontSize: 13, fontWeight: 700, margin: "0 0 3px" }}>Deactivate / Reactivate requires a one-time DB migration</p>
-        <p style={{ color: C.muted, fontSize: 12, margin: 0, lineHeight: 1.5 }}>
-          Run <code style={{ background: "rgba(255,255,255,0.07)", borderRadius: 4, padding: "1px 5px", fontFamily: "monospace", fontSize: 11 }}>supabase/migrations/20260408_deactivation.sql</code> in your Supabase SQL editor to enable soft-disable on all profiles.
-        </p>
-      </div>
-      <button style={{ ...bG, fontSize: 11, padding: "3px 9px" }} onClick={() => setDismissed(true)}>×</button>
-    </div>
-  );
-}
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function OwnerUsersPage() {
@@ -760,7 +743,6 @@ export default function OwnerUsersPage() {
           <span style={{ color: C.text, fontSize: 15, fontWeight: 700 }}>Users</span>
         </div>
 
-        <DeactivateBanner />
 
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
           <div style={{ display: "flex", gap: 4, padding: "16px 20px 0", borderBottom: `1px solid ${C.border}` }}>
