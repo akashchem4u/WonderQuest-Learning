@@ -564,7 +564,7 @@ export default function ChildAccessPage() {
     <PageShell>
       {/* Hero */}
       <section className="home-hero" style={{ paddingBottom: 0 }}>
-        <span className="home-badge">Ages 2–10 · Early access</span>
+        <span className="home-badge">Ages 4–11 · Early access</span>
         <h1 className="home-title">
           Start your <span>adventure</span>
         </h1>

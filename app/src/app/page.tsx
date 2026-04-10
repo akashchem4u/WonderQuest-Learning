@@ -128,7 +128,7 @@ export default async function HomePage() {
             marginBottom: 28,
           }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.teal, display: "inline-block" }} aria-hidden="true" />
-            Early access · Ages 2–11 · {status.launchBandCount || bandList.length} bands
+            Early access · Ages 4–11 · {status.launchBandCount || bandList.length} bands
           </div>
 
           {/* Headline */}
@@ -160,7 +160,7 @@ export default async function HomePage() {
             lineHeight: 1.7,
             color: T.muted,
           }}>
-            WonderQuest is an AI-powered adaptive learning platform for children aged 2–11 — currently in early access.
+            WonderQuest is an AI-powered adaptive learning platform for children aged 4–11 — currently in early access.
             Short quests, instant parent insights, and classroom-ready teacher tools —
             all in one safe, ad-free environment.
           </p>
