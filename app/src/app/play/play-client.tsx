@@ -1475,6 +1475,7 @@ function PlayClientInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionMode = searchParams.get("sessionMode") ?? "guided-quest";
+  const subjectFilter = searchParams.get("subject") ?? undefined;
   const chosenQuestId = searchParams.get("chosenQuestId") ?? undefined;
   const chosenQuestTable = searchParams.get("chosenQuestTable") ?? undefined;
   const entryMode = searchParams.get("entry") ?? "new";
@@ -1548,7 +1549,7 @@ function PlayClientInner() {
           response = await fetch("/api/play/session", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionMode, chosenQuestId, chosenQuestTable }),
+            body: JSON.stringify({ sessionMode, module: subjectFilter, chosenQuestId, chosenQuestTable }),
             signal: controller.signal,
           });
         } catch (fetchErr) {

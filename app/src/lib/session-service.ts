@@ -29,6 +29,8 @@ import { getEssentialSkills } from "@/lib/curriculum-standards";
 type PlaySessionInput = {
   studentId: string;
   sessionMode: string;
+  /** Filter questions to a specific module (e.g. "math", "english") */
+  module?: string;
   /** When the child explicitly picks a quest, pass the pushed-row ID + table */
   chosenQuestId?: string;
   chosenQuestTable?: "guardian_pushed_activities" | "teacher_pushed_sessions";
@@ -347,6 +349,7 @@ async function collectBandQuestionsByDifficulty(input: {
   baseExcludeQuestionKeys: string[];
   orderBy: "difficulty_asc" | "difficulty_desc";
   limit: number;
+  modules?: string[];
 }) {
   const difficultySequence = getBandDifficultySequence(
     input.launchBandCode,
@@ -357,6 +360,7 @@ async function collectBandQuestionsByDifficulty(input: {
       findQuestions({
         launchBands: [input.launchBandCode],
         excludeQuestionKeys: input.baseExcludeQuestionKeys,
+        modules: input.modules,
         minDifficulty: difficulty,
         maxDifficulty: difficulty,
         orderBy: "random",
@@ -414,6 +418,7 @@ async function pickQuestionsForSkills(
   skills: string[],
   usedQuestionKeys: Set<string>,
   recentQuestionKeys: Set<string>,
+  modules?: string[],
 ): Promise<Map<string, SessionQuestionRecord>> {
   if (!skills.length) return new Map();
 
@@ -422,6 +427,7 @@ async function pickQuestionsForSkills(
   const freshBatch = await findQuestions({
     launchBands: [launchBandCode],
     skillCodes: skills,
+    modules,
     excludeQuestionKeys: [...usedQuestionKeys, ...recentQuestionKeys],
     orderBy: "random",
     limit: skills.length * perSkillLimit,
@@ -438,6 +444,7 @@ async function pickQuestionsForSkills(
     const fallbackBatch = await findQuestions({
       launchBands: [launchBandCode],
       skillCodes: missingSkills,
+      modules,
       excludeQuestionKeys: [...usedQuestionKeys],
       orderBy: "random",
       limit: missingSkills.length * perSkillLimit,
@@ -456,12 +463,14 @@ async function loadBandQuestionWindow(
   recentQuestionKeys: Set<string>,
   orderBy: "difficulty_asc" | "difficulty_desc",
   limit: number,
+  modules?: string[],
 ) {
   const freshQuestions = await collectBandQuestionsByDifficulty({
     launchBandCode,
     baseExcludeQuestionKeys: [...usedQuestionKeys, ...recentQuestionKeys],
     orderBy,
     limit,
+    modules,
   });
 
   if (freshQuestions.length >= limit || recentQuestionKeys.size === 0) {
@@ -473,6 +482,7 @@ async function loadBandQuestionWindow(
     baseExcludeQuestionKeys: [...usedQuestionKeys],
     orderBy,
     limit,
+    modules,
   });
 
   return mergeQuestionLists(freshQuestions, fallbackQuestions).slice(0, limit);
@@ -482,6 +492,7 @@ async function selectEasyFirstGuidedQuestions(
   launchBandCode: string,
   questionLimit: number,
   recentQuestionKeys: Set<string>,
+  modules?: string[],
 ) {
   const skillPriority = EARLY_GUIDED_SKILL_ORDER[launchBandCode];
 
@@ -492,6 +503,7 @@ async function selectEasyFirstGuidedQuestions(
       recentQuestionKeys,
       "difficulty_asc",
       Math.max(questionLimit * 6, 24),
+      modules,
     );
 
     return shuffleArray(prioritizedPool).slice(0, questionLimit);
@@ -512,6 +524,7 @@ async function selectEasyFirstGuidedQuestions(
     allSkills,
     usedQuestionKeys,
     recentQuestionKeys,
+    modules,
   );
 
   // Fill in priority-skill slots first
@@ -541,6 +554,7 @@ async function selectEasyFirstGuidedQuestions(
     recentQuestionKeys,
     "difficulty_asc",
     Math.max(questionLimit * 8, 32),
+    modules,
   );
 
   const usedSkills = new Set(selected.map((item) => item.skill));
@@ -690,7 +704,9 @@ async function selectSessionQuestions(
   launchBandCode: string,
   sessionMode: string,
   themeCode: string | null,
+  module?: string,
 ) {
+  const modules = module ? [module] : undefined;
   const questionLimit = getQuestionLimit(launchBandCode, sessionMode);
   const recentQuestionKeys = await getRecentSessionQuestionKeys(studentId);
 
@@ -701,6 +717,7 @@ async function selectSessionQuestions(
       recentQuestionKeys,
       "difficulty_desc",
       Math.max(questionLimit * 4, 32),
+      modules,
     );
     const challengeWindow = Math.min(
       prioritizedPool.length,
@@ -722,6 +739,7 @@ async function selectSessionQuestions(
     launchBandCode,
     questionLimit,
     recentQuestionKeys,
+    modules,
   );
 
   return maybeReplaceSessionQuestionsWithLiveVariants(
@@ -1334,6 +1352,7 @@ export async function createPlaySession(input: PlaySessionInput) {
     studentRow.launch_band_code as string,
     sessionMode,
     (studentRow.preferred_theme_code as string | undefined) ?? null,
+    input.module,
   );
 
   // ── Auto-advancement stretch: inject 1 next-band question if child is outperforming ──
