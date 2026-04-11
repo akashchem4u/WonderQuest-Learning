@@ -1489,7 +1489,7 @@ function PlayClientInner() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [dailyLimitInfo, setDailyLimitInfo] = useState<{ childName: string; sessionsToday: number; limit: number } | null>(null);
+  const [dailyLimitInfo, setDailyLimitInfo] = useState<{ childName: string; sessionsToday: number; limit: number; isGuest: boolean } | null>(null);
   const [answerState, setAnswerState] = useState<AnswerPayload | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -1558,7 +1558,7 @@ function PlayClientInner() {
         }
         clearTimeout(timeoutId);
 
-        const payload = (await response.json()) as SessionPayload & { error?: string; sessionsToday?: number; limit?: number };
+        const payload = (await response.json()) as SessionPayload & { error?: string; sessionsToday?: number; limit?: number; is_guest?: boolean };
 
         if (response.status === 403 && payload.error === "daily_limit_reached") {
           if (!active) return;
@@ -1566,6 +1566,7 @@ function PlayClientInner() {
             childName: "",
             sessionsToday: payload.sessionsToday ?? 3,
             limit: payload.limit ?? 3,
+            isGuest: payload.is_guest ?? false,
           });
           setLoading(false);
           return;
@@ -1862,27 +1863,32 @@ function PlayClientInner() {
   // ── Daily limit reached ───────────────────────────────────────────────────
 
   if (dailyLimitInfo && !loading) {
+    const isGuestLimit = dailyLimitInfo.isGuest;
     return (
       <AppFrame audience="kid" currentPath="/child">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "70vh", padding: "24px 20px" }}>
           <div style={{ textAlign: "center", maxWidth: 380, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-            <div style={{ fontSize: 52 }}>⭐</div>
+            <div style={{ fontSize: 52 }}>{isGuestLimit ? "🌟" : "⭐"}</div>
             <div style={{ fontSize: 22, fontWeight: 900, color: C.text, lineHeight: 1.2 }}>
-              {dailyLimitInfo.sessionsToday} sessions today!
+              {isGuestLimit ? "You're on a roll!" : `${dailyLimitInfo.sessionsToday} sessions today!`}
             </div>
             <div style={{ fontSize: 15, color: C.muted, lineHeight: 1.6, maxWidth: 300 }}>
-              You have played all {dailyLimitInfo.limit} free sessions for today. Come back tomorrow, or ask a parent to upgrade to the Family plan for unlimited play.
+              {isGuestLimit
+                ? "You've used up your guest sessions. Ask a parent to create a free account — your progress and quests will be saved forever!"
+                : `You've played all ${dailyLimitInfo.limit} free sessions for today. Come back tomorrow, or ask a parent to upgrade to the Family plan for unlimited play.`}
             </div>
             <a
-              href="/parent/account#upgrade"
+              href="/parent"
               style={{
                 display: "inline-block", padding: "11px 24px",
-                background: "linear-gradient(135deg, #9b72ff, #7c4dff)",
+                background: isGuestLimit
+                  ? "linear-gradient(135deg, #10b981, #059669)"
+                  : "linear-gradient(135deg, #9b72ff, #7c4dff)",
                 borderRadius: "12px", font: "700 0.9rem system-ui",
                 color: "#fff", textDecoration: "none", marginTop: 8,
               }}
             >
-              Upgrade to Family plan →
+              {isGuestLimit ? "Create a free account →" : "Upgrade to Family plan →"}
             </a>
             <Link href="/child" style={{ font: "600 0.8rem system-ui", color: C.muted, textDecoration: "none" }}>
               Back to home

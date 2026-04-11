@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
     // Plan gate: check daily session limit
     const limitRow = await db.query(
       `SELECT gp.plan,
+              gp.is_guest,
               COUNT(cs.id) AS sessions_today
          FROM public.guardian_student_links gsl
          JOIN public.guardian_profiles gp ON gp.id = gsl.guardian_id
@@ -26,17 +27,18 @@ export async function POST(request: NextRequest) {
            ON cs.student_id = gsl.student_id
           AND cs.started_at >= CURRENT_DATE
         WHERE gsl.student_id = $1
-        GROUP BY gp.plan
+        GROUP BY gp.plan, gp.is_guest
         LIMIT 1`,
       [accessSession.studentId],
     );
-    const limitData = limitRow.rows[0] as { plan: string; sessions_today: string } | undefined;
+    const limitData = limitRow.rows[0] as { plan: string; is_guest: boolean; sessions_today: string } | undefined;
     const plan = (limitData?.plan ?? "free") as Plan;
+    const isGuest = limitData?.is_guest ?? false;
     const sessionsToday = parseInt(limitData?.sessions_today ?? "0", 10);
     if (!canPlaySession(plan, sessionsToday)) {
       const limit = getLimits(plan).sessionsPerDay as number;
       return NextResponse.json(
-        { error: "daily_limit_reached", sessionsToday, limit },
+        { error: "daily_limit_reached", sessionsToday, limit, is_guest: isGuest },
         { status: 403 },
       );
     }
