@@ -1542,7 +1542,7 @@ function PlayClientInner() {
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const timeoutId = setTimeout(() => controller.abort(), 35000);
         let response: Response;
         try {
           response = await fetch("/api/play/session", {

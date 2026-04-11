@@ -8,6 +8,9 @@ import { track } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { canPlaySession, getLimits, type Plan } from "@/lib/plan-limits";
 
+// Give this route 30 s on Vercel (default is 10–15 s which can kill DB + AI warmup)
+export const maxDuration = 30;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
