@@ -404,6 +404,52 @@ async function pickQuestion(
   return fallbackQuestion ?? null;
 }
 
+/**
+ * Batch version of pickQuestion — fetches one question per skill in a single
+ * DB round-trip instead of 2 × N serial queries. Falls back to per-skill
+ * queries only for skills that the batch missed.
+ */
+async function pickQuestionsForSkills(
+  launchBandCode: string,
+  skills: string[],
+  usedQuestionKeys: Set<string>,
+  recentQuestionKeys: Set<string>,
+): Promise<Map<string, SessionQuestionRecord>> {
+  if (!skills.length) return new Map();
+
+  // One query: fetch a few candidates per skill, fresh (excludes recent + used)
+  const perSkillLimit = 2;
+  const freshBatch = await findQuestions({
+    launchBands: [launchBandCode],
+    skillCodes: skills,
+    excludeQuestionKeys: [...usedQuestionKeys, ...recentQuestionKeys],
+    orderBy: "random",
+    limit: skills.length * perSkillLimit,
+  });
+
+  const result = new Map<string, SessionQuestionRecord>();
+  for (const q of freshBatch) {
+    if (!result.has(q.skill)) result.set(q.skill, q);
+  }
+
+  // Skills with no fresh result — one fallback batch (excludes used only)
+  const missingSkills = skills.filter((s) => !result.has(s));
+  if (missingSkills.length) {
+    const fallbackBatch = await findQuestions({
+      launchBands: [launchBandCode],
+      skillCodes: missingSkills,
+      excludeQuestionKeys: [...usedQuestionKeys],
+      orderBy: "random",
+      limit: missingSkills.length * perSkillLimit,
+    });
+    for (const q of fallbackBatch) {
+      if (!result.has(q.skill)) result.set(q.skill, q);
+    }
+  }
+
+  return result;
+}
+
 async function loadBandQuestionWindow(
   launchBandCode: string,
   usedQuestionKeys: Set<string>,
@@ -454,50 +500,39 @@ async function selectEasyFirstGuidedQuestions(
   const selected: SessionQuestionRecord[] = [];
   const usedQuestionKeys = new Set<string>();
 
-  for (const skill of skillPriority) {
-    const nextQuestion = await pickQuestion(
-      launchBandCode,
-      skill,
-      usedQuestionKeys,
-      recentQuestionKeys,
-    );
-
-    if (!nextQuestion) {
-      continue;
-    }
-
-    selected.push(nextQuestion);
-    usedQuestionKeys.add(nextQuestion.question_key);
-
-    if (selected.length === questionLimit) {
-      return selected;
-    }
-  }
-
   const ladderSkills = SKILL_LADDERS[launchBandCode] ?? [];
 
+  // Batch-fetch one question per skill (priority + ladder) in 1–2 queries
+  const allSkills = [
+    ...skillPriority,
+    ...ladderSkills.filter((s) => !skillPriority.includes(s)),
+  ];
+  const skillQuestionMap = await pickQuestionsForSkills(
+    launchBandCode,
+    allSkills,
+    usedQuestionKeys,
+    recentQuestionKeys,
+  );
+
+  // Fill in priority-skill slots first
+  for (const skill of skillPriority) {
+    const nextQuestion = skillQuestionMap.get(skill);
+    if (!nextQuestion) continue;
+    selected.push(nextQuestion);
+    usedQuestionKeys.add(nextQuestion.question_key);
+    if (selected.length === questionLimit) return selected;
+  }
+
+  // Then ladder skills (skip any already covered by priority)
   for (const skill of ladderSkills) {
     if (skillPriority.includes(skill) || selected.some((item) => item.skill === skill)) {
       continue;
     }
-
-    const nextQuestion = await pickQuestion(
-      launchBandCode,
-      skill,
-      usedQuestionKeys,
-      recentQuestionKeys,
-    );
-
-    if (!nextQuestion) {
-      continue;
-    }
-
+    const nextQuestion = skillQuestionMap.get(skill);
+    if (!nextQuestion) continue;
     selected.push(nextQuestion);
     usedQuestionKeys.add(nextQuestion.question_key);
-
-    if (selected.length === questionLimit) {
-      return selected;
-    }
+    if (selected.length === questionLimit) return selected;
   }
 
   const remainingQuestions = await loadBandQuestionWindow(
