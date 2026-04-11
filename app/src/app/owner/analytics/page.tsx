@@ -51,7 +51,8 @@ function relativeTime(iso: string): string {
 }
 
 function fmtScore(n: number | null) {
-  return n === null ? "\u2014" : `${Math.round(n * 100)}%`;
+  // effectiveness_score is stored as 0–100 in the DB, not 0–1
+  return n === null ? "\u2014" : `${Math.round(n)}%`;
 }
 
 export default function OwnerAnalyticsPage() {

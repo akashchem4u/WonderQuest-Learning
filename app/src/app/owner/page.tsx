@@ -87,7 +87,8 @@ function fmtNum(n: number) {
   return String(n);
 }
 function fmtPct(n: number | null) {
-  return n === null ? "—" : `${Math.round(n * 100)}%`;
+  // effectiveness_score is stored as 0–100 in the DB, not 0–1
+  return n === null ? "—" : `${Math.round(n)}%`;
 }
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -638,7 +639,7 @@ export default function OwnerPage() {
                         <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                           {overview.latestSessions.slice(0, 7).map((s, i) => {
                             const score = s.effectivenessScore;
-                            const scoreColor = score === null ? C.muted : score >= 0.7 ? C.mint : score >= 0.4 ? C.amber : C.red;
+                            const scoreColor = score === null ? C.muted : score >= 70 ? C.mint : score >= 40 ? C.amber : C.red;
                             return (
                               <div key={s.id} style={{
                                 display: "flex", alignItems: "center", gap: "8px",
