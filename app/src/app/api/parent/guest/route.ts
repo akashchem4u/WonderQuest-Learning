@@ -7,6 +7,7 @@ import {
 } from "@/lib/parent-access";
 import { hashPin } from "@/lib/pin";
 import { db } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const AVATARS = [
   "bunny_purple",
@@ -23,6 +24,19 @@ export async function POST(request: NextRequest) {
   const ipAddress = getRequestIpAddress(request);
   const userAgent = getRequestUserAgent(request);
 
+  // Rate-limit: max 5 guest accounts per IP per hour
+  const rateCheck = checkRateLimit({
+    key: `guest-create:${ipAddress ?? "unknown"}`,
+    limit: 5,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!rateCheck.allowed) {
+    return NextResponse.json(
+      { error: "Too many guest accounts created. Please try again later." },
+      { status: 429, headers: { "Retry-After": "3600" } },
+    );
+  }
+
   try {
     const suffix = Math.random().toString(36).substring(2, 8).toUpperCase();
     const guardianUsername = `guest_${suffix}`;
@@ -30,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Generate simple 4-digit PINs for both accounts
     const parentPin = String(Math.floor(1000 + Math.random() * 9000));
-    const childPin = "0000";
+    const childPin = String(Math.floor(1000 + Math.random() * 9000));
 
     const parentPinHash = hashPin(parentPin, guardianUsername);
     const childPinHash = hashPin(childPin, studentUsername);

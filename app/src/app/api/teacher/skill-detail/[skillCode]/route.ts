@@ -8,9 +8,10 @@ import { requireTeacherSession } from "@/lib/teacher-session";
 //          weeklyTrend[{week, sessions, accuracy}],
 //          studentBreakdown[{studentId, name, mastery, status, sessions, lastActive}]
 
-function masteryStatus(rate: number): "Strong" | "Building" | "Started" {
-  if (rate >= 75) return "Strong";
-  if (rate >= 45) return "Building";
+function masteryStatus(masteryScore: number | null, accuracy: number): "Strong" | "Building" | "Started" {
+  const score = masteryScore ?? accuracy;
+  if (score >= 80) return "Strong";
+  if (score >= 50) return "Building";
   return "Started";
 }
 
@@ -65,7 +66,9 @@ export async function GET(
          sp.display_name,
          count(sr.id) as total_attempts,
          count(*) filter (where sr.correct) as correct_attempts,
-         max(cs.started_at) as last_active
+         max(cs.started_at) as last_active,
+         ssm.mastery_score,
+         ssm.proficient_at
        from public.teacher_student_roster tsr
        join public.student_profiles sp
          on sp.id = tsr.student_id
@@ -75,10 +78,12 @@ export async function GET(
          on sr.session_id = cs.id
        join public.skills sk
          on sk.id = sr.skill_id
+       left join public.student_skill_mastery ssm
+         on ssm.student_id = sp.id and ssm.skill_id = sr.skill_id
        where tsr.teacher_id = $1
          and tsr.active = true
          and sk.code = $2
-       group by sp.id, sp.display_name
+       group by sp.id, sp.display_name, ssm.mastery_score, ssm.proficient_at
        order by sp.display_name asc`,
       [teacherId, skillCode],
     );
@@ -86,12 +91,15 @@ export async function GET(
     const studentBreakdown = studentAgg.rows.map((row) => {
       const total = Number(row.total_attempts ?? 0);
       const correct = Number(row.correct_attempts ?? 0);
-      const mastery = total > 0 ? Math.round((correct / total) * 100) : 0;
-      const status = masteryStatus(mastery);
+      const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+      const masteryScore = row.mastery_score != null ? Math.round(Number(row.mastery_score)) : null;
+      const status = masteryStatus(masteryScore, accuracy);
       return {
         studentId: row.student_id as string,
         name: row.display_name as string,
-        mastery,
+        mastery: masteryScore ?? accuracy,
+        accuracy,
+        isProficient: row.proficient_at != null,
         status,
         sessions: total,
         lastActive: relativeDate(row.last_active as string | null),
@@ -99,11 +107,11 @@ export async function GET(
     });
 
     const totalStudents = studentBreakdown.length;
-    const mastered = studentBreakdown.filter((s) => s.status === "Strong").length;
+    const mastered = studentBreakdown.filter((s) => s.isProficient).length;
     const building = studentBreakdown.filter((s) => s.status === "Building").length;
     const started = studentBreakdown.filter((s) => s.status === "Started").length;
 
-    const totalCorrect = studentBreakdown.reduce((sum, s) => sum + Math.round((s.mastery / 100) * s.sessions), 0);
+    const totalCorrect = studentBreakdown.reduce((sum, s) => sum + Math.round((s.accuracy / 100) * s.sessions), 0);
     const totalSessions = studentBreakdown.reduce((sum, s) => sum + s.sessions, 0);
     const avgAccuracy = totalSessions > 0 ? Math.round((totalCorrect / totalSessions) * 100) : 0;
 

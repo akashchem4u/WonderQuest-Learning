@@ -668,14 +668,15 @@ export default function OwnerPage() {
                   </div>
 
                   {/* ── Row 5: Quick links ────────────────────────────────── */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: "10px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: "10px" }}>
                     {[
-                      { label: "Users",         href: "/owner/users",     color: C.violet },
-                      { label: "Teachers",      href: "/owner/teachers",  color: C.blue   },
-                      { label: "Content",       href: "/owner/content",   color: C.mint   },
-                      { label: "Experiments",   href: "/owner/experiments", color: C.pink  },
-                      { label: "Admin Users",   href: "/owner/admins",    color: C.amber  },
-                      { label: "Teacher View",  href: "/teacher",         color: C.muted  },
+                      { label: "Users",         href: "/owner/users",       color: C.violet },
+                      { label: "Teachers",      href: "/owner/teachers",    color: C.blue   },
+                      { label: "Content",       href: "/owner/content",     color: C.mint   },
+                      { label: "Experiments",   href: "/owner/experiments", color: C.pink   },
+                      { label: "Admin Users",   href: "/owner/admins",      color: C.amber  },
+                      { label: "AI Status",     href: "/owner/ai-status",   color: C.mint   },
+                      { label: "Teacher View",  href: "/teacher",           color: C.muted  },
                     ].map((link) => (
                       <Link
                         key={link.href}

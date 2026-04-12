@@ -15,35 +15,72 @@ interface SkillMasteryRow {
   mastery_score: number | null;
   session_count: number | null;
   proficient_at: string | null;
+  confidence_score: number | null;
+  consecutive_incorrect: number | null;
+  last_seen_at: string | null;
 }
 
-function scorePriority(
+function scoreRecommendation(
   curriculumPriority: CurriculumSkill["priority"],
   status: MasteryStatus,
-  masteryScore: number,
-): number {
-  // Higher score = higher recommendation rank
-  if (curriculumPriority === "essential") {
-    if (status === "not_started") return 100;
-    if (status === "in_progress" && masteryScore < 70) return 90;
-    if (status === "in_progress") return 70;
-    return 10; // proficient — lowest interest
+  mastery: SkillMasteryRow | undefined,
+): { score: number; reason: string } {
+  const masteryScore = mastery?.mastery_score ?? 0;
+  const confidence = mastery?.confidence_score ?? 0;
+  const consecutiveIncorrect = mastery?.consecutive_incorrect ?? 0;
+  const daysSinceLastSeen = mastery?.last_seen_at
+    ? Math.floor((Date.now() - new Date(mastery.last_seen_at).getTime()) / 86_400_000)
+    : 999;
+
+  const isRusty = status === "proficient" && daysSinceLastSeen >= 14;
+  const isStruggling = consecutiveIncorrect >= 2;
+  const isWeakMastery = status === "in_progress" && masteryScore < 55;
+  const isLowConfidence = status === "in_progress" && confidence < 40;
+
+  // Base score from priority + status
+  const priorityWeight: Record<CurriculumSkill["priority"], number> = {
+    essential: 60,
+    "on-track": 40,
+    enrichment: 20,
+    challenge: 10,
+  };
+  let score = priorityWeight[curriculumPriority] ?? 10;
+
+  if (status === "not_started") {
+    score += 30;
+    const reason = curriculumPriority === "essential"
+      ? "Essential skill — not started yet"
+      : "Not started yet";
+    return { score, reason };
   }
-  if (curriculumPriority === "on-track") {
-    if (status === "not_started") return 60;
-    if (status === "in_progress" && masteryScore < 70) return 50;
-    if (status === "in_progress") return 40;
-    return 8;
+
+  if (status === "proficient" && !isRusty) {
+    return { score: 2, reason: "Already proficient" };
   }
-  if (curriculumPriority === "enrichment") {
-    if (status === "not_started") return 30;
-    if (status === "in_progress") return 20;
-    return 5;
+
+  if (isRusty) {
+    score += 25;
+    return { score, reason: `Proficient but not practiced in ${daysSinceLastSeen} days` };
   }
-  // challenge
-  if (status === "not_started") return 15;
-  if (status === "in_progress") return 10;
-  return 3;
+
+  if (isStruggling) {
+    score += 35;
+    return { score, reason: `${consecutiveIncorrect} consecutive wrong answers — needs support` };
+  }
+
+  if (isWeakMastery) {
+    score += 25;
+    return { score, reason: "Weak mastery — needs more practice" };
+  }
+
+  if (isLowConfidence) {
+    score += 15;
+    return { score, reason: "Building confidence — keep going" };
+  }
+
+  // Generic in-progress
+  score += 10;
+  return { score, reason: "In progress" };
 }
 
 // ─── GET /api/parent/suggested-sessions?studentId=xxx ────────────────────────
@@ -111,7 +148,10 @@ export async function GET(request: NextRequest) {
           sk.code as skill_code,
           ssm.mastery_score,
           ssm.session_count,
-          ssm.proficient_at
+          ssm.proficient_at,
+          ssm.confidence_score,
+          ssm.consecutive_incorrect,
+          ssm.last_seen_at
         from public.student_skill_mastery ssm
         join public.skills sk on sk.id = ssm.skill_id
         where ssm.student_id = $1
@@ -141,7 +181,7 @@ export async function GET(request: NextRequest) {
         status = "in_progress";
       }
 
-      const score = scorePriority(skill.priority, status, masteryScore);
+      const { score, reason } = scoreRecommendation(skill.priority, status, mastery);
 
       return {
         skillCode: skill.code,
@@ -155,6 +195,7 @@ export async function GET(request: NextRequest) {
         sessionCount,
         isProficient,
         status,
+        reason,
         _score: score,
       };
     });

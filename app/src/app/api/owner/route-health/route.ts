@@ -154,12 +154,61 @@ export async function GET(request: NextRequest) {
   );
   const sessions24h = sessionResults24h; // reuse from above
 
+  // ── Play-loop SLIs ───────────────────────────────────────────────────────────
+  type PlayLoopRow = {
+    sessions_24h: string | null;
+    completed_24h: string | null;
+    answers_1h: string | null;
+    avg_questions_24h: string | null;
+    sessions_with_score_24h: string | null;
+  };
+  let playLoop: {
+    sessions24h: number;
+    completed24h: number;
+    completionRate24h: number | null;
+    answers1h: number;
+    avgQuestions24h: number | null;
+  } | null = null;
+  try {
+    const plResult = await withTimeout(
+      db.query<PlayLoopRow>(`
+        select
+          count(cs.id) filter (where cs.started_at >= now() - interval '24 hours') as sessions_24h,
+          count(cs.id) filter (where cs.ended_at is not null and cs.started_at >= now() - interval '24 hours') as completed_24h,
+          count(sr.id) filter (where sr.created_at >= now() - interval '1 hour') as answers_1h,
+          round(avg(cs.total_questions) filter (where cs.started_at >= now() - interval '24 hours'), 1) as avg_questions_24h,
+          count(cs.id) filter (
+            where cs.started_at >= now() - interval '24 hours'
+            and cs.effectiveness_score is not null
+          ) as sessions_with_score_24h
+        from public.challenge_sessions cs
+        left join public.session_results sr on sr.session_id = cs.id
+      `),
+      null,
+    );
+    if (plResult) {
+      const r = plResult.rows[0];
+      const s24 = Number(r.sessions_24h ?? 0);
+      const c24 = Number(r.completed_24h ?? 0);
+      playLoop = {
+        sessions24h: s24,
+        completed24h: c24,
+        completionRate24h: s24 > 0 ? Math.round((c24 / s24) * 100) : null,
+        answers1h: Number(r.answers_1h ?? 0),
+        avgQuestions24h: r.avg_questions_24h != null ? Number(r.avg_questions_24h) : null,
+      };
+    }
+  } catch {
+    // playLoop remains null — surfaced in response
+  }
+
   return NextResponse.json({
     routes,
     activity: {
       sessionsLast1h: sessions1h ?? 0,
       sessionsLast24h: sessions24h ?? 0,
     },
+    playLoop,
     checkedAt,
   });
 }

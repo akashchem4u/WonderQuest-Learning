@@ -13,10 +13,16 @@ export async function GET(request: NextRequest) {
         [studentId],
       ),
       db.query(
-        `select started_at, correct_answers, total_questions, points_earned
-         from public.play_sessions
-         where student_id = $1 and ended_at is not null
-         order by started_at desc limit 7`,
+        `select
+     cs.started_at,
+     count(sr.id) filter (where sr.correct = true) as correct_answers,
+     cs.total_questions,
+     coalesce(sum(sr.points_earned), 0) as points_earned
+   from public.challenge_sessions cs
+   left join public.session_results sr on sr.session_id = cs.id
+   where cs.student_id = $1 and cs.ended_at is not null
+   group by cs.id
+   order by cs.started_at desc limit 7`,
         [studentId],
       ),
       db.query(
@@ -41,7 +47,7 @@ export async function GET(request: NextRequest) {
       ),
     ]);
 
-    // Calculate streak from play_sessions (days with at least one session)
+    // Calculate streak from challenge_sessions (days with at least one session)
     const days = new Set(
       sessions.rows.map((r: Record<string, unknown>) =>
         new Date(r.started_at as string).toDateString(),

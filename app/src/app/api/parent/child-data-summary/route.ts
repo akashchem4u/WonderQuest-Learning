@@ -8,6 +8,7 @@ import {
   ParentAccessSessionError,
   requireParentAccessSession,
 } from "@/lib/parent-access";
+import { getStudentSessionSummary } from "@/lib/parent-report-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,23 +42,9 @@ export async function GET(request: NextRequest) {
     const studentRow = ownershipCheck.rows[0];
 
     // Gather summary stats in parallel
-    const [sessionStats, badgeCount, lastActive] = await Promise.all([
-      // Sessions count and questions answered from challenge_sessions + session_results
-      db.query(
-        `
-          select
-            count(distinct cs.id) as sessions_count,
-            coalesce(sum(sr_counts.q_count), 0) as questions_answered
-          from public.challenge_sessions cs
-          left join (
-            select session_id, count(*) as q_count
-            from public.session_results
-            group by session_id
-          ) sr_counts on sr_counts.session_id = cs.id
-          where cs.student_id = $1
-        `,
-        [studentId],
-      ),
+    const [sessionSummary, badgeCount, lastActive] = await Promise.all([
+      // Sessions count and questions answered via shared helper (all-time, windowDays=0)
+      getStudentSessionSummary(studentId, 0),
       // Badges earned from student_notifications
       db.query(
         `
@@ -79,8 +66,8 @@ export async function GET(request: NextRequest) {
       ),
     ]);
 
-    const sessionsCount = Number(sessionStats.rows[0]?.sessions_count ?? 0);
-    const questionsAnswered = Number(sessionStats.rows[0]?.questions_answered ?? 0);
+    const sessionsCount = sessionSummary.totalSessions;
+    const questionsAnswered = sessionSummary.totalQuestions;
     const badgesEarned = Number(badgeCount.rows[0]?.badges_earned ?? 0);
     const lastActiveAt = lastActive.rows[0]?.last_active_at
       ? String(lastActive.rows[0].last_active_at)

@@ -42,7 +42,7 @@ export type GradeReadiness = {
   essential: { mastered: number; total: number };
   onTrack: { mastered: number; total: number };
   enrichment: { mastered: number; total: number };
-  overallPct: number; // weighted readiness 0–100
+  overallPct: number; // weighted curriculum-completion 0–100 (essentials 60%, on-track 30%, enrichment 10%)
   bandCode: string;
   bandLabel: string;
 };
@@ -51,7 +51,7 @@ export type LearningPattern = {
   avgSessionMinutes: number | null;
   totalSessions30d: number;
   bestDayLabel: string | null; // "Monday", "Tuesday", etc.
-  consistencyPct: number; // days with session / 30 days
+  consistencyPct: number; // distinct active days / 30 days (multi-session days count once)
   avgAccuracy30d: number | null;
 };
 
@@ -123,6 +123,7 @@ function getBandLabel(code: string): string {
   if (code === "K1" || code === "P1") return "Kindergarten – Grade 1";
   if (code === "G23" || code === "P2") return "Grade 2 – 3";
   if (code === "G45" || code === "P3") return "Grade 4 – 5";
+  if (code === "G6") return "Grade 6";
   return code;
 }
 
@@ -370,7 +371,15 @@ export async function GET(request: NextRequest) {
       ? dayLabel(Number(bestDayRow.dow))
       : null;
 
-    const consistencyPct = Math.min(100, Math.round((totalSessions30d / 30) * 100));
+    const distinctDaysRes = await db.query(
+      `select count(distinct date_trunc('day', started_at at time zone 'UTC')::date) as active_days
+       from public.challenge_sessions
+       where student_id = $1 and started_at >= $2`,
+      [studentId, thirtyDaysAgo.toISOString()],
+    );
+    const activeDays30d = Number(distinctDaysRes.rows[0]?.active_days ?? 0);
+
+    const consistencyPct = Math.min(100, Math.round((activeDays30d / 30) * 100));
     const avgAccuracy30d = totalQs > 0 ? Math.round((totalCorrect / totalQs) * 100) : null;
 
     const learningPattern: LearningPattern = {

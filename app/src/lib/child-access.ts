@@ -214,14 +214,20 @@ export async function requireChildAccessSession(request: NextRequest) {
 
   const result = await db.query(
     `
-      update public.access_sessions
+      update public.access_sessions ses
       set last_seen_at = now()
-      where access_type = $1
-        and token_hash = $2
-        and revoked_at is null
-        and expires_at > now()
-        and (last_seen_at is null or last_seen_at > now() - ($3 * interval '1 minute'))
-      returning id, student_id, expires_at
+      from public.student_profiles sp
+      left join public.guardian_student_links gsl on gsl.student_id = sp.id
+      left join public.guardian_profiles gp
+        on gp.id = gsl.guardian_id and gp.is_guest = true
+      where ses.access_type = $1
+        and ses.token_hash = $2
+        and ses.revoked_at is null
+        and ses.expires_at > now()
+        and (ses.last_seen_at is null or ses.last_seen_at > now() - ($3 * interval '1 minute'))
+        and sp.id = ses.student_id
+        and (sp.is_guest = false or gp.guest_expires_at > now())
+      returning ses.id, ses.student_id, ses.expires_at
     `,
     [ACCESS_TYPE_CHILD, hashToken(token), IDLE_TIMEOUT_MINUTES],
   );

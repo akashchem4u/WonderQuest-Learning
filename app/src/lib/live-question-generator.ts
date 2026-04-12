@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   findCachedLiveQuestions,
+  getRecentPromptsForSkill,
   getSkillContext,
   insertAiGeneratedQuestion,
   type ContentQuestion,
@@ -497,6 +498,8 @@ async function generateAndPersistLiveQuestion(
     Math.max(skill.difficulty_floor, request.difficulty),
   );
 
+  const recentPrompts = await getRecentPromptsForSkill(request.skillCode, 8).catch(() => [] as string[]);
+
   const requestBody = {
     reasoning: {
       effort: getReasoningEffort(),
@@ -520,7 +523,7 @@ async function generateAndPersistLiveQuestion(
           difficultyCeiling: skill.difficulty_ceiling,
           themeCode: request.themeCode,
           reason: request.reason,
-          recentPrompts: [],
+          recentPrompts,
           referencePrompt: request.referenceQuestion?.prompt ?? null,
         }),
       },
@@ -568,24 +571,51 @@ async function generateAndPersistLiveQuestion(
     return JSON.parse(extractResponseText(payload)) as ModelQuestionPayload;
   }
 
+  const genStart = Date.now();
   const primaryModel = getQuestionModel();
   const fallbackModel = getFallbackQuestionModel();
   let parsed: ModelQuestionPayload;
   let resolvedModel = primaryModel;
 
   try {
-    parsed = await requestModelPayload(primaryModel);
-  } catch (error) {
-    if (!fallbackModel || fallbackModel === primaryModel) {
-      throw error;
-    }
+    try {
+      parsed = await requestModelPayload(primaryModel);
+      console.log("[wq:ai:gen]", JSON.stringify({
+        event: "generation_success",
+        skillCode: request.skillCode,
+        bandCode: request.launchBandCode,
+        model: primaryModel,
+        latencyMs: Date.now() - genStart,
+      }));
+    } catch (error) {
+      if (!fallbackModel || fallbackModel === primaryModel) {
+        throw error;
+      }
 
-    console.error(
-      "WonderQuest live question primary model failed; retrying fallback model",
-      error,
-    );
-    parsed = await requestModelPayload(fallbackModel);
-    resolvedModel = fallbackModel;
+      console.error(
+        "WonderQuest live question primary model failed; retrying fallback model",
+        error,
+      );
+      console.log("[wq:ai:gen]", JSON.stringify({
+        event: "model_fallback",
+        skillCode: request.skillCode,
+        bandCode: request.launchBandCode,
+        primaryModel,
+        fallbackModel,
+        latencyMs: Date.now() - genStart,
+      }));
+      parsed = await requestModelPayload(fallbackModel);
+      resolvedModel = fallbackModel;
+    }
+  } catch (error) {
+    console.log("[wq:ai:gen]", JSON.stringify({
+      event: "generation_failed",
+      skillCode: request.skillCode,
+      bandCode: request.launchBandCode,
+      latencyMs: Date.now() - genStart,
+      reason: "all_models_failed",
+    }));
+    throw error;
   }
 
   const sanitized = sanitizePayload(
@@ -593,7 +623,22 @@ async function generateAndPersistLiveQuestion(
     skill.difficulty_floor,
     skill.difficulty_ceiling,
   );
-  const validated = validatePayloadForBand(request, sanitized);
+
+  let validated: ReturnType<typeof validatePayloadForBand>;
+  try {
+    validated = validatePayloadForBand(request, sanitized);
+  } catch (error) {
+    const rejectionReason = error instanceof Error ? error.message : String(error);
+    console.log("[wq:ai:gen]", JSON.stringify({
+      event: "generation_rejected",
+      skillCode: request.skillCode,
+      bandCode: request.launchBandCode,
+      model: resolvedModel,
+      latencyMs: Date.now() - genStart,
+      reason: rejectionReason,
+    }));
+    throw error;
+  }
 
   const keySeed = createHash("sha1")
     .update(

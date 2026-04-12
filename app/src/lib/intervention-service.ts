@@ -160,6 +160,41 @@ export async function syncTeacherInterventionSignals(
     return [];
   }
 
+  // Suppress new auto-queue intervention if a prior one for the same student+skill
+  // was resolved with outcome = 'improved' within the last 7 days
+  const recentImprovement = await db.query(
+    `
+      select 1
+      from public.intervention_resolution_feedback irf
+      join public.teacher_interventions ti
+        on ti.id = irf.intervention_id
+      where ti.student_id = $1
+        and coalesce(ti.skill_code, '') = $2
+        and irf.outcome = 'improved'
+        and ti.resolved_at >= now() - interval '7 days'
+      limit 1
+    `,
+    [mastery.studentId, mastery.skillCode],
+  );
+
+  if (recentImprovement.rowCount) {
+    // Student showed improvement recently — downgrade existing active flags to
+    // 'monitoring' rather than firing a new intervention
+    await db.query(
+      `
+        update public.teacher_interventions
+        set status = 'monitoring'
+        where student_id = $1
+          and coalesce(skill_code, '') = $2
+          and teacher_id = any($3::uuid[])
+          and status = 'active'
+      `,
+      [mastery.studentId, mastery.skillCode, teacherIds],
+    );
+
+    return [];
+  }
+
   const reason = buildInterventionReason(mastery);
   const result = await db.query(
     `
@@ -244,7 +279,7 @@ export async function resolveTeacherIntervention(
         resolution_note = $3
       where id = $1
         and teacher_id = $2
-      returning id, teacher_id, student_id, skill_code, resolution_note, resolved_at
+      returning id, teacher_id, student_id, skill_code, resolution_note, resolved_at, created_at
     `,
     [input.interventionId, input.teacherId, resolutionNote],
   );
@@ -255,6 +290,53 @@ export async function resolveTeacherIntervention(
 
   const row = intervention.rows[0];
 
+  // Determine outcome by comparing mastery score now vs. when the intervention was created
+  let outcome: "improved" | "no_change" = "no_change";
+  let masteryAtResolution: number | null = null;
+
+  if (row.skill_code) {
+    const masteryNow = await db.query(
+      `
+        select ssm.mastery_score, ssm_snap.mastery_score as mastery_at_creation
+        from public.student_skill_mastery ssm
+        join public.skills sk on sk.id = ssm.skill_id
+        -- Try to get a historical snapshot at intervention creation time if available,
+        -- otherwise fall back to comparing current score vs a baseline of 0
+        left join lateral (
+          select mastery_score
+          from public.student_skill_mastery_history
+          where student_id = ssm.student_id
+            and skill_id = ssm.skill_id
+            and recorded_at <= $3
+          order by recorded_at desc
+          limit 1
+        ) ssm_snap on true
+        where ssm.student_id = $1
+          and sk.code = $2
+        limit 1
+      `,
+      [String(row.student_id), String(row.skill_code), String(row.created_at)],
+    );
+
+    if (masteryNow.rowCount) {
+      const currentScore = Number(masteryNow.rows[0].mastery_score ?? 0);
+      const baselineScore = masteryNow.rows[0].mastery_at_creation !== null
+        ? Number(masteryNow.rows[0].mastery_at_creation)
+        : null;
+      masteryAtResolution = currentScore;
+
+      if (baselineScore !== null && currentScore > baselineScore) {
+        outcome = "improved";
+      } else if (baselineScore === null) {
+        // No history table or no snapshot — treat any score >= 45 as improved
+        // since it means the student cleared the intervention threshold
+        if (currentScore >= 45) {
+          outcome = "improved";
+        }
+      }
+    }
+  }
+
   await db.query(
     `
       insert into public.intervention_resolution_feedback (
@@ -264,9 +346,11 @@ export async function resolveTeacherIntervention(
         skill_code,
         strategy_tag,
         notes,
-        effectiveness_rating
+        effectiveness_rating,
+        outcome,
+        mastery_at_resolution
       )
-      values ($1, $2, $3, $4, $5, $6, $7)
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `,
     [
       row.id,
@@ -276,6 +360,8 @@ export async function resolveTeacherIntervention(
       strategyTag,
       resolutionNote,
       effectivenessRating,
+      outcome,
+      masteryAtResolution,
     ],
   );
 
@@ -297,6 +383,8 @@ export async function resolveTeacherIntervention(
         : String(row.resolution_note),
     strategyTag,
     effectivenessRating,
+    outcome,
+    masteryAtResolution,
   };
 }
 

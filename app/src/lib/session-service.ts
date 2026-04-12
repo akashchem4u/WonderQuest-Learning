@@ -1482,6 +1482,171 @@ export async function createPlaySession(input: PlaySessionInput) {
   };
 }
 
+// ─── Private helpers for answerQuestion ──────────────────────────────────────
+
+async function recordAnswerResult(input: {
+  sessionId: string;
+  exampleItemId: string;
+  skillId: string;
+  isCorrect: boolean;
+  serverAttempt: number;
+  timeSpentMs: number;
+  pointsEarned: number;
+}): Promise<void> {
+  await db.query(
+    `
+      insert into public.session_results (
+        session_id,
+        example_item_id,
+        skill_id,
+        correct,
+        first_try,
+        time_spent_ms,
+        effective_time_ms,
+        remediation_triggered,
+        points_earned
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `,
+    [
+      input.sessionId,
+      input.exampleItemId,
+      input.skillId,
+      input.isCorrect,
+      input.serverAttempt === 1,
+      input.timeSpentMs,
+      input.isCorrect ? input.timeSpentMs : 0,
+      !input.isCorrect,
+      input.pointsEarned,
+    ],
+  );
+}
+
+async function applyMasteryAndInterventions(input: {
+  studentId: string;
+  skillId: string;
+  sessionId: string;
+  isCorrect: boolean;
+  serverAttempt: number;
+  timeSpentMs: number;
+  bandCode: string | undefined;
+}): Promise<StudentSkillMasteryRecord | null> {
+  try {
+    const masteryRecord = await updateStudentSkillMastery({
+      studentId: input.studentId,
+      skillId: input.skillId,
+      sessionId: input.sessionId,
+      correct: input.isCorrect,
+      firstTry: input.serverAttempt === 1,
+      remediationTriggered: !input.isCorrect,
+      timeSpentMs: input.timeSpentMs,
+      bandCode: input.bandCode,
+    });
+    await syncTeacherInterventionSignals(masteryRecord);
+    return masteryRecord;
+  } catch (error) {
+    console.error("WonderQuest mastery/intervention update failed", error);
+    return null;
+  }
+}
+
+async function applyProgressionUpdate(input: {
+  studentId: string;
+  pointsEarned: number;
+}): Promise<{
+  previousProgression: ProgressionSnapshot;
+  nextProgression: ProgressionSnapshot;
+  milestoneFlags: { leveledUp: boolean; badgeEarned: boolean; trophyEarned: boolean };
+}> {
+  const current = await db.query(
+    `
+      select total_points, current_level, badge_count, trophy_count
+      from public.progression_states
+      where student_id = $1
+      limit 1
+    `,
+    [input.studentId],
+  );
+
+  const previousProgression = toProgression(current.rows[0]);
+  const nextTotalPoints = previousProgression.totalPoints + input.pointsEarned;
+  const nextProgression = {
+    totalPoints: nextTotalPoints,
+    currentLevel: levelFromPoints(nextTotalPoints),
+    badgeCount: badgeCountFromPoints(nextTotalPoints),
+    trophyCount: trophyCountFromPoints(nextTotalPoints),
+  };
+  const milestoneFlags = {
+    leveledUp:
+      nextProgression.currentLevel > previousProgression.currentLevel,
+    badgeEarned: nextProgression.badgeCount > previousProgression.badgeCount,
+    trophyEarned:
+      nextProgression.trophyCount > previousProgression.trophyCount,
+  };
+
+  if (input.pointsEarned > 0) {
+    await db.query(
+      `
+        update public.progression_states
+        set
+          total_points = $2,
+          current_level = $3,
+          badge_count = $4,
+          trophy_count = $5,
+          last_restored_at = now(),
+          updated_at = now()
+        where student_id = $1
+      `,
+      [
+        input.studentId,
+        nextProgression.totalPoints,
+        nextProgression.currentLevel,
+        nextProgression.badgeCount,
+        nextProgression.trophyCount,
+      ],
+    );
+
+    if (
+      milestoneFlags.leveledUp ||
+      milestoneFlags.badgeEarned ||
+      milestoneFlags.trophyEarned
+    ) {
+      try {
+        await createMilestoneNotifications({
+          studentId: input.studentId,
+          previousProgression,
+          nextProgression,
+          milestones: milestoneFlags,
+        });
+      } catch (error) {
+        console.error("WonderQuest milestone notification write failed", error);
+      }
+    }
+  }
+
+  return { previousProgression, nextProgression, milestoneFlags };
+}
+
+async function resolveExplainerSignal(input: {
+  sessionId: string;
+  skillCode: string;
+  isCorrect: boolean;
+}): Promise<boolean> {
+  // BL-014: explainer fires on 2nd+ miss for this skill within the session
+  const skillMissCountRes = await db.query(
+    `select count(*) as miss_count
+     from public.session_results sr
+     join public.example_items ei on ei.id = sr.example_item_id
+     join public.skills sk on sk.id = sr.skill_id
+     where sr.session_id = $1
+       and sk.code = $2
+       and sr.correct = false`,
+    [input.sessionId, input.skillCode],
+  );
+  const skillMissCount = Number(skillMissCountRes.rows[0]?.miss_count ?? 0);
+  return !input.isCorrect && skillMissCount >= 2;
+}
+
 export async function answerQuestion(input: AnswerInput) {
   const session = await db.query(
     `
@@ -1570,49 +1735,25 @@ export async function answerQuestion(input: AnswerInput) {
   let masteryRecord: StudentSkillMasteryRecord | null = null;
   let resolvedStreak = 0;
 
-  await db.query(
-    `
-      insert into public.session_results (
-        session_id,
-        example_item_id,
-        skill_id,
-        correct,
-        first_try,
-        time_spent_ms,
-        effective_time_ms,
-        remediation_triggered,
-        points_earned
-      )
-      values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-    `,
-    [
-      input.sessionId,
-      metadata.exampleItemId,
-      metadata.skillId,
-      isCorrect,
-      serverAttempt === 1,
-      timeSpentMs,
-      isCorrect ? timeSpentMs : 0,
-      !isCorrect,
-      pointsEarned,
-    ],
-  );
+  await recordAnswerResult({
+    sessionId: input.sessionId,
+    exampleItemId: metadata.exampleItemId,
+    skillId: metadata.skillId,
+    isCorrect,
+    serverAttempt,
+    timeSpentMs,
+    pointsEarned,
+  });
 
-  try {
-    masteryRecord = await updateStudentSkillMastery({
-      studentId: input.studentId,
-      skillId: metadata.skillId,
-      sessionId: input.sessionId,
-      correct: isCorrect,
-      firstTry: serverAttempt === 1,
-      remediationTriggered: !isCorrect,
-      timeSpentMs,
-      bandCode: session.rows[0]?.launch_band_code as string | undefined,
-    });
-    await syncTeacherInterventionSignals(masteryRecord);
-  } catch (error) {
-    console.error("WonderQuest mastery/intervention update failed", error);
-  }
+  masteryRecord = await applyMasteryAndInterventions({
+    studentId: input.studentId,
+    skillId: metadata.skillId,
+    sessionId: input.sessionId,
+    isCorrect,
+    serverAttempt,
+    timeSpentMs,
+    bandCode: session.rows[0]?.launch_band_code as string | undefined,
+  });
 
   const liveQuestionsUsed = await countLiveQuestionsInSequence(questionSequence);
   const liveBudgetRemaining = Math.max(
@@ -1633,71 +1774,50 @@ export async function answerQuestion(input: AnswerInput) {
     ]);
   }
 
-  const current = await db.query(
-    `
-      select total_points, current_level, badge_count, trophy_count
-      from public.progression_states
-      where student_id = $1
-      limit 1
-    `,
-    [input.studentId],
-  );
-
-  const previousProgression = toProgression(current.rows[0]);
-  const nextTotalPoints = previousProgression.totalPoints + pointsEarned;
-  const nextProgression = {
-    totalPoints: nextTotalPoints,
-    currentLevel: levelFromPoints(nextTotalPoints),
-    badgeCount: badgeCountFromPoints(nextTotalPoints),
-    trophyCount: trophyCountFromPoints(nextTotalPoints),
-  };
-  const milestoneFlags = {
-    leveledUp:
-      nextProgression.currentLevel > previousProgression.currentLevel,
-    badgeEarned: nextProgression.badgeCount > previousProgression.badgeCount,
-    trophyEarned:
-      nextProgression.trophyCount > previousProgression.trophyCount,
-  };
-
-  if (pointsEarned > 0) {
-    await db.query(
-      `
-        update public.progression_states
-        set
-          total_points = $2,
-          current_level = $3,
-          badge_count = $4,
-          trophy_count = $5,
-          last_restored_at = now(),
-          updated_at = now()
-        where student_id = $1
-      `,
-      [
-        input.studentId,
-        nextProgression.totalPoints,
-        nextProgression.currentLevel,
-        nextProgression.badgeCount,
-        nextProgression.trophyCount,
-      ],
-    );
-
-    if (
-      milestoneFlags.leveledUp ||
-      milestoneFlags.badgeEarned ||
-      milestoneFlags.trophyEarned
-    ) {
-      try {
-        await createMilestoneNotifications({
-          studentId: input.studentId,
-          previousProgression,
-          nextProgression,
-          milestones: milestoneFlags,
-        });
-      } catch (error) {
-        console.error("WonderQuest milestone notification write failed", error);
+  // BL-005: Immediate remediation — insert a support question right after a miss
+  // Triggers on 2nd+ attempt on the same question, or after 2+ consecutive wrong answers
+  if (
+    !isCorrect &&
+    !currentQuestionIsAdaptive &&
+    adaptiveQuestionKeys.size < MAX_ADAPTIVE_INSERTIONS &&
+    (serverAttempt >= 2 || (masteryRecord !== null && masteryRecord.consecutiveIncorrect >= 2))
+  ) {
+    try {
+      const remediationRoute = await selectAdaptiveRoute(
+        question,
+        session.rows[0].launch_band_code as string,
+        requestedFocus,
+        true, // always recovery mode on a miss
+        question.theme || null,
+        { mastery: masteryRecord, liveBudgetRemaining },
+      );
+      if (remediationRoute) {
+        const updatedFocus = insertAdaptiveQuestionIntoFocus(
+          requestedFocus,
+          input.questionKey,
+          remediationRoute.questionKey,
+          (session.rows[0].session_mode as string) || "guided-quest",
+        );
+        totalQuestions = updatedFocus.totalQuestions;
+        adaptiveRoute = remediationRoute;
+        await db.query(
+          `update public.challenge_sessions set requested_focus = $2, total_questions = $3 where id = $1`,
+          [input.sessionId, updatedFocus.requestedFocus, totalQuestions],
+        );
       }
+    } catch (error) {
+      console.error("WonderQuest immediate remediation insertion failed", error);
     }
   }
+
+  const {
+    previousProgression,
+    nextProgression,
+    milestoneFlags,
+  } = await applyProgressionUpdate({
+    studentId: input.studentId,
+    pointsEarned,
+  });
 
   if (
     isCorrect &&
@@ -1936,6 +2056,12 @@ export async function answerQuestion(input: AnswerInput) {
     }
   }
 
+  const shouldTriggerExplainer = await resolveExplainerSignal({
+    sessionId: input.sessionId,
+    skillCode: question.skill,
+    isCorrect,
+  });
+
   return {
     correct: isCorrect,
     pointsEarned,
@@ -1948,7 +2074,7 @@ export async function answerQuestion(input: AnswerInput) {
     adaptiveQuestion: adaptiveRoute
       ? await buildQuestionCard(adaptiveRoute.questionKey, adaptiveRoute.action)
       : null,
-    explainer: !isCorrect
+    explainer: shouldTriggerExplainer
       ? {
           format: question.voice_script ? "voice-video" : "text",
           script:
@@ -1967,18 +2093,25 @@ export async function answerQuestion(input: AnswerInput) {
 export async function getPlaySessionHistory(studentId: string) {
   const res = await db.query(
     `select
-       ps.id,
-       ps.session_mode,
-       ps.started_at,
-       ps.ended_at,
-       ps.total_questions,
-       ps.correct_answers,
-       ps.points_earned,
-       ps.effectiveness_score
-     from play_sessions ps
-     where ps.student_id = $1
-       and ps.ended_at is not null
-     order by ps.started_at desc
+       cs.id,
+       cs.session_mode,
+       cs.started_at,
+       cs.ended_at,
+       cs.total_questions,
+       cs.effectiveness_score,
+       coalesce(sr_agg.correct_answers, 0) as correct_answers,
+       coalesce(sr_agg.points_earned, 0)   as points_earned
+     from public.challenge_sessions cs
+     left join lateral (
+       select
+         count(*) filter (where correct) as correct_answers,
+         coalesce(sum(points_earned), 0)  as points_earned
+       from public.session_results
+       where session_id = cs.id
+     ) sr_agg on true
+     where cs.student_id = $1
+       and cs.ended_at is not null
+     order by cs.started_at desc
      limit 20`,
     [studentId],
   );

@@ -19,7 +19,7 @@ const TEXT     = "#f0f6ff";
 const MUTED    = "#8b949e";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Tab = "profile" | "children" | "notifications" | "security" | "danger";
+type Section = "profile" | "kids" | "notifications";
 
 type RelationshipLabel = "Parent" | "Guardian" | "Grandparent" | "Caregiver";
 
@@ -74,7 +74,7 @@ function avatarEmoji(avatarKey: string): string {
 
 export default function ParentAccountPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("profile");
+  const [section, setSection] = useState<Section>("profile");
 
   // Session / real data
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
@@ -129,6 +129,10 @@ export default function ParentAccountPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError,   setDeleteError]   = useState<string | null>(null);
 
+  // Accordion state for sub-sections
+  const [securityOpen, setSecurityOpen] = useState(false);
+  const [dangerOpen,   setDangerOpen]   = useState(false);
+
   async function handleDeleteAccount() {
     if (!deleteChecked) return;
     setDeleteLoading(true);
@@ -143,7 +147,7 @@ export default function ParentAccountPage() {
     }
   }
 
-  // PIN reset modal (child)
+  // PIN reset (inline on child card)
   const [pinResetChildId,   setPinResetChildId]   = useState<string | null>(null);
   const [pinResetChildName, setPinResetChildName] = useState("");
   const [pinResetValue,     setPinResetValue]     = useState("");
@@ -306,7 +310,7 @@ export default function ParentAccountPage() {
     }
   }
 
-  // ── Reset child PIN ───────────────────────────────────────────────────────
+  // ── Reset child PIN (inline) ──────────────────────────────────────────────
   async function submitResetChildPin() {
     if (!/^\d{4}$/.test(pinResetValue)) {
       setPinResetError("PIN must be exactly 4 digits.");
@@ -392,17 +396,27 @@ export default function ParentAccountPage() {
     }
   }
 
-  // ── Shared card styles ────────────────────────────────────────────────────
-  const cardStyle: React.CSSProperties = {
+  // ── Shared style helpers ──────────────────────────────────────────────────
+  const card: React.CSSProperties = {
     background: SURFACE,
     borderRadius: 14,
-    padding: 20,
+    padding: "18px 20px",
     border: `1px solid ${BORDER}`,
-    marginBottom: 16,
+    marginBottom: 12,
+  };
+
+  const sectionTitle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    color: MUTED,
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    marginBottom: 10,
+    paddingLeft: 2,
   };
 
   const cardHead: React.CSSProperties = {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 800,
     color: TEXT,
     marginBottom: 14,
@@ -411,7 +425,7 @@ export default function ParentAccountPage() {
   const rowStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
-    padding: "11px 0",
+    padding: "10px 0",
     borderBottom: `1px solid rgba(255,255,255,0.05)`,
   };
 
@@ -438,21 +452,6 @@ export default function ParentAccountPage() {
     cursor: "pointer",
     marginLeft: "auto",
   };
-
-  const tabBtnStyle = (active: boolean): React.CSSProperties => ({
-    padding: "8px 18px",
-    borderRadius: 20,
-    border: "none",
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 600,
-    background: active ? VIOLET : "rgba(255,255,255,0.06)",
-    color: active ? "#fff" : MUTED,
-    fontFamily: "system-ui",
-    minHeight: 44,
-    touchAction: "manipulation",
-    WebkitTapHighlightColor: "transparent",
-  });
 
   const inputStyle: React.CSSProperties = {
     flex: 1,
@@ -504,847 +503,880 @@ export default function ParentAccountPage() {
     ? editName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
     : (guardian?.displayName ?? "P").charAt(0).toUpperCase();
 
+  // ── Nav items ─────────────────────────────────────────────────────────────
+  const navItems: { key: Section; icon: string; label: string }[] = [
+    { key: "profile",       icon: "⚙️", label: "My Profile" },
+    { key: "kids",          icon: "👧", label: "My Kids" },
+    { key: "notifications", icon: "🔔", label: "Notifications" },
+  ];
+
   return (
     <AppFrame audience="parent" currentPath="/parent/account">
-      <div style={{ background: BASE, minHeight: "100vh", padding: 32, overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom, 32px)" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 900, color: TEXT, marginBottom: 20 }}>
-          Account Settings
-        </h1>
-
-        {/* Tab bar */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
-          <button style={tabBtnStyle(tab === "profile")}       onClick={() => setTab("profile")}>Profile</button>
-          <button style={tabBtnStyle(tab === "children")}      onClick={() => setTab("children")}>Children</button>
-          <button style={tabBtnStyle(tab === "notifications")} onClick={() => setTab("notifications")}>Notifications</button>
-          <button style={tabBtnStyle(tab === "security")}      onClick={() => setTab("security")}>Security</button>
-          <button style={tabBtnStyle(tab === "danger")}        onClick={() => setTab("danger")}>Danger Zone</button>
+      <div style={{
+        background: BASE,
+        minHeight: "100vh",
+        paddingBottom: "env(safe-area-inset-bottom, 32px)",
+        fontFamily: "system-ui",
+      }}>
+        {/* ── Page header ── */}
+        <div style={{
+          padding: "20px 20px 0",
+          borderBottom: `1px solid ${BORDER}`,
+        }}>
+          <h1 style={{ fontSize: 18, fontWeight: 900, color: TEXT, margin: 0, paddingBottom: 16 }}>
+            Account Settings
+          </h1>
         </div>
 
-        {/* ── Profile Tab ── */}
-        {tab === "profile" && (
-          <div>
-            {sessionError && (
-              <div style={{
-                background: "rgba(248,81,73,0.1)", border: `1px solid rgba(248,81,73,0.3)`,
-                borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 16,
-              }}>{sessionError}</div>
-            )}
-            {profileSaved && (
-              <div style={{
-                background: "rgba(34,197,94,0.1)", border: `1px solid rgba(34,197,94,0.3)`,
-                borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700,
-                color: MINT, marginBottom: 16,
-              }}>Profile saved!</div>
-            )}
-            {profileError && (
-              <div style={{
-                background: "rgba(248,81,73,0.1)", border: `1px solid rgba(248,81,73,0.3)`,
-                borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 16,
-              }}>{profileError}</div>
-            )}
-
-            {/* Account Info card */}
-            <div style={cardStyle}>
-              <div style={cardHead}>Account info</div>
-              <div style={{ ...rowStyle }}>
-                <span style={labelStyle}>Email / username</span>
-                <span style={valStyle}>@{guardian?.username ?? "—"}</span>
-              </div>
-              <div style={{ ...rowStyle }}>
-                <span style={labelStyle}>Display name</span>
-                <span style={valStyle}>{guardian?.displayName ?? "—"}</span>
-              </div>
-              <div style={{ ...rowStyle, borderBottom: "none" }}>
-                <span style={labelStyle}>Session</span>
-                <a
-                  href="/api/parent/logout"
+        {/* ── Layout: sidebar + content ── */}
+        <div style={{
+          display: "flex",
+          gap: 0,
+          maxWidth: 900,
+          margin: "0 auto",
+        }}>
+          {/* ── Sidebar nav ── */}
+          <nav style={{
+            width: 200,
+            flexShrink: 0,
+            padding: "20px 12px",
+            borderRight: `1px solid ${BORDER}`,
+            position: "sticky",
+            top: 0,
+            height: "fit-content",
+          }}>
+            {navItems.map((item) => {
+              const active = section === item.key;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => setSection(item.key)}
                   style={{
-                    fontSize: 12, fontWeight: 700, color: RED, textDecoration: "none",
-                    background: "rgba(248,81,73,0.08)", border: `1.5px solid rgba(248,81,73,0.3)`,
-                    borderRadius: 8, padding: "5px 14px",
-                    display: "inline-flex", alignItems: "center",
-                    minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                  }}
-                >
-                  Sign out
-                </a>
-              </div>
-            </div>
-
-            {/* Profile card */}
-            <div style={cardStyle}>
-              <div style={cardHead}>Your profile</div>
-
-              {/* Avatar + name header */}
-              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: 20,
-                  background: `linear-gradient(135deg,${VIOLET},#6040cc)`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: loadingSession ? 14 : 22, color: "#fff", fontWeight: 900, flexShrink: 0,
-                }}>
-                  {loadingSession ? "..." : initials}
-                </div>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: TEXT }}>
-                    {loadingSession ? "Loading..." : (editName || guardian?.displayName || "Parent")}
-                  </div>
-                  <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>@{guardian?.username ?? "..."}</div>
-                  <div style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    background: "rgba(155,114,255,0.15)", borderRadius: 20, padding: "3px 10px",
-                    fontSize: 11, fontWeight: 700, color: VIOLET, marginTop: 5,
-                  }}>{editRelationship}</div>
-                </div>
-              </div>
-
-              {/* Display name */}
-              <div style={{ ...rowStyle }}>
-                <span style={labelStyle}>Display name</span>
-                {editingName ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-                    <input
-                      style={inputStyle}
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      autoFocus
-                      onKeyDown={(e) => e.key === "Enter" && saveProfile()}
-                    />
-                    <span
-                      style={{ fontSize: 12, color: MUTED, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
-                      onClick={() => setEditingName(false)}
-                    >Cancel</span>
-                  </div>
-                ) : (
-                  <>
-                    <span style={valStyle}>{editName || guardian?.displayName || "—"}</span>
-                    <span style={editLinkStyle} onClick={() => setEditingName(true)}>Edit</span>
-                  </>
-                )}
-              </div>
-
-              {/* Relationship label */}
-              <div style={{ ...rowStyle }}>
-                <span style={labelStyle}>Relationship</span>
-                <select
-                  value={editRelationship}
-                  onChange={(e) => setEditRelationship(e.target.value as RelationshipLabel)}
-                  style={{
-                    flex: 1,
-                    background: SURFACE2,
-                    border: `1.5px solid rgba(155,114,255,0.4)`,
-                    borderRadius: 8,
-                    padding: "6px 10px",
-                    fontSize: 16,
-                    color: TEXT,
-                    fontFamily: "system-ui",
-                    outline: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "none",
                     cursor: "pointer",
+                    fontSize: 13,
+                    fontWeight: active ? 700 : 500,
+                    background: active ? "rgba(155,114,255,0.15)" : "transparent",
+                    color: active ? VIOLET : MUTED,
+                    fontFamily: "system-ui",
+                    marginBottom: 2,
+                    textAlign: "left",
                     minHeight: 44,
                     touchAction: "manipulation",
+                    WebkitTapHighlightColor: "transparent",
+                    transition: "background 0.15s, color 0.15s",
                   }}
                 >
-                  <option value="Parent">Parent</option>
-                  <option value="Guardian">Guardian</option>
-                  <option value="Grandparent">Grandparent</option>
-                  <option value="Caregiver">Caregiver</option>
-                </select>
-              </div>
-
-              {/* Username (static) */}
-              <div style={{ ...rowStyle, borderBottom: "none" }}>
-                <span style={labelStyle}>Username</span>
-                <span style={valStyle}>{guardian?.username ?? "—"}</span>
-              </div>
-
-              <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  style={saveBtnStyle(profileSaving)}
-                  disabled={profileSaving}
-                  onClick={saveProfile}
-                >
-                  {profileSaving ? "Saving..." : "Save profile"}
+                  <span style={{ fontSize: 16 }}>{item.icon}</span>
+                  {item.label}
                 </button>
-              </div>
-            </div>
+              );
+            })}
+          </nav>
 
-            {/* School & Standards card */}
-            <div style={cardStyle}>
-              <div style={{ ...cardHead, display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                <span>School &amp; Curriculum Standards</span>
-                {!editingSchool && (
-                  <span
-                    style={editLinkStyle}
-                    onClick={() => {
-                      setEditStateCode(accountCtx?.stateCode ?? "");
-                      setEditSchoolName(accountCtx?.schoolName ?? "");
-                      setEditIsdName(accountCtx?.isdName ?? "");
-                      setEditingSchool(true);
-                    }}
-                  >Edit</span>
-                )}
-              </div>
+          {/* ── Main content ── */}
+          <main style={{ flex: 1, padding: "20px 20px 40px", minWidth: 0 }}>
 
-              {schoolSaved && (
-                <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700, color: MINT, marginBottom: 12 }}>
-                  School info saved!
-                </div>
-              )}
-              {schoolError && (
-                <div style={{ background: "rgba(248,81,73,0.1)", border: "1px solid rgba(248,81,73,0.3)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 12 }}>
-                  {schoolError}
-                </div>
-              )}
-
-              {editingSchool ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>State (2-letter code)</div>
-                    <input
-                      style={inputStyle}
-                      value={editStateCode}
-                      onChange={(e) => setEditStateCode(e.target.value.slice(0, 2))}
-                      placeholder="e.g. TX"
-                      maxLength={2}
-                    />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>School name</div>
-                    <input
-                      style={inputStyle}
-                      value={editSchoolName}
-                      onChange={(e) => setEditSchoolName(e.target.value)}
-                      placeholder="e.g. Lincoln Elementary"
-                    />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>ISD / District</div>
-                    <input
-                      style={inputStyle}
-                      value={editIsdName}
-                      onChange={(e) => setEditIsdName(e.target.value)}
-                      placeholder="e.g. Austin ISD"
-                    />
-                  </div>
-                  <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-                    <button style={saveBtnStyle(schoolSaving)} disabled={schoolSaving} onClick={saveSchool}>
-                      {schoolSaving ? "Saving…" : "Save"}
-                    </button>
-                    <button
-                      onClick={() => { setEditingSchool(false); setSchoolError(null); }}
-                      style={{ padding: "9px 16px", borderRadius: 10, border: "1.5px solid rgba(255,255,255,0.1)", background: "transparent", color: MUTED, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "system-ui", minHeight: 44, touchAction: "manipulation" }}
-                    >Cancel</button>
-                  </div>
-                </div>
-              ) : accountCtx ? (
-                <>
-                  {accountCtx.resolution && accountCtx.stateCode ? (
-                    <div style={{ ...rowStyle }}>
-                      <span style={labelStyle}>Curriculum</span>
-                      <div style={{ flex: 1 }}>
-                        <span style={{ display: "inline-block", fontWeight: 700, fontSize: 13, color: accountCtx.resolution.framework.color, background: `${accountCtx.resolution.framework.color}18`, border: `1.5px solid ${accountCtx.resolution.framework.color}35`, borderRadius: 8, padding: "3px 10px" }}>
-                          {accountCtx.resolution.framework.shortName}
-                        </span>
-                        <span style={{ fontSize: 11, color: MUTED, marginLeft: 8 }}>
-                          {accountCtx.resolution.source === "isd" ? `via ${accountCtx.resolution.sourceLabel}` : accountCtx.resolution.sourceLabel}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ ...rowStyle }}>
-                      <span style={labelStyle}>Curriculum</span>
-                      <span style={{ fontSize: 12, color: MUTED }}>
-                        No state set — click Edit to add your state for curriculum alignment.
-                      </span>
-                    </div>
-                  )}
-                  {accountCtx.schoolName && (
-                    <div style={{ ...rowStyle }}>
-                      <span style={labelStyle}>School</span>
-                      <span style={valStyle}>{accountCtx.schoolName}</span>
-                    </div>
-                  )}
-                  {accountCtx.isdName && (
-                    <div style={{ ...rowStyle, borderBottom: "none" }}>
-                      <span style={labelStyle}>ISD / District</span>
-                      <span style={valStyle}>{accountCtx.isdName}</span>
-                    </div>
-                  )}
-                  {!accountCtx.schoolName && !accountCtx.isdName && (
-                    <div style={{ ...rowStyle, borderBottom: "none" }}>
-                      <span style={labelStyle}>School / District</span>
-                      <span style={{ fontSize: 12, color: MUTED }}>Not set</span>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div style={{ fontSize: 13, color: MUTED }}>Loading…</div>
-              )}
-            </div>
-
-          </div>
-        )}
-
-        {/* ── Children Tab ── */}
-        {tab === "children" && (
-          <div>
-            {loadingSession ? (
-              <div style={{ fontSize: 14, color: MUTED, padding: "16px 0" }}>Loading children...</div>
-            ) : linkedChildren.length === 0 ? (
-              <div style={cardStyle}>
-                <div style={{ fontSize: 14, color: MUTED }}>
-                  No children linked yet.{" "}
-                  <a href="/parent/link" style={{ color: VIOLET, fontWeight: 700 }}>Link a child account →</a>
-                </div>
-              </div>
-            ) : (
-              linkedChildren.map((child) => (
-                <div key={child.id} style={{ ...cardStyle }}>
-                  {/* Child header */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
-                    <div style={{
-                      width: 52, height: 52, borderRadius: 14,
-                      background: "rgba(155,114,255,0.15)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 26, flexShrink: 0,
-                      border: `1.5px solid rgba(155,114,255,0.3)`,
-                    }}>
-                      {avatarEmoji(child.avatarKey)}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: TEXT }}>{child.displayName}</div>
-                      <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>@{child.username}</div>
-                      <span style={{
-                        display: "inline-block", marginTop: 5,
-                        background: "rgba(155,114,255,0.14)", color: VIOLET,
-                        borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 700,
-                      }}>{bandLabel(child.launchBandCode)}</span>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                      <span style={{
-                        background: "rgba(255,209,102,0.12)", color: GOLD,
-                        borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700,
-                      }}>Level {child.currentLevel}</span>
-                      <span style={{
-                        background: "rgba(80,232,144,0.1)", color: "#50e890",
-                        borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700,
-                      }}>⭐ {child.totalPoints.toLocaleString()} pts</span>
-                    </div>
-                  </div>
-
-                  {/* Action row */}
-                  <div style={{
-                    display: "flex", gap: 10, flexWrap: "wrap",
-                    borderTop: `1px solid rgba(255,255,255,0.05)`, paddingTop: 12,
-                  }}>
-                    <button
-                      onClick={() => openPinResetModal(child.id, child.displayName)}
-                      style={{
-                        padding: "8px 16px",
-                        background: "rgba(155,114,255,0.12)",
-                        border: `1.5px solid rgba(155,114,255,0.3)`,
-                        borderRadius: 8, fontSize: 12, fontWeight: 700,
-                        color: VIOLET, cursor: "pointer", fontFamily: "system-ui",
-                        minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      🔑 Reset PIN
-                    </button>
-                    <button
-                      onClick={() => openBandModal(child.id, child.displayName, child.launchBandCode)}
-                      style={{
-                        padding: "8px 16px",
-                        background: "rgba(255,209,102,0.08)",
-                        border: `1.5px solid rgba(255,209,102,0.25)`,
-                        borderRadius: 8, fontSize: 12, fontWeight: 700,
-                        color: GOLD, cursor: "pointer", fontFamily: "system-ui",
-                        minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      ✏️ Edit grade level
-                    </button>
-                    <a
-                      href={`/parent?studentId=${child.id}`}
-                      style={{
-                        padding: "8px 16px",
-                        background: "rgba(255,255,255,0.05)",
-                        border: `1.5px solid rgba(255,255,255,0.1)`,
-                        borderRadius: 8, fontSize: 12, fontWeight: 700,
-                        color: MUTED, textDecoration: "none", fontFamily: "system-ui",
-                        display: "inline-flex", alignItems: "center",
-                        minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      Dashboard →
-                    </a>
-                  </div>
-                </div>
-              ))
-            )}
-
-            {/* Add another child CTA */}
-            <div style={{
-              marginTop: 8, padding: "16px 20px",
-              background: "rgba(155,114,255,0.06)",
-              border: `1.5px dashed rgba(155,114,255,0.3)`,
-              borderRadius: 14, textAlign: "center" as const,
-            }}>
-              <a
-                href="/parent/link"
-                style={{ fontSize: 14, fontWeight: 700, color: VIOLET, textDecoration: "none" }}
-              >
-                + Add another child
-              </a>
-              <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-                Link an additional child account to your guardian profile
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Notifications Tab ── */}
-        {tab === "notifications" && (
-          <div>
-            {notifSaved && (
-              <div style={{
-                background: "rgba(34,197,94,0.1)", border: `1px solid rgba(34,197,94,0.3)`,
-                borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700,
-                color: MINT, marginBottom: 16,
-              }}>Notification preferences saved!</div>
-            )}
-            {notifError && (
-              <div style={{
-                background: "rgba(248,81,73,0.1)", border: `1px solid rgba(248,81,73,0.3)`,
-                borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 16,
-              }}>{notifError}</div>
-            )}
-
-            <div style={cardStyle}>
-              <div style={cardHead}>Notification preferences</div>
-              <div style={{ fontSize: 13, color: MUTED, marginBottom: 16 }}>
-                Choose which notifications you receive by email.
-              </div>
-
-              {(
-                [
-                  {
-                    key: "weeklyReports" as const,
-                    label: "Weekly progress reports",
-                    desc: "Get a summary of your child's learning progress every week.",
-                  },
-                  {
-                    key: "milestoneNotifications" as const,
-                    label: "Milestone notifications",
-                    desc: "Be notified when your child earns a badge or trophy.",
-                  },
-                  {
-                    key: "teacherMessages" as const,
-                    label: "Teacher messages",
-                    desc: "Receive a notification when a teacher sends you a message.",
-                  },
-                ] as const
-              ).map((item, i, arr) => (
-                <div
-                  key={item.key}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 16, padding: "14px 0",
-                    borderBottom: i < arr.length - 1 ? `1px solid rgba(255,255,255,0.05)` : "none",
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>{item.label}</div>
-                    <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>{item.desc}</div>
-                  </div>
-                  <div
-                    role="switch"
-                    aria-checked={notifPrefs[item.key]}
-                    onClick={() => setNotifPrefs((p) => ({ ...p, [item.key]: !p[item.key] }))}
-                    style={{
-                      width: 46, height: 26, borderRadius: 13, flexShrink: 0,
-                      background: notifPrefs[item.key] ? VIOLET : "rgba(255,255,255,0.1)",
-                      cursor: "pointer", position: "relative",
-                      transition: "background 0.2s",
-                      touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                      minWidth: 44,
-                    }}
-                  >
-                    <div style={{
-                      position: "absolute", top: 3,
-                      left: notifPrefs[item.key] ? 23 : 3,
-                      width: 20, height: 20, borderRadius: "50%",
-                      background: "#fff",
-                      transition: "left 0.2s",
-                    }} />
-                  </div>
-                </div>
-              ))}
-
-              <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  style={saveBtnStyle(notifSaving)}
-                  disabled={notifSaving}
-                  onClick={saveNotifPrefs}
-                >
-                  {notifSaving ? "Saving..." : "Save preferences"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Security Tab ── */}
-        {tab === "security" && (
-          <div>
-            {/* Change / Set PIN */}
-            <div style={cardStyle}>
-              <div style={cardHead}>{hasPin ? "Change PIN" : "Set PIN"}</div>
-              <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5, marginBottom: 16 }}>
-                {hasPin
-                  ? "Your 4-digit PIN is used to switch into your parent view from a child device."
-                  : "You signed in with Google — set a 4-digit PIN to access your parent view from a child device."}
-              </div>
-
-              {pinSaved && (
-                <div style={{
-                  background: "rgba(34,197,94,0.1)", border: `1px solid rgba(34,197,94,0.3)`,
-                  borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700,
-                  color: MINT, marginBottom: 16,
-                }}>PIN updated successfully!</div>
-              )}
-              {pinError && (
-                <div style={{
-                  background: "rgba(248,81,73,0.1)", border: `1px solid rgba(248,81,73,0.3)`,
-                  borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 16,
-                }}>{pinError}</div>
-              )}
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 320 }}>
-                {hasPin && (
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
-                      Current PIN
-                    </div>
-                    <input
-                      type="password"
-                      inputMode="numeric"
-                      maxLength={4}
-                      placeholder="••••"
-                      value={currentPin}
-                      onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                      style={pinInputStyle}
-                    />
-                  </div>
-                )}
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
-                    New PIN
-                  </div>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    placeholder="••••"
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    style={pinInputStyle}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
-                    Confirm new PIN
-                  </div>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    placeholder="••••"
-                    value={confirmPin}
-                    onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    style={pinInputStyle}
-                    onKeyDown={(e) => e.key === "Enter" && changePin()}
-                  />
-                </div>
-                <button
-                  style={{ ...saveBtnStyle(pinSaving), alignSelf: "flex-start" }}
-                  disabled={pinSaving}
-                  onClick={changePin}
-                >
-                  {pinSaving ? "Saving…" : hasPin ? "Update PIN" : "Set PIN"}
-                </button>
-              </div>
-            </div>
-
-            {/* Sign out */}
-            <div style={cardStyle}>
-              <div style={cardHead}>Session</div>
-              <div style={{ ...rowStyle, borderBottom: "none" }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>Sign out</div>
-                  <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>End your current session and return to the sign-in page.</div>
-                </div>
-                <a
-                  href="/api/parent/logout"
-                  style={{
-                    fontSize: 13, fontWeight: 700, color: RED, textDecoration: "none",
-                    background: "rgba(248,81,73,0.08)", border: `1.5px solid rgba(248,81,73,0.3)`,
-                    borderRadius: 8, padding: "7px 16px", flexShrink: 0,
-                  }}
-                >
-                  Sign out
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Danger Zone Tab ── */}
-        {tab === "danger" && (
-          <div>
-            <div style={cardStyle}>
-              <div style={cardHead}>Your data</div>
-              <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5, marginBottom: 14 }}>
-                You have the right to download or request deletion of all data associated with your account and
-                linked children&#39;s profiles (GDPR / CCPA).
-              </div>
-              <div style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "10px 0", borderBottom: `1px solid ${BORDER}`,
-              }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Export all data</div>
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>Download a ZIP of your account and learning data</div>
-                </div>
-                <button style={{
-                  padding: "8px 16px", background: "rgba(155,114,255,0.1)", color: VIOLET,
-                  border: `1.5px solid rgba(155,114,255,0.3)`, borderRadius: 8,
-                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui",
-                  flexShrink: 0, marginLeft: 12,
-                  minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                }}>Request export</button>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0" }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Data deletion request</div>
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>Request removal of all personal data (separate from account deletion)</div>
-                </div>
-                <button style={{
-                  padding: "8px 16px", background: "rgba(248,81,73,0.08)", color: RED,
-                  border: `1.5px solid rgba(248,81,73,0.35)`, borderRadius: 8,
-                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui",
-                  flexShrink: 0, marginLeft: 12,
-                  minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                }}>Request deletion</button>
-              </div>
-            </div>
-
-            <div style={{
-              background: SURFACE, borderRadius: 14, padding: 20,
-              border: `1.5px solid rgba(248,81,73,0.3)`, marginBottom: 16,
-            }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: RED, marginBottom: 14 }}>Danger zone</div>
-              <div style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "10px 0", borderBottom: `1px solid rgba(248,81,73,0.15)`,
-              }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Deactivate account</div>
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>Pause your account — reactivate anytime. Your child&#39;s data is preserved.</div>
-                </div>
-                <button style={{
-                  padding: "8px 16px", background: "rgba(248,81,73,0.08)", color: RED,
-                  border: `1.5px solid rgba(248,81,73,0.35)`, borderRadius: 8,
-                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui",
-                  flexShrink: 0, marginLeft: 12,
-                  minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                }}>Deactivate</button>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0" }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Permanently delete account</div>
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>All data deleted after 90-day grace period. 2-step confirmation required.</div>
-                </div>
-                <button
-                  onClick={() => setDeleteConfirm(true)}
-                  style={{
-                    padding: "8px 16px", background: "rgba(248,81,73,0.08)", color: RED,
-                    border: `1.5px solid rgba(248,81,73,0.35)`, borderRadius: 8,
-                    fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui",
-                    flexShrink: 0, marginLeft: 12,
-                  }}
-                >Delete account</button>
-              </div>
-            </div>
-
-            {deleteConfirm && (
-              <div style={{
-                background: SURFACE, borderRadius: 14, padding: 20,
-                border: `1.5px solid rgba(248,81,73,0.3)`,
-              }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: RED, marginBottom: 8 }}>Delete your account?</div>
-                <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5, marginBottom: 14 }}>
-                  Your account will be scheduled for deletion. Your children&#39;s learning progress will be preserved for{" "}
-                  <strong style={{ color: TEXT }}>90 days</strong> — you can reactivate within that time to restore everything.
-                </div>
-                <div style={{
-                  background: "rgba(245,158,11,0.08)", borderRadius: 10, padding: "12px 14px",
-                  fontSize: 12, color: AMBER, marginBottom: 14, lineHeight: 1.5,
-                  border: `1px solid rgba(245,158,11,0.2)`,
-                }}>
-                  After 90 days, all data is permanently deleted and cannot be recovered.
-                </div>
-                <div style={{ marginBottom: 10 }}>
-                  <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={deleteChecked}
-                      onChange={(e) => setDeleteChecked(e.target.checked)}
-                      style={{ marginTop: 2 }}
-                    />
-                    <span style={{ fontSize: 13, color: MUTED }}>I understand my account will be deleted after 90 days</span>
-                  </label>
-                </div>
-                {deleteError && (
-                  <p style={{ fontSize: 12, color: RED, margin: "0 0 8px" }}>{deleteError}</p>
-                )}
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button
-                    disabled={!deleteChecked || deleteLoading}
-                    onClick={() => void handleDeleteAccount()}
-                    style={{
-                      flex: 1, padding: 12,
-                      background: deleteChecked ? RED : "rgba(248,81,73,0.2)",
-                      color: "#fff", border: "none", borderRadius: 10,
-                      fontSize: 14, fontWeight: 700, fontFamily: "system-ui",
-                      cursor: deleteChecked && !deleteLoading ? "pointer" : "not-allowed",
-                      opacity: deleteChecked && !deleteLoading ? 1 : 0.6,
-                      minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                    }}
-                  >{deleteLoading ? "Deleting…" : "Yes, delete my account"}</button>
-                  <button
-                    onClick={() => { setDeleteConfirm(false); setDeleteChecked(false); setDeleteError(null); }}
-                    style={{
-                      flex: 1, padding: 12, background: "rgba(255,255,255,0.06)",
-                      color: MUTED, border: "none", borderRadius: 10,
-                      fontSize: 14, fontWeight: 700, fontFamily: "system-ui", cursor: "pointer",
-                      minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                    }}
-                  >Cancel</button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── PIN Reset Modal ── */}
-      {pinResetChildId && (
-        <div
-          onClick={() => { setPinResetChildId(null); setPinResetValue(""); }}
-          style={{
-            position: "fixed", inset: 0,
-            background: "rgba(0,0,0,0.65)",
-            backdropFilter: "blur(4px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: SURFACE,
-              border: `1px solid rgba(155,114,255,0.3)`,
-              borderRadius: 18,
-              padding: "28px 28px 24px",
-              width: 320,
-              maxWidth: "90vw",
-            }}
-          >
-            <div style={{ fontSize: 17, fontWeight: 800, color: TEXT, marginBottom: 6 }}>
-              Reset PIN — {pinResetChildName}
-            </div>
-            <div style={{ fontSize: 13, color: MUTED, marginBottom: 20, lineHeight: 1.5 }}>
-              Enter a new 4-digit PIN for {pinResetChildName}&#39;s account. They will use this to sign in on their device.
-            </div>
-
-            {pinResetSuccess ? (
-              <div style={{
-                background: "rgba(80,232,144,0.1)", border: `1px solid rgba(80,232,144,0.3)`,
-                borderRadius: 10, padding: "12px 14px", fontSize: 14, fontWeight: 700,
-                color: "#50e890", textAlign: "center" as const,
-              }}>
-                PIN updated!
-              </div>
-            ) : (
-              <>
-                {pinResetError && (
+            {/* ════════════════════════════════
+                MY PROFILE SECTION
+            ════════════════════════════════ */}
+            {section === "profile" && (
+              <div>
+                {sessionError && (
                   <div style={{
                     background: "rgba(248,81,73,0.1)", border: `1px solid rgba(248,81,73,0.3)`,
                     borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 14,
-                  }}>{pinResetError}</div>
+                  }}>{sessionError}</div>
+                )}
+                {profileSaved && (
+                  <div style={{
+                    background: "rgba(34,197,94,0.1)", border: `1px solid rgba(34,197,94,0.3)`,
+                    borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700,
+                    color: MINT, marginBottom: 14,
+                  }}>Profile saved!</div>
+                )}
+                {profileError && (
+                  <div style={{
+                    background: "rgba(248,81,73,0.1)", border: `1px solid rgba(248,81,73,0.3)`,
+                    borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 14,
+                  }}>{profileError}</div>
                 )}
 
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase" as const, letterSpacing: "0.07em", marginBottom: 8 }}>
-                    New 4-digit PIN
+                {/* Avatar + name header */}
+                <div style={{ ...card, display: "flex", alignItems: "center", gap: 16, marginBottom: 12 }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: 16,
+                    background: `linear-gradient(135deg,${VIOLET},#6040cc)`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: loadingSession ? 13 : 20, color: "#fff", fontWeight: 900, flexShrink: 0,
+                  }}>
+                    {loadingSession ? "..." : initials}
                   </div>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    placeholder="••••"
-                    value={pinResetValue}
-                    autoFocus
-                    onChange={(e) => setPinResetValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    onKeyDown={(e) => e.key === "Enter" && submitResetChildPin()}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: TEXT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {loadingSession ? "Loading..." : (editName || guardian?.displayName || "Parent")}
+                    </div>
+                    <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>@{guardian?.username ?? "..."}</div>
+                    <div style={{
+                      display: "inline-flex", alignItems: "center",
+                      background: "rgba(155,114,255,0.15)", borderRadius: 20, padding: "2px 9px",
+                      fontSize: 11, fontWeight: 700, color: VIOLET, marginTop: 4,
+                    }}>{editRelationship}</div>
+                  </div>
+                  <a
+                    href="/api/parent/logout"
                     style={{
-                      width: "100%",
-                      background: SURFACE2,
-                      border: `1.5px solid rgba(155,114,255,0.4)`,
-                      borderRadius: 10,
-                      padding: "12px 14px",
-                      fontSize: 20,
-                      fontWeight: 800,
-                      color: TEXT,
-                      fontFamily: "system-ui",
-                      outline: "none",
-                      letterSpacing: "0.35em",
-                      boxSizing: "border-box" as const,
-                      textAlign: "center" as const,
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button
-                    disabled={pinResetSaving || pinResetValue.length !== 4}
-                    onClick={submitResetChildPin}
-                    style={{
-                      flex: 1, padding: 12,
-                      background: pinResetValue.length === 4 ? VIOLET : "rgba(155,114,255,0.3)",
-                      color: "#fff", border: "none", borderRadius: 10,
-                      fontSize: 14, fontWeight: 700, fontFamily: "system-ui",
-                      cursor: pinResetValue.length === 4 ? "pointer" : "not-allowed",
-                      opacity: pinResetSaving ? 0.6 : 1,
-                      minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                      fontSize: 12, fontWeight: 700, color: RED, textDecoration: "none",
+                      background: "rgba(248,81,73,0.08)", border: `1.5px solid rgba(248,81,73,0.3)`,
+                      borderRadius: 8, padding: "5px 12px", flexShrink: 0,
+                      display: "inline-flex", alignItems: "center",
+                      minHeight: 36, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
                     }}
                   >
-                    {pinResetSaving ? "Saving..." : "Set PIN"}
-                  </button>
-                  <button
-                    onClick={() => { setPinResetChildId(null); setPinResetValue(""); setPinResetError(null); }}
-                    style={{
-                      flex: 1, padding: 12, background: "rgba(255,255,255,0.06)",
-                      color: MUTED, border: "none", borderRadius: 10,
-                      fontSize: 14, fontWeight: 700, fontFamily: "system-ui", cursor: "pointer",
-                      minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
-                    }}
-                  >Cancel</button>
+                    Sign out
+                  </a>
                 </div>
-              </>
+
+                {/* Name + relationship editor */}
+                <div style={sectionTitle}>Personal info</div>
+                <div style={card}>
+                  {/* Display name */}
+                  <div style={{ ...rowStyle }}>
+                    <span style={labelStyle}>Display name</span>
+                    {editingName ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+                        <input
+                          style={inputStyle}
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          autoFocus
+                          onKeyDown={(e) => e.key === "Enter" && saveProfile()}
+                        />
+                        <span
+                          style={{ fontSize: 12, color: MUTED, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
+                          onClick={() => setEditingName(false)}
+                        >Cancel</span>
+                      </div>
+                    ) : (
+                      <>
+                        <span style={valStyle}>{editName || guardian?.displayName || "—"}</span>
+                        <span style={editLinkStyle} onClick={() => setEditingName(true)}>Edit</span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Relationship */}
+                  <div style={{ ...rowStyle }}>
+                    <span style={labelStyle}>Relationship</span>
+                    <select
+                      value={editRelationship}
+                      onChange={(e) => setEditRelationship(e.target.value as RelationshipLabel)}
+                      style={{
+                        flex: 1,
+                        background: SURFACE2,
+                        border: `1.5px solid rgba(155,114,255,0.4)`,
+                        borderRadius: 8,
+                        padding: "6px 10px",
+                        fontSize: 16,
+                        color: TEXT,
+                        fontFamily: "system-ui",
+                        outline: "none",
+                        cursor: "pointer",
+                        minHeight: 44,
+                        touchAction: "manipulation",
+                      }}
+                    >
+                      <option value="Parent">Parent</option>
+                      <option value="Guardian">Guardian</option>
+                      <option value="Grandparent">Grandparent</option>
+                      <option value="Caregiver">Caregiver</option>
+                    </select>
+                  </div>
+
+                  {/* Username (static) */}
+                  <div style={{ ...rowStyle, borderBottom: "none" }}>
+                    <span style={labelStyle}>Username</span>
+                    <span style={valStyle}>{guardian?.username ?? "—"}</span>
+                  </div>
+
+                  <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+                    <button
+                      style={saveBtnStyle(profileSaving)}
+                      disabled={profileSaving}
+                      onClick={saveProfile}
+                    >
+                      {profileSaving ? "Saving..." : "Save profile"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* School & curriculum — collapsed accordion */}
+                <div style={sectionTitle}>School info</div>
+                <div style={{
+                  ...card,
+                  padding: 0,
+                  overflow: "hidden",
+                }}>
+                  <button
+                    onClick={() => {
+                      if (!editingSchool) {
+                        setEditStateCode(accountCtx?.stateCode ?? "");
+                        setEditSchoolName(accountCtx?.schoolName ?? "");
+                        setEditIsdName(accountCtx?.isdName ?? "");
+                        setEditingSchool(true);
+                      } else {
+                        setEditingSchool(false);
+                        setSchoolError(null);
+                      }
+                    }}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      width: "100%", padding: "14px 18px",
+                      background: "transparent", border: "none", cursor: "pointer",
+                      fontFamily: "system-ui", textAlign: "left",
+                      minHeight: 48, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>School &amp; Curriculum</span>
+                      {accountCtx?.stateCode && (
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, color: MUTED,
+                          background: "rgba(255,255,255,0.06)", borderRadius: 6, padding: "2px 8px",
+                        }}>{accountCtx.stateCode}</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 12, color: VIOLET, fontWeight: 700 }}>
+                      {editingSchool ? "Cancel" : "Edit"}
+                    </span>
+                  </button>
+
+                  {editingSchool && (
+                    <div style={{ padding: "0 18px 18px", borderTop: `1px solid ${BORDER}` }}>
+                      {schoolSaved && (
+                        <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700, color: MINT, margin: "14px 0 10px" }}>
+                          School info saved!
+                        </div>
+                      )}
+                      {schoolError && (
+                        <div style={{ background: "rgba(248,81,73,0.1)", border: "1px solid rgba(248,81,73,0.3)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, margin: "14px 0 10px" }}>
+                          {schoolError}
+                        </div>
+                      )}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>State (2-letter code)</div>
+                          <input
+                            style={inputStyle}
+                            value={editStateCode}
+                            onChange={(e) => setEditStateCode(e.target.value.slice(0, 2))}
+                            placeholder="e.g. TX"
+                            maxLength={2}
+                          />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>School name</div>
+                          <input
+                            style={inputStyle}
+                            value={editSchoolName}
+                            onChange={(e) => setEditSchoolName(e.target.value)}
+                            placeholder="e.g. Lincoln Elementary"
+                          />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>ISD / District</div>
+                          <input
+                            style={inputStyle}
+                            value={editIsdName}
+                            onChange={(e) => setEditIsdName(e.target.value)}
+                            placeholder="e.g. Austin ISD"
+                          />
+                        </div>
+                        <div style={{ display: "flex", gap: 10 }}>
+                          <button style={saveBtnStyle(schoolSaving)} disabled={schoolSaving} onClick={saveSchool}>
+                            {schoolSaving ? "Saving…" : "Save"}
+                          </button>
+                          <button
+                            onClick={() => { setEditingSchool(false); setSchoolError(null); }}
+                            style={{ padding: "9px 16px", borderRadius: 10, border: "1.5px solid rgba(255,255,255,0.1)", background: "transparent", color: MUTED, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "system-ui", minHeight: 44, touchAction: "manipulation" }}
+                          >Cancel</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!editingSchool && accountCtx && (
+                    <div style={{ padding: "0 18px 14px", borderTop: `1px solid ${BORDER}` }}>
+                      {accountCtx.resolution && accountCtx.stateCode ? (
+                        <div style={{ ...rowStyle, paddingTop: 12 }}>
+                          <span style={labelStyle}>Curriculum</span>
+                          <div style={{ flex: 1 }}>
+                            <span style={{ display: "inline-block", fontWeight: 700, fontSize: 13, color: accountCtx.resolution.framework.color, background: `${accountCtx.resolution.framework.color}18`, border: `1.5px solid ${accountCtx.resolution.framework.color}35`, borderRadius: 8, padding: "3px 10px" }}>
+                              {accountCtx.resolution.framework.shortName}
+                            </span>
+                            <span style={{ fontSize: 11, color: MUTED, marginLeft: 8 }}>
+                              {accountCtx.resolution.source === "isd" ? `via ${accountCtx.resolution.sourceLabel}` : accountCtx.resolution.sourceLabel}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ padding: "12px 0", fontSize: 12, color: MUTED }}>
+                          No state set — click Edit to add your state for curriculum alignment.
+                        </div>
+                      )}
+                      {accountCtx.schoolName && (
+                        <div style={{ ...rowStyle }}>
+                          <span style={labelStyle}>School</span>
+                          <span style={valStyle}>{accountCtx.schoolName}</span>
+                        </div>
+                      )}
+                      {accountCtx.isdName && (
+                        <div style={{ ...rowStyle, borderBottom: "none" }}>
+                          <span style={labelStyle}>ISD / District</span>
+                          <span style={valStyle}>{accountCtx.isdName}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Security — accordion */}
+                <div style={sectionTitle}>Security</div>
+                <div style={{ ...card, padding: 0, overflow: "hidden" }}>
+                  <button
+                    onClick={() => setSecurityOpen((v) => !v)}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      width: "100%", padding: "14px 18px",
+                      background: "transparent", border: "none", cursor: "pointer",
+                      fontFamily: "system-ui", textAlign: "left",
+                      minHeight: 48, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                    }}
+                  >
+                    <span style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>
+                      {hasPin ? "Change parent PIN" : "Set parent PIN"}
+                    </span>
+                    <span style={{ fontSize: 18, color: MUTED, lineHeight: 1 }}>{securityOpen ? "−" : "+"}</span>
+                  </button>
+
+                  {securityOpen && (
+                    <div style={{ padding: "0 18px 18px", borderTop: `1px solid ${BORDER}` }}>
+                      <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5, margin: "14px 0 16px" }}>
+                        {hasPin
+                          ? "Your 4-digit PIN is used to switch into your parent view from a child device."
+                          : "Set a 4-digit PIN to access your parent view from a child device."}
+                      </div>
+
+                      {pinSaved && (
+                        <div style={{
+                          background: "rgba(34,197,94,0.1)", border: `1px solid rgba(34,197,94,0.3)`,
+                          borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700,
+                          color: MINT, marginBottom: 14,
+                        }}>PIN updated successfully!</div>
+                      )}
+                      {pinError && (
+                        <div style={{
+                          background: "rgba(248,81,73,0.1)", border: `1px solid rgba(248,81,73,0.3)`,
+                          borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 14,
+                        }}>{pinError}</div>
+                      )}
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 300 }}>
+                        {hasPin && (
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Current PIN</div>
+                            <input
+                              type="password"
+                              inputMode="numeric"
+                              maxLength={4}
+                              placeholder="••••"
+                              value={currentPin}
+                              onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                              style={pinInputStyle}
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>New PIN</div>
+                          <input
+                            type="password"
+                            inputMode="numeric"
+                            maxLength={4}
+                            placeholder="••••"
+                            value={newPin}
+                            onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                            style={pinInputStyle}
+                          />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Confirm new PIN</div>
+                          <input
+                            type="password"
+                            inputMode="numeric"
+                            maxLength={4}
+                            placeholder="••••"
+                            value={confirmPin}
+                            onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                            style={pinInputStyle}
+                            onKeyDown={(e) => e.key === "Enter" && changePin()}
+                          />
+                        </div>
+                        <button
+                          style={{ ...saveBtnStyle(pinSaving), alignSelf: "flex-start" }}
+                          disabled={pinSaving}
+                          onClick={changePin}
+                        >
+                          {pinSaving ? "Saving…" : hasPin ? "Update PIN" : "Set PIN"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Danger zone — accordion */}
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ ...card, padding: 0, overflow: "hidden", border: dangerOpen ? `1.5px solid rgba(248,81,73,0.25)` : `1px solid ${BORDER}` }}>
+                    <button
+                      onClick={() => setDangerOpen((v) => !v)}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        width: "100%", padding: "14px 18px",
+                        background: "transparent", border: "none", cursor: "pointer",
+                        fontFamily: "system-ui", textAlign: "left",
+                        minHeight: 48, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                      }}
+                    >
+                      <span style={{ fontSize: 14, fontWeight: 700, color: dangerOpen ? RED : MUTED }}>Danger zone</span>
+                      <span style={{ fontSize: 18, color: MUTED, lineHeight: 1 }}>{dangerOpen ? "−" : "+"}</span>
+                    </button>
+
+                    {dangerOpen && (
+                      <div style={{ borderTop: `1px solid rgba(248,81,73,0.15)` }}>
+                        {/* Data section */}
+                        <div style={{ padding: "14px 18px", borderBottom: `1px solid rgba(248,81,73,0.1)` }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>Your data</div>
+                          <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 12 }}>
+                            You have the right to download or request deletion of all data associated with your account and linked children&#39;s profiles (GDPR / CCPA).
+                          </div>
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <button style={{
+                              padding: "8px 14px", background: "rgba(155,114,255,0.1)", color: VIOLET,
+                              border: `1.5px solid rgba(155,114,255,0.3)`, borderRadius: 8,
+                              fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui",
+                              minHeight: 40, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                            }}>Request export</button>
+                            <button style={{
+                              padding: "8px 14px", background: "rgba(248,81,73,0.08)", color: RED,
+                              border: `1.5px solid rgba(248,81,73,0.3)`, borderRadius: 8,
+                              fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui",
+                              minHeight: 40, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                            }}>Request data deletion</button>
+                          </div>
+                        </div>
+
+                        {/* Delete account */}
+                        <div style={{ padding: "14px 18px" }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 4 }}>Permanently delete account</div>
+                          <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 12 }}>
+                            All data deleted after a 90-day grace period. Your children&#39;s learning progress is preserved during that window.
+                          </div>
+
+                          {!deleteConfirm ? (
+                            <button
+                              onClick={() => setDeleteConfirm(true)}
+                              style={{
+                                padding: "9px 18px", background: "rgba(248,81,73,0.08)", color: RED,
+                                border: `1.5px solid rgba(248,81,73,0.35)`, borderRadius: 8,
+                                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui",
+                                minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                              }}
+                            >Delete account</button>
+                          ) : (
+                            <div style={{
+                              background: "rgba(248,81,73,0.05)",
+                              border: `1.5px solid rgba(248,81,73,0.25)`,
+                              borderRadius: 12, padding: "14px 16px",
+                            }}>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: RED, marginBottom: 6 }}>Delete your account?</div>
+                              <div style={{
+                                background: "rgba(245,158,11,0.08)", borderRadius: 10, padding: "10px 12px",
+                                fontSize: 12, color: AMBER, marginBottom: 12, lineHeight: 1.5,
+                                border: `1px solid rgba(245,158,11,0.2)`,
+                              }}>
+                                After 90 days, all data is permanently deleted and cannot be recovered.
+                              </div>
+                              <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginBottom: 12 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={deleteChecked}
+                                  onChange={(e) => setDeleteChecked(e.target.checked)}
+                                  style={{ marginTop: 2 }}
+                                />
+                                <span style={{ fontSize: 13, color: MUTED }}>I understand my account will be deleted after 90 days</span>
+                              </label>
+                              {deleteError && (
+                                <p style={{ fontSize: 12, color: RED, margin: "0 0 8px" }}>{deleteError}</p>
+                              )}
+                              <div style={{ display: "flex", gap: 10 }}>
+                                <button
+                                  disabled={!deleteChecked || deleteLoading}
+                                  onClick={() => void handleDeleteAccount()}
+                                  style={{
+                                    flex: 1, padding: 11,
+                                    background: deleteChecked ? RED : "rgba(248,81,73,0.2)",
+                                    color: "#fff", border: "none", borderRadius: 10,
+                                    fontSize: 13, fontWeight: 700, fontFamily: "system-ui",
+                                    cursor: deleteChecked && !deleteLoading ? "pointer" : "not-allowed",
+                                    opacity: deleteChecked && !deleteLoading ? 1 : 0.6,
+                                    minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                                  }}
+                                >{deleteLoading ? "Deleting…" : "Yes, delete my account"}</button>
+                                <button
+                                  onClick={() => { setDeleteConfirm(false); setDeleteChecked(false); setDeleteError(null); }}
+                                  style={{
+                                    flex: 1, padding: 11, background: "rgba(255,255,255,0.06)",
+                                    color: MUTED, border: "none", borderRadius: 10,
+                                    fontSize: 13, fontWeight: 700, fontFamily: "system-ui", cursor: "pointer",
+                                    minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                                  }}
+                                >Cancel</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
-          </div>
+
+            {/* ════════════════════════════════
+                MY KIDS SECTION
+            ════════════════════════════════ */}
+            {section === "kids" && (
+              <div>
+                {loadingSession ? (
+                  <div style={{ fontSize: 14, color: MUTED, padding: "20px 0" }}>Loading kids...</div>
+                ) : linkedChildren.length === 0 ? (
+                  <div style={{ ...card, textAlign: "center", padding: "40px 20px" }}>
+                    <div style={{ fontSize: 32, marginBottom: 10 }}>👧</div>
+                    <div style={{ fontSize: 14, color: MUTED, marginBottom: 14 }}>No children linked yet.</div>
+                    <a href="/parent/link" style={{
+                      display: "inline-flex", alignItems: "center",
+                      padding: "9px 20px", borderRadius: 10,
+                      background: VIOLET, color: "#fff",
+                      fontSize: 13, fontWeight: 700, textDecoration: "none",
+                    }}>Link a child account →</a>
+                  </div>
+                ) : (
+                  linkedChildren.map((child) => {
+                    const isResettingPin = pinResetChildId === child.id;
+                    return (
+                      <div key={child.id} style={card}>
+                        {/* Child header */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                          <div style={{
+                            width: 48, height: 48, borderRadius: 13,
+                            background: "rgba(155,114,255,0.15)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 24, flexShrink: 0,
+                            border: `1.5px solid rgba(155,114,255,0.25)`,
+                          }}>
+                            {avatarEmoji(child.avatarKey)}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: TEXT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{child.displayName}</div>
+                            <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>@{child.username}</div>
+                            <div style={{ display: "flex", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
+                              <span style={{
+                                background: "rgba(155,114,255,0.14)", color: VIOLET,
+                                borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700,
+                              }}>{bandLabel(child.launchBandCode)}</span>
+                              <span style={{
+                                background: "rgba(255,209,102,0.12)", color: GOLD,
+                                borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700,
+                              }}>Level {child.currentLevel}</span>
+                              <span style={{
+                                background: "rgba(80,232,144,0.1)", color: "#50e890",
+                                borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700,
+                              }}>⭐ {child.totalPoints.toLocaleString()}</span>
+                            </div>
+                          </div>
+                          <a
+                            href={`/parent?studentId=${child.id}`}
+                            style={{
+                              padding: "7px 12px",
+                              background: "rgba(255,255,255,0.05)",
+                              border: `1.5px solid rgba(255,255,255,0.1)`,
+                              borderRadius: 8, fontSize: 12, fontWeight: 700,
+                              color: MUTED, textDecoration: "none",
+                              display: "inline-flex", alignItems: "center",
+                              minHeight: 36, flexShrink: 0,
+                              touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                            }}
+                          >
+                            Dashboard →
+                          </a>
+                        </div>
+
+                        {/* Action row */}
+                        <div style={{
+                          display: "flex", gap: 8, flexWrap: "wrap",
+                          borderTop: `1px solid rgba(255,255,255,0.05)`, paddingTop: 12,
+                        }}>
+                          <button
+                            onClick={() => {
+                              if (isResettingPin) {
+                                setPinResetChildId(null);
+                                setPinResetValue("");
+                                setPinResetError(null);
+                              } else {
+                                openPinResetModal(child.id, child.displayName);
+                              }
+                            }}
+                            style={{
+                              padding: "7px 14px",
+                              background: isResettingPin ? "rgba(155,114,255,0.2)" : "rgba(155,114,255,0.1)",
+                              border: `1.5px solid ${isResettingPin ? VIOLET : "rgba(155,114,255,0.25)"}`,
+                              borderRadius: 8, fontSize: 12, fontWeight: 700,
+                              color: VIOLET, cursor: "pointer", fontFamily: "system-ui",
+                              minHeight: 38, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                            }}
+                          >
+                            {isResettingPin ? "✕ Cancel" : "🔑 Reset PIN"}
+                          </button>
+                          <button
+                            onClick={() => openBandModal(child.id, child.displayName, child.launchBandCode)}
+                            style={{
+                              padding: "7px 14px",
+                              background: "rgba(255,209,102,0.08)",
+                              border: `1.5px solid rgba(255,209,102,0.22)`,
+                              borderRadius: 8, fontSize: 12, fontWeight: 700,
+                              color: GOLD, cursor: "pointer", fontFamily: "system-ui",
+                              minHeight: 38, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                            }}
+                          >
+                            ✏️ Grade level
+                          </button>
+                        </div>
+
+                        {/* Inline PIN reset panel */}
+                        {isResettingPin && (
+                          <div style={{
+                            marginTop: 12,
+                            background: "rgba(155,114,255,0.07)",
+                            border: `1.5px solid rgba(155,114,255,0.25)`,
+                            borderRadius: 12,
+                            padding: "16px 16px 14px",
+                          }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 10 }}>
+                              New PIN for {child.displayName}
+                            </div>
+
+                            {pinResetSuccess ? (
+                              <div style={{
+                                background: "rgba(80,232,144,0.1)", border: `1px solid rgba(80,232,144,0.3)`,
+                                borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700,
+                                color: "#50e890", textAlign: "center",
+                              }}>
+                                PIN updated!
+                              </div>
+                            ) : (
+                              <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+                                <div style={{ flex: 1 }}>
+                                  {pinResetError && (
+                                    <div style={{
+                                      fontSize: 12, color: RED, marginBottom: 6,
+                                    }}>{pinResetError}</div>
+                                  )}
+                                  <input
+                                    type="password"
+                                    inputMode="numeric"
+                                    maxLength={4}
+                                    placeholder="Enter 4-digit PIN"
+                                    value={pinResetValue}
+                                    autoFocus
+                                    onChange={(e) => setPinResetValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                                    onKeyDown={(e) => e.key === "Enter" && submitResetChildPin()}
+                                    style={{
+                                      width: "100%",
+                                      background: SURFACE2,
+                                      border: `1.5px solid rgba(155,114,255,0.45)`,
+                                      borderRadius: 8,
+                                      padding: "9px 12px",
+                                      fontSize: 20,
+                                      fontWeight: 800,
+                                      color: TEXT,
+                                      fontFamily: "system-ui",
+                                      outline: "none",
+                                      letterSpacing: "0.3em",
+                                      boxSizing: "border-box",
+                                      textAlign: "center",
+                                    }}
+                                  />
+                                </div>
+                                <button
+                                  disabled={pinResetSaving || pinResetValue.length !== 4}
+                                  onClick={submitResetChildPin}
+                                  style={{
+                                    padding: "9px 18px",
+                                    background: pinResetValue.length === 4 ? VIOLET : "rgba(155,114,255,0.3)",
+                                    color: "#fff", border: "none", borderRadius: 8,
+                                    fontSize: 13, fontWeight: 700, fontFamily: "system-ui",
+                                    cursor: pinResetValue.length === 4 && !pinResetSaving ? "pointer" : "not-allowed",
+                                    opacity: pinResetSaving ? 0.6 : 1,
+                                    minHeight: 44, flexShrink: 0,
+                                    touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {pinResetSaving ? "Saving..." : "Save PIN"}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+
+                {/* Add another child CTA */}
+                {linkedChildren.length > 0 && (
+                  <div style={{
+                    padding: "14px 18px",
+                    background: "rgba(155,114,255,0.05)",
+                    border: `1.5px dashed rgba(155,114,255,0.25)`,
+                    borderRadius: 14, textAlign: "center",
+                  }}>
+                    <a
+                      href="/parent/link"
+                      style={{ fontSize: 13, fontWeight: 700, color: VIOLET, textDecoration: "none" }}
+                    >
+                      + Add another child
+                    </a>
+                    <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>
+                      Link an additional child account to your guardian profile
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ════════════════════════════════
+                NOTIFICATIONS SECTION
+            ════════════════════════════════ */}
+            {section === "notifications" && (
+              <div>
+                {notifSaved && (
+                  <div style={{
+                    background: "rgba(34,197,94,0.1)", border: `1px solid rgba(34,197,94,0.3)`,
+                    borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700,
+                    color: MINT, marginBottom: 14,
+                  }}>Notification preferences saved!</div>
+                )}
+                {notifError && (
+                  <div style={{
+                    background: "rgba(248,81,73,0.1)", border: `1px solid rgba(248,81,73,0.3)`,
+                    borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 14,
+                  }}>{notifError}</div>
+                )}
+
+                <div style={sectionTitle}>Email notifications</div>
+                <div style={card}>
+                  <div style={{ fontSize: 12, color: MUTED, marginBottom: 16, lineHeight: 1.5 }}>
+                    Choose which updates you receive by email.
+                  </div>
+
+                  {(
+                    [
+                      {
+                        key: "weeklyReports" as const,
+                        icon: "📊",
+                        label: "Weekly progress reports",
+                        desc: "A summary of your child's learning progress every week.",
+                      },
+                      {
+                        key: "milestoneNotifications" as const,
+                        icon: "🏆",
+                        label: "Milestone notifications",
+                        desc: "Get notified when your child earns a badge or trophy.",
+                      },
+                      {
+                        key: "teacherMessages" as const,
+                        icon: "💬",
+                        label: "Teacher messages",
+                        desc: "Receive a notification when a teacher sends you a message.",
+                      },
+                    ] as const
+                  ).map((item, i, arr) => (
+                    <div
+                      key={item.key}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 14,
+                        padding: "13px 0",
+                        borderBottom: i < arr.length - 1 ? `1px solid rgba(255,255,255,0.05)` : "none",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => setNotifPrefs((p) => ({ ...p, [item.key]: !p[item.key] }))}
+                    >
+                      <span style={{
+                        fontSize: 22, width: 36, height: 36, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "rgba(255,255,255,0.04)", borderRadius: 10,
+                        border: `1px solid rgba(255,255,255,0.07)`,
+                      }}>{item.icon}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>{item.label}</div>
+                        <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{item.desc}</div>
+                      </div>
+                      {/* Toggle */}
+                      <div
+                        role="switch"
+                        aria-checked={notifPrefs[item.key]}
+                        style={{
+                          width: 46, height: 26, borderRadius: 13, flexShrink: 0,
+                          background: notifPrefs[item.key] ? VIOLET : "rgba(255,255,255,0.1)",
+                          cursor: "pointer", position: "relative",
+                          transition: "background 0.2s",
+                          touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                          minWidth: 44,
+                        }}
+                      >
+                        <div style={{
+                          position: "absolute", top: 3,
+                          left: notifPrefs[item.key] ? 23 : 3,
+                          width: 20, height: 20, borderRadius: "50%",
+                          background: "#fff",
+                          transition: "left 0.2s",
+                        }} />
+                      </div>
+                    </div>
+                  ))}
+
+                  <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+                    <button
+                      style={saveBtnStyle(notifSaving)}
+                      disabled={notifSaving}
+                      onClick={saveNotifPrefs}
+                    >
+                      {notifSaving ? "Saving..." : "Save preferences"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </main>
         </div>
-      )}
+      </div>
 
       {/* ── Band edit modal ── */}
       {bandChildId && (

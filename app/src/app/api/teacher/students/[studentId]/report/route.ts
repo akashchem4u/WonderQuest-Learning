@@ -47,27 +47,55 @@ export async function GET(
 
   const profile = profileRes.rows[0];
 
-  // Session stats
+  // Session stats from canonical tables
   const statsRes = await db.query(
     `select
-       count(*) as total_sessions,
-       count(*) filter (where ended_at is not null) as completed_sessions,
-       coalesce(sum(extract(epoch from (ended_at - started_at)) * 1000) filter (where ended_at is not null), 0) as total_time_ms,
-       coalesce(avg(correct_answers::float / nullif(total_questions, 0) * 100) filter (where ended_at is not null and total_questions > 0), 0) as avg_accuracy_pct,
-       coalesce(sum(points_earned), 0) as total_points
-     from public.play_sessions
-     where student_id = $1`,
+       count(cs.id) as total_sessions,
+       count(cs.id) filter (where cs.ended_at is not null) as completed_sessions,
+       coalesce(
+         sum(extract(epoch from (cs.ended_at - cs.started_at)) * 1000)
+         filter (where cs.ended_at is not null), 0
+       ) as total_time_ms,
+       coalesce(
+         avg(sr_agg.accuracy_pct) filter (where cs.ended_at is not null and cs.total_questions > 0),
+         0
+       ) as avg_accuracy_pct,
+       coalesce(sum(sr_agg.points), 0) as total_points
+     from public.challenge_sessions cs
+     left join lateral (
+       select
+         count(*) filter (where correct)::float / nullif(cs.total_questions, 0) * 100 as accuracy_pct,
+         coalesce(sum(points_earned), 0) as points
+       from public.session_results
+       where session_id = cs.id
+     ) sr_agg on true
+     where cs.student_id = $1`,
     [studentId],
   );
 
   const stats = statsRes.rows[0] ?? {};
 
-  // Recent sessions (last 10)
+  // Recent sessions (last 10) from canonical tables
   const sessionsRes = await db.query(
-    `select id, session_mode, started_at, ended_at, correct_answers, total_questions, points_earned, effectiveness_score
-     from public.play_sessions
-     where student_id = $1
-     order by started_at desc
+    `select
+       cs.id,
+       cs.session_mode,
+       cs.started_at,
+       cs.ended_at,
+       cs.total_questions,
+       cs.effectiveness_score,
+       coalesce(sr_agg.correct_answers, 0) as correct_answers,
+       coalesce(sr_agg.points_earned, 0) as points_earned
+     from public.challenge_sessions cs
+     left join lateral (
+       select
+         count(*) filter (where correct) as correct_answers,
+         coalesce(sum(points_earned), 0) as points_earned
+       from public.session_results
+       where session_id = cs.id
+     ) sr_agg on true
+     where cs.student_id = $1
+     order by cs.started_at desc
      limit 10`,
     [studentId],
   );
@@ -75,7 +103,7 @@ export async function GET(
   // Streak: count consecutive days with at least one session up to today
   const streakRes = await db.query(
     `select distinct date_trunc('day', started_at at time zone 'UTC') as session_day
-     from public.play_sessions
+     from public.challenge_sessions
      where student_id = $1
      order by session_day desc`,
     [studentId],
@@ -88,62 +116,36 @@ export async function GET(
   let expected = today.getTime();
   for (const row of streakRes.rows) {
     const dayTs = new Date(row.session_day as string).getTime();
-    // Allow today or yesterday as first day
     if (streakDays === 0 && Math.abs(dayTs - expected) > oneDay) break;
     if (dayTs !== expected && dayTs !== expected - oneDay) break;
     streakDays++;
     expected = dayTs - oneDay;
   }
 
-  // Skill progress — gracefully handle missing table
+  // Skill progress from canonical student_skill_mastery (mastery_score is 0–100)
   let topSkills: { skillCode: string; masteryPct: number }[] = [];
   let skillGaps: { skillCode: string; masteryPct: number }[] = [];
 
   try {
     const skillRes = await db.query(
-      `select skill_code, mastery_score
-       from public.student_skill_progress
-       where student_id = $1
-       order by mastery_score desc`,
+      `select sk.code as skill_code, ssm.mastery_score
+       from public.student_skill_mastery ssm
+       join public.skills sk on sk.id = ssm.skill_id
+       where ssm.student_id = $1
+       order by ssm.mastery_score desc`,
       [studentId],
     );
 
     const allSkills = skillRes.rows.map((r) => ({
       skillCode: r.skill_code as string,
-      masteryPct: Math.round(Number(r.mastery_score) * 100),
+      masteryPct: Math.round(Number(r.mastery_score)),
     }));
 
     topSkills = allSkills.slice(0, 3);
     skillGaps = [...allSkills].reverse().slice(0, 3).filter((s) => s.masteryPct < 70);
   } catch {
-    // Table may not exist — fall back to deriving from play_session_responses
-    try {
-      const derivedRes = await db.query(
-        `select
-           r.skill_code,
-           round(avg(case when r.is_correct then 1.0 else 0.0 end) * 100) as mastery_pct
-         from public.play_session_responses r
-         join public.play_sessions ps on ps.id = r.session_id
-         where ps.student_id = $1
-           and r.skill_code is not null
-         group by r.skill_code
-         having count(*) >= 3
-         order by mastery_pct desc`,
-        [studentId],
-      );
-
-      const allSkills = derivedRes.rows.map((r) => ({
-        skillCode: r.skill_code as string,
-        masteryPct: Number(r.mastery_pct),
-      }));
-
-      topSkills = allSkills.slice(0, 3);
-      skillGaps = [...allSkills].reverse().slice(0, 3).filter((s) => s.masteryPct < 70);
-    } catch {
-      // Both tables missing or query failed — return empty arrays
-      topSkills = [];
-      skillGaps = [];
-    }
+    topSkills = [];
+    skillGaps = [];
   }
 
   return NextResponse.json({

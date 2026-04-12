@@ -5,6 +5,15 @@ import { db } from "@/lib/db";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export type StudentSessionSummary = {
+  totalSessions: number;
+  completedSessions: number;
+  totalCorrect: number;
+  totalQuestions: number;
+  accuracyPct: number | null;
+  activeDays: number;
+};
+
 export type ChildWeeklyReport = {
   studentId: string;
   displayName: string;
@@ -47,6 +56,50 @@ export type ChildWeeklyReport = {
 };
 
 // ─── Service ──────────────────────────────────────────────────────────────────
+
+/**
+ * Returns aggregate session + accuracy stats for a student over the last
+ * `windowDays` days. Pass windowDays = 0 for all-time.
+ * Does NOT enforce guardian access — callers are responsible for verifying
+ * the guardian-student link before calling this function.
+ */
+export async function getStudentSessionSummary(
+  studentId: string,
+  windowDays: number,
+): Promise<StudentSessionSummary> {
+  const windowClause =
+    windowDays > 0
+      ? `and cs.started_at >= now() - interval '${windowDays} days'`
+      : "";
+
+  const result = await db.query(
+    `select
+       count(distinct cs.id) as total_sessions,
+       count(distinct cs.id) filter (where cs.ended_at is not null) as completed_sessions,
+       count(sr.id) filter (where sr.correct) as total_correct,
+       count(sr.id) as total_questions,
+       count(distinct date_trunc('day', cs.started_at)) as active_days
+     from public.challenge_sessions cs
+     left join public.session_results sr on sr.session_id = cs.id
+     where cs.student_id = $1
+     ${windowClause}`,
+    [studentId],
+  );
+
+  const r = result.rows[0];
+  const totalCorrect = Number(r.total_correct ?? 0);
+  const totalQuestions = Number(r.total_questions ?? 0);
+
+  return {
+    totalSessions: Number(r.total_sessions ?? 0),
+    completedSessions: Number(r.completed_sessions ?? 0),
+    totalCorrect,
+    totalQuestions,
+    accuracyPct:
+      totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : null,
+    activeDays: Number(r.active_days ?? 0),
+  };
+}
 
 export async function getChildWeeklyReport(
   guardianId: string,

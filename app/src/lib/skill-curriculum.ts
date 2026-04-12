@@ -1,4 +1,4 @@
-export type BandCode = "PREK" | "K1" | "G23" | "G45";
+export type BandCode = "PREK" | "K1" | "G23" | "G45" | "G6";
 
 export type ProficiencyThreshold = {
   minSessions: number;       // min distinct sessions on this skill
@@ -11,6 +11,7 @@ export const BAND_THRESHOLDS: Record<BandCode, ProficiencyThreshold> = {
   K1:   { minSessions: 3, masteryThreshold: 78, maxAvgTimeMs: 15000 },
   G23:  { minSessions: 3, masteryThreshold: 82, maxAvgTimeMs: 12000 },
   G45:  { minSessions: 4, masteryThreshold: 85, maxAvgTimeMs: 10000 },
+  G6:   { minSessions: 4, masteryThreshold: 88, maxAvgTimeMs: 8000 },
 };
 
 // Canonical skill codes per band (subset of all skills — the ones that define grade-level competency)
@@ -41,6 +42,7 @@ export const BAND_CURRICULUM: Record<BandCode, string[]> = {
     "historical-cause-effect",
     "revision-choice",
   ],
+  G6: ["integer-number-line", "order-of-operations", "rate-reasoning", "simple-equations", "theme-analysis", "author-claim", "earth-processes", "ecosystem-evidence", "force-motion", "argument-evidence", "revision-precision", "multi-step-patterns"],
 };
 
 export function getBandThreshold(bandCode: string): ProficiencyThreshold {

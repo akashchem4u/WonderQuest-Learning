@@ -41,10 +41,75 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Child not linked to this account." }, { status: 403 });
     }
 
+    // ── Gather promotion evidence before updating ──
+    const currentBandResult = await db.query(
+      `select launch_band_code from public.student_profiles where id = $1`,
+      [childId],
+    );
+    const fromBand: string = currentBandResult.rows[0]?.launch_band_code ?? "unknown";
+
+    // Count proficient skills (mastery_score >= 70) in old band and new band
+    const skillCountsResult = await db.query(
+      `
+        select
+          sk.launch_band_code,
+          count(*) as total,
+          count(*) filter (where ssm.mastery_score >= 70) as proficient
+        from public.skills sk
+        left join public.student_skill_mastery ssm
+          on ssm.skill_id = sk.id and ssm.student_id = $1
+        where sk.launch_band_code = any($2::text[])
+        group by sk.launch_band_code
+      `,
+      [childId, [fromBand, launchBandCode]],
+    );
+
+    const bandStats: Record<string, { total: number; proficient: number }> = {};
+    for (const r of skillCountsResult.rows) {
+      bandStats[String(r.launch_band_code)] = {
+        total: Number(r.total ?? 0),
+        proficient: Number(r.proficient ?? 0),
+      };
+    }
+
+    const promotionEvidence = {
+      fromBand,
+      toBand: launchBandCode,
+      proficientSkillsInOldBand: bandStats[fromBand]?.proficient ?? 0,
+      totalSkillsInOldBand: bandStats[fromBand]?.total ?? 0,
+      proficientSkillsInNewBand: bandStats[launchBandCode]?.proficient ?? 0,
+      totalSkillsInNewBand: bandStats[launchBandCode]?.total ?? 0,
+    };
+
     await db.query(
       `update public.student_profiles set launch_band_code = $1 where id = $2`,
       [launchBandCode, childId],
     );
+
+    // ── Log band promotion to audit log ──
+    try {
+      await db.query(
+        `
+          INSERT INTO public.content_audit_log
+            (entity_type, entity_id, action, changed_by, previous_value, new_value, notes)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `,
+        [
+          "student",
+          childId,
+          "band_promotion",
+          `guardian:${guardianId}`,
+          JSON.stringify({ band: fromBand }),
+          JSON.stringify({
+            band: launchBandCode,
+            evidence: promotionEvidence,
+          }),
+          `Guardian promoted student from ${fromBand} to ${launchBandCode}`,
+        ],
+      );
+    } catch {
+      // Non-fatal: band update already succeeded
+    }
 
     // ── Smart grade cascade: push starter quests only for skills not yet mastered ──
     try {
@@ -89,7 +154,16 @@ export async function POST(request: NextRequest) {
       // Non-fatal: band update already succeeded
     }
 
-    return NextResponse.json({ success: true, launchBandCode });
+    return NextResponse.json({
+      ok: true,
+      newBandCode: launchBandCode,
+      evidence: {
+        proficientInOldBand: promotionEvidence.proficientSkillsInOldBand,
+        totalInOldBand: promotionEvidence.totalSkillsInOldBand,
+        proficientInNewBand: promotionEvidence.proficientSkillsInNewBand,
+        totalInNewBand: promotionEvidence.totalSkillsInNewBand,
+      },
+    });
   } catch (error) {
     const status = error instanceof ParentAccessSessionError ? 401 : 400;
     return NextResponse.json(

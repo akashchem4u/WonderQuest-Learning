@@ -74,6 +74,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     console.error("[explain] Error:", error);
-    return NextResponse.json({ explanation: null });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

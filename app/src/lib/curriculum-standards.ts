@@ -11,7 +11,7 @@ export type SkillSubject = "math" | "reading" | "science" | "logic";
 export type SkillPriority = "essential" | "on-track" | "enrichment" | "challenge";
 export type SkillComplexity = 1 | 2 | 3;
 export type SkillActivityType = "drill" | "story" | "explore" | "puzzle";
-export type BandCode = "PREK" | "K1" | "G23" | "G45";
+export type BandCode = "PREK" | "K1" | "G23" | "G45" | "G6";
 
 export interface CurriculumSkill {
   code: string;

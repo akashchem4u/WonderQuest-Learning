@@ -24,6 +24,20 @@ export async function PATCH(request: NextRequest) {
       newPin?: string;
     };
 
+    // ── Input validation ────────────────────────────────────────────────────
+    if (body.displayName !== undefined && body.displayName !== null && body.displayName.length > 100) {
+      return NextResponse.json({ error: "Display name must be 100 characters or fewer." }, { status: 400 });
+    }
+    if (body.stateCode !== undefined && body.stateCode !== null && body.stateCode.length > 2) {
+      return NextResponse.json({ error: "State code must be 2 characters or fewer." }, { status: 400 });
+    }
+    if (body.schoolName !== undefined && body.schoolName !== null && body.schoolName.length > 200) {
+      return NextResponse.json({ error: "School name must be 200 characters or fewer." }, { status: 400 });
+    }
+    if (body.isdName !== undefined && body.isdName !== null && body.isdName.length > 200) {
+      return NextResponse.json({ error: "ISD name must be 200 characters or fewer." }, { status: 400 });
+    }
+
     // ── Profile update ──────────────────────────────────────────────────────
     if (body.displayName !== undefined || body.relationshipLabel !== undefined) {
       const sets: string[] = ["updated_at = now()"];

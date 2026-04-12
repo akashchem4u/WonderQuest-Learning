@@ -123,11 +123,13 @@ function formatLastSeen(value: string | null) {
 
 function getAvatarSymbol(avatarKey: string) {
   if (avatarKey.includes("bunny")) return "🐰";
-  if (avatarKey.includes("bear")) return "🐻";
-  if (avatarKey.includes("lion")) return "🦁";
+  if (avatarKey.includes("cat")) return "🐱";
+  if (avatarKey.includes("dog")) return "🐶";
   if (avatarKey.includes("fox")) return "🦊";
-  if (avatarKey.includes("panda")) return "🐼";
   if (avatarKey.includes("owl")) return "🦉";
+  if (avatarKey.includes("panda")) return "🐼";
+  if (avatarKey.includes("tiger")) return "🐯";
+  if (avatarKey.includes("unicorn")) return "🦄";
   return "✨";
 }
 
@@ -218,6 +220,7 @@ const DASHBOARD_NAV = [
 export default function ParentAccessPage() {
   const [showDemo, setShowDemo] = useState(false);
   const [accessMode, setAccessMode] = useState<ParentAccessMode>("signin");
+  const [showIntentScreen, setShowIntentScreen] = useState(true);
   const [notifyWeekly, setNotifyWeekly] = useState(true);
   const [notifyMilestones, setNotifyMilestones] = useState(true);
 
@@ -277,6 +280,15 @@ export default function ParentAccessPage() {
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetError, setResetError] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
+
+  const [suggestedSession, setSuggestedSession] = useState<{
+    skillCode: string;
+    skillName: string;
+    reason: string;
+    subject: string;
+    masteryScore: number;
+    status: string;
+  } | null>(null);
 
   const activeChildId =
     selectedChildId ??
@@ -361,6 +373,18 @@ export default function ParentAccessPage() {
       }
     } catch {/* ignore */}
   }
+
+  // Fetch top suggested session for active child
+  useEffect(() => {
+    if (!activeChild?.id) return;
+    setSuggestedSession(null);
+    fetch(`/api/parent/suggested-sessions?studentId=${activeChild.id}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: { recommendations?: Array<{ skillCode: string; skillName: string; reason: string; subject: string; masteryScore: number; status: string }> } | null) => {
+        if (data?.recommendations?.[0]) setSuggestedSession(data.recommendations[0]);
+      })
+      .catch(() => {/* non-critical */});
+  }, [activeChild?.id]);
 
   async function handleSignIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -707,13 +731,14 @@ export default function ParentAccessPage() {
 
               <h1
                 style={{
-                  font: "700 2.6rem/1.15 system-ui",
+                  font: "800 2.8rem/1.1 system-ui",
                   color: C.text,
-                  maxWidth: "460px",
+                  maxWidth: "480px",
                   margin: 0,
+                  letterSpacing: "-0.02em",
                 }}
               >
-                Welcome to{" "}
+                Know exactly how your child{" "}
                 <span
                   style={{
                     background: "linear-gradient(135deg, #9b72ff, #58e8c1)",
@@ -722,7 +747,7 @@ export default function ParentAccessPage() {
                     backgroundClip: "text",
                   }}
                 >
-                  Family Hub
+                  is learning.
                 </span>
               </h1>
 
@@ -730,11 +755,11 @@ export default function ParentAccessPage() {
                 style={{
                   font: "400 1.05rem/1.7 system-ui",
                   color: C.muted,
-                  maxWidth: "420px",
+                  maxWidth: "440px",
                   margin: 0,
                 }}
               >
-                Track your child&apos;s learning progress, get weekly insights, and stay connected to their classroom.
+                WonderQuest uses AI to adapt every quest to your child&apos;s level. You get a simple dashboard showing what they practiced, what improved, and what to focus on next — updated after every session.
               </p>
 
               {/* Trust badges */}
@@ -756,6 +781,21 @@ export default function ParentAccessPage() {
                   >
                     {badge}
                   </span>
+                ))}
+              </div>
+
+              {/* Value prop checklist */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 440 }}>
+                {[
+                  { icon: "🧠", text: "AI adapts every question to your child's exact level" },
+                  { icon: "📊", text: "Mastery scores, streaks & skill progress after every session" },
+                  { icon: "🎯", text: "Personalized suggestions for what to practice next" },
+                  { icon: "🔒", text: "COPPA-compliant · No ads · No data sold ever" },
+                ].map((item) => (
+                  <div key={item.text} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <span style={{ fontSize: "1rem", flexShrink: 0, marginTop: 1 }}>{item.icon}</span>
+                    <span style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.5 }}>{item.text}</span>
+                  </div>
                 ))}
               </div>
 
@@ -880,11 +920,88 @@ export default function ParentAccessPage() {
                 Family Hub
               </div>
 
+              {/* ── Intent screen: shown first before sign-in/register forms ── */}
+              {showIntentScreen && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div style={{ font: "800 1.5rem/1.2 system-ui", color: C.text, marginBottom: 4, letterSpacing: "-0.02em" }}>
+                    How can we help?
+                  </div>
+                  {[
+                    {
+                      icon: "✨",
+                      title: "I'm new — create free account",
+                      sub: "Set up in 60 seconds. No credit card.",
+                      action: () => { setShowIntentScreen(false); setAccessMode("register"); setError(""); },
+                      highlight: true,
+                    },
+                    {
+                      icon: "👋",
+                      title: "I already have an account",
+                      sub: "Sign in to see your child's progress.",
+                      action: () => { setShowIntentScreen(false); setAccessMode("signin"); setError(""); },
+                      highlight: false,
+                    },
+                    {
+                      icon: "🏫",
+                      title: "My child's teacher invited me",
+                      sub: "I have a class code from their teacher.",
+                      action: () => { setShowIntentScreen(false); setAccessMode("register"); setError(""); },
+                      highlight: false,
+                    },
+                    {
+                      icon: "👀",
+                      title: "Just exploring — try as guest",
+                      sub: "No sign-up needed. Progress saved for 24 hours.",
+                      action: handleGuestLogin,
+                      highlight: false,
+                    },
+                  ].map((opt) => (
+                    <button
+                      key={opt.title}
+                      type="button"
+                      onClick={opt.action}
+                      disabled={guestLoading && opt.icon === "👀"}
+                      style={{
+                        display: "flex", alignItems: "flex-start", gap: 14, textAlign: "left",
+                        padding: "14px 16px", borderRadius: 14, cursor: "pointer",
+                        fontFamily: "system-ui",
+                        border: opt.highlight ? "2px solid rgba(155,114,255,0.5)" : "1.5px solid rgba(255,255,255,0.09)",
+                        background: opt.highlight ? "rgba(155,114,255,0.14)" : "rgba(255,255,255,0.04)",
+                        minHeight: 44, touchAction: "manipulation",
+                        transition: "background 0.15s, border-color 0.15s",
+                      }}
+                    >
+                      <span style={{ fontSize: "1.3rem", flexShrink: 0, marginTop: 1 }}>{opt.icon}</span>
+                      <div>
+                        <div style={{ font: `700 0.92rem system-ui`, color: opt.highlight ? C.violet : C.text, marginBottom: 2 }}>
+                          {opt.title}
+                        </div>
+                        <div style={{ font: "400 0.78rem system-ui", color: C.muted, lineHeight: 1.4 }}>{opt.sub}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Back link when intent screen is hidden ── */}
+              {!showIntentScreen && (
+                <button
+                  type="button"
+                  onClick={() => { setShowIntentScreen(true); setError(""); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", font: "500 0.8rem system-ui", color: C.muted, fontFamily: "system-ui", padding: "0 0 12px 0", display: "flex", alignItems: "center", gap: 4 }}
+                >
+                  ← Back
+                </button>
+              )}
+
               {/* ── Tab bar (Sign In / Create Account) ── */}
-              {(accessMode === "signin" || accessMode === "register") && (
+              {!showIntentScreen && (accessMode === "signin" || accessMode === "register") && (
                 <>
-                  <div style={{ font: "700 1.5rem system-ui", color: C.text, marginBottom: "20px" }}>
-                    {accessMode === "signin" ? "Welcome back" : "Create your account"}
+                  <div style={{ font: "800 1.6rem/1.2 system-ui", color: C.text, marginBottom: "4px", letterSpacing: "-0.02em" }}>
+                    {accessMode === "signin" ? "Welcome back 👋" : "Start your free account"}
+                  </div>
+                  <div style={{ font: "400 0.85rem system-ui", color: C.muted, marginBottom: "18px" }}>
+                    {accessMode === "signin" ? "Sign in to see your child's progress." : "Set up in 60 seconds. No credit card needed."}
                   </div>
                   <div style={{ display: "flex", gap: "6px", marginBottom: "22px" }}>
                     {(["signin", "register"] as const).map((tab) => (
@@ -908,7 +1025,7 @@ export default function ParentAccessPage() {
                           WebkitTapHighlightColor: "transparent",
                         }}
                       >
-                        {tab === "signin" ? "Sign In" : "Create Account"}
+                        {tab === "signin" ? "Sign In" : "Free Account"}
                       </button>
                     ))}
                   </div>
@@ -916,7 +1033,7 @@ export default function ParentAccessPage() {
               )}
 
               {/* ── Sign In form ── */}
-              {accessMode === "signin" && (
+              {!showIntentScreen && accessMode === "signin" && (
                 <form
                   onSubmit={handleSignIn}
                   style={{ display: "flex", flexDirection: "column", gap: "14px" }}
@@ -1019,7 +1136,7 @@ export default function ParentAccessPage() {
               )}
 
               {/* ── Create Account form ── */}
-              {accessMode === "register" && (
+              {!showIntentScreen && accessMode === "register" && (
                 <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                   <div>
                     <label style={labelStyle}>Your email</label>
@@ -1033,78 +1150,20 @@ export default function ParentAccessPage() {
                     <label style={labelStyle}>Your name</label>
                     <input onChange={(e) => setRegDisplayName(e.target.value)} placeholder="e.g. Sarah" style={inputStyle} type="text" value={regDisplayName} />
                   </div>
-                  <div>
-                    <label style={labelStyle}>State <span style={{ font: "400 0.7rem system-ui", color: C.muted }}>(optional)</span></label>
-                    <select
-                      value={regStateCode}
-                      onChange={(e) => setRegStateCode(e.target.value)}
-                      style={{ ...inputStyle, background: "rgba(255,255,255,0.05)", color: "#f0f6ff" }}
-                    >
-                      <option value="">Select your state…</option>
-                      {US_STATES.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}
-                    </select>
-                  </div>
-                  <div style={{ display: "flex", gap: "10px" }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={labelStyle}>School name <span style={{ font: "400 0.7rem system-ui", color: C.muted }}>(optional)</span></label>
-                      <input onChange={(e) => setRegSchoolName(e.target.value)} placeholder="e.g. Lincoln Elementary" style={inputStyle} type="text" value={regSchoolName} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={labelStyle}>ISD / District <span style={{ font: "400 0.7rem system-ui", color: C.muted }}>(optional)</span></label>
-                      <input onChange={(e) => setRegIsdName(e.target.value)} placeholder="e.g. Austin ISD" style={inputStyle} type="text" value={regIsdName} />
-                    </div>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{"Child's quest name "}<span style={{ font: "400 0.7rem system-ui", color: C.muted }}>(optional \u2014 letters &amp; numbers only)</span></label>
-                    <input
-                      onChange={(e) => handleChildNameChange(e.target.value)}
-                      placeholder="e.g. stargazer42"
-                      style={{
-                        ...inputStyle,
-                        borderColor: regChildNameAvailability === "available"
-                          ? "rgba(88,232,193,0.6)"
-                          : regChildNameAvailability === "taken" || regChildNameAvailability === "invalid"
-                            ? "rgba(255,123,107,0.6)"
-                            : "rgba(155,114,255,0.3)",
-                      }}
-                      type="text"
-                      value={regChildName}
-                    />
-                    {regChildNameAvailability === "checking" && (
-                      <div style={{ font: "500 0.75rem system-ui", marginTop: 4, color: C.muted }}>Checking…</div>
-                    )}
-                    {regChildNameMessage && regChildNameAvailability !== "checking" && (
-                      <div style={{ font: "500 0.75rem system-ui", marginTop: 4, color: regChildNameAvailability === "available" ? C.mint : "#ff7b6b" }}>
-                        {regChildNameMessage}
-                      </div>
-                    )}
+
+
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", lineHeight: 1.5, padding: "8px 0" }}>
+                    You can add your child&apos;s profile right after signing up. School and notification settings are available in your account settings.
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {[
-                      { key: "weekly", label: "Weekly summaries", sub: "Time, insights, and next focus.", val: notifyWeekly, toggle: () => setNotifyWeekly((v) => !v) },
-                      { key: "milestones", label: "Milestones", sub: "Badges, trophies, and level moments.", val: notifyMilestones, toggle: () => setNotifyMilestones((v) => !v) },
-                    ].map((item) => (
-                      <button key={item.key} onClick={item.toggle} type="button" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 14px", borderRadius: "10px", cursor: "pointer", border: `1.5px solid ${item.val ? "rgba(155,114,255,0.3)" : C.border}`, background: item.val ? "rgba(155,114,255,0.1)" : C.surface, textAlign: "left", fontFamily: "system-ui", minHeight: 44, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
-                        <div>
-                          <div style={{ font: "600 0.82rem system-ui", color: C.text }}>{item.label}</div>
-                          <div style={{ font: "400 0.7rem system-ui", color: C.muted }}>{item.sub}</div>
-                        </div>
-                        <span style={{ font: "700 0.72rem system-ui", color: item.val ? C.violet : C.muted, background: item.val ? "rgba(155,114,255,0.15)" : "rgba(255,255,255,0.06)", padding: "3px 10px", borderRadius: "10px" }}>
-                          {item.val ? "On" : "Off"}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {error && (
+                  {error && !error.startsWith("__success__") && (
                     <p style={{ font: "500 0.82rem system-ui", color: "#ff6b6b", background: "rgba(255,107,107,0.1)", border: "1px solid rgba(255,107,107,0.25)", borderRadius: "8px", padding: "10px 14px", margin: 0 }}>
                       {error}
                     </p>
                   )}
 
                   <button disabled={submitting} type="submit" style={{ ...primaryBtnStyle, opacity: submitting ? 0.7 : 1, cursor: submitting ? "not-allowed" : "pointer", marginTop: "4px" }}>
-                    {submitting ? "Creating account\u2026" : "Create Account \u2192"}
+                    {submitting ? "Creating account\u2026" : "Create free account \u2192"}
                   </button>
 
                   {/* Divider */}
@@ -1140,7 +1199,7 @@ export default function ParentAccessPage() {
               )}
 
               {/* ── Forgot Password \u2014 Step 1 ── */}
-              {accessMode === "forgot" && (
+              {!showIntentScreen && accessMode === "forgot" && (
                 <form onSubmit={handleForgotStep1} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                   <div style={{ font: "700 1.3rem system-ui", color: C.text, marginBottom: "8px" }}>Reset your password</div>
                   <div style={{ font: "400 0.82rem/1.5 system-ui", color: C.muted, marginBottom: "6px" }}>
@@ -1165,7 +1224,7 @@ export default function ParentAccessPage() {
               )}
 
               {/* ── Forgot Password \u2014 Step 2 ── */}
-              {accessMode === "forgot-verify" && (
+              {!showIntentScreen && accessMode === "forgot-verify" && (
                 <form onSubmit={handleForgotStep2} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                   <div style={{ font: "700 1.3rem system-ui", color: C.text, marginBottom: "4px" }}>
                     {forgotDisplayName ? `Hi, ${forgotDisplayName}!` : "Almost there!"}
@@ -1217,6 +1276,13 @@ export default function ParentAccessPage() {
 
   const childName = activeChild?.displayName ?? "your child";
   const isFirstTimer = (activeChildDashboard?.completedSessions ?? 0) === 0;
+  const todaySessions = (activeChildDashboard?.recentSessions ?? []).filter(
+    (s) => new Date(s.startedAt).toDateString() === new Date().toDateString()
+  );
+  const todayCompleted = todaySessions.filter((s) => s.endedAt !== null).length;
+  const todayAvgScore = todaySessions.length > 0
+    ? Math.round(todaySessions.reduce((sum, s) => sum + (s.effectivenessScore ?? 0), 0) / todaySessions.length)
+    : null;
 
   function greeting() {
     const h = new Date().getHours();
@@ -1235,13 +1301,27 @@ export default function ParentAccessPage() {
           paddingBottom: "env(safe-area-inset-bottom, 80px)",
         }}
       >
-        {result.guardian.isGuest && <GuestBanner onConvert={() => setShowConvert(true)} />}
+          <style>{`
+            @media (max-width: 600px) {
+              .parent-dashboard-inner { padding: 16px 14px 80px !important; }
+              .stat-grid-4 { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+              .parent-login-grid { grid-template-columns: 1fr !important; padding: 24px 16px 48px !important; }
+              .parent-skills-grid { grid-template-columns: 1fr !important; }
+            }
+          `}</style>
+        {result.guardian.isGuest && (
+          <GuestBanner
+            onConvert={() => setShowConvert(true)}
+            sessionCount={activeChildDashboard?.completedSessions ?? 0}
+          />
+        )}
         <ConvertAccountModal
           open={showConvert}
           onClose={() => setShowConvert(false)}
           onSuccess={() => { setShowConvert(false); window.location.reload(); }}
+          sessionCount={activeChildDashboard?.completedSessions ?? 0}
         />
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 80px", fontFamily: "system-ui" }}>
+        <div className="parent-dashboard-inner" style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 80px", fontFamily: "system-ui" }}>
 
           {/* ── Welcome header ──────────────────────────────────────────────── */}
           <div style={{ marginBottom: 28 }}>
@@ -1420,6 +1500,41 @@ export default function ParentAccessPage() {
             </div>
           )}
 
+          {/* ── Today at a Glance ─────────────────────────────────────────── */}
+          {activeChild && todayCompleted > 0 && (
+            <div style={{
+              background: "linear-gradient(135deg, rgba(88,232,193,0.12) 0%, rgba(155,114,255,0.08) 100%)",
+              borderRadius: 18, padding: "18px 22px", marginBottom: 20,
+              border: "1px solid rgba(88,232,193,0.28)",
+              display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap",
+            }}>
+              <div style={{ fontSize: "1.6rem" }}>☀️</div>
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.mint, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>
+                  Today&apos;s Learning
+                </div>
+                <div style={{ fontSize: "1.05rem", fontWeight: 700, color: C.text }}>
+                  {todayCompleted} quest{todayCompleted !== 1 ? "s" : ""} completed today
+                  {todayAvgScore !== null && todayAvgScore > 0 && (
+                    <span style={{ color: todayAvgScore >= 75 ? C.mint : todayAvgScore >= 50 ? C.violet : C.gold, marginLeft: 8 }}>
+                      · {todayAvgScore}% avg score
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>
+                  {activeChild.displayName} is on a roll 🔥
+                </div>
+              </div>
+              <Link href="/parent/report" style={{
+                padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+                background: "rgba(88,232,193,0.18)", border: "1.5px solid rgba(88,232,193,0.35)",
+                color: C.mint, textDecoration: "none", whiteSpace: "nowrap",
+              }}>
+                See full report →
+              </Link>
+            </div>
+          )}
+
           {/* ── Reset PIN inline form ──────────────────────────────────────── */}
           {resetPinFor && activeChild && resetPinFor === activeChild.id && (
             <div style={{
@@ -1545,47 +1660,76 @@ export default function ParentAccessPage() {
             </div>
           )}
 
-          {/* ── Learning Plan CTA ──────────────────────────────────────────── */}
+          {/* ── Suggested Next Session ─────────────────────────────────────── */}
           {activeChild && !isFirstTimer && (
-            <Link href="/parent/suggestions" style={{ textDecoration: "none", display: "block", marginBottom: 20 }}>
+            <div style={{ marginBottom: 20 }}>
               <div style={{
                 background: "linear-gradient(135deg, rgba(155,114,255,0.16), rgba(88,232,193,0.09))",
                 border: "1px solid rgba(155,114,255,0.3)",
                 borderRadius: 18, padding: "20px 24px",
-                display: "flex", alignItems: "center", gap: 16,
                 boxShadow: "0 4px 20px rgba(100,60,200,0.12)",
               }}>
-                <div style={{
-                  width: 48, height: 48, borderRadius: 14,
-                  background: "linear-gradient(135deg, #9b72ff, #58e8c1)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "1.5rem", flexShrink: 0,
-                }}>🎯</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "1rem", fontWeight: 700, color: C.text, marginBottom: 3 }}>Learning Plan</div>
-                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)" }}>
-                    Recommended skills and push-to-play sessions for {activeChild.displayName}
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 14,
+                    background: "linear-gradient(135deg, #9b72ff, #58e8c1)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "1.5rem", flexShrink: 0,
+                  }}>🎯</div>
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.violet, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                      {suggestedSession ? "Suggested Next Session" : "Learning Plan"}
+                    </div>
+                    <div style={{ fontSize: "1rem", fontWeight: 700, color: C.text, marginBottom: 3 }}>
+                      {suggestedSession ? suggestedSession.skillName : `Personalized plan for ${activeChild.displayName}`}
+                    </div>
+                    <div style={{ fontSize: 12, color: C.muted }}>
+                      {suggestedSession ? (
+                        <>
+                          {suggestedSession.reason}
+                          {suggestedSession.masteryScore > 0 && (
+                            <span style={{ color: C.gold, marginLeft: 6, fontWeight: 600 }}>
+                              · {Math.round(suggestedSession.masteryScore)}% mastery
+                            </span>
+                          )}
+                        </>
+                      ) : "AI-recommended skills and push-to-play sessions"}
+                    </div>
                   </div>
-                </div>
-                <div style={{
-                  fontSize: 13, fontWeight: 600, color: C.violet,
-                  padding: "7px 14px", background: "rgba(155,114,255,0.15)",
-                  borderRadius: 10, border: "1px solid rgba(155,114,255,0.25)", flexShrink: 0,
-                }}>
-                  View Plan →
+                  <Link href="/parent/suggestions" style={{
+                    display: "inline-flex", alignItems: "center",
+                    fontSize: 13, fontWeight: 700, color: C.violet,
+                    padding: "8px 16px", background: "rgba(155,114,255,0.15)",
+                    borderRadius: 10, border: "1px solid rgba(155,114,255,0.25)",
+                    textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
+                  }}>
+                    {suggestedSession ? "Full Learning Plan →" : "View Plan →"}
+                  </Link>
                 </div>
               </div>
-            </Link>
+            </div>
           )}
 
           {/* ── 2-col: skills + activity ───────────────────────────────────── */}
           {activeChildDashboard && !isFirstTimer && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 20 }}>
+            <div className="parent-skills-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 20 }}>
               {/* Skills panel */}
               <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, padding: "20px 22px", border: "1px solid rgba(255,255,255,0.10)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Skills snapshot</span>
                   <Link href="/parent/report" style={{ fontSize: 12, color: C.violet, textDecoration: "none" }}>See all →</Link>
+                  <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                    {[
+                      { color: "#58e8c1", label: "Strong (75%+)" },
+                      { color: "#9b72ff", label: "Building (50–75%)" },
+                      { color: "#ffd166", label: "Needs practice (<50%)" },
+                    ].map((leg) => (
+                      <div key={leg.label} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: leg.color, flexShrink: 0 }} />
+                        {leg.label}
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 {allSkills.length > 0 ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1669,31 +1813,50 @@ export default function ParentAccessPage() {
             </div>
           )}
 
-          {/* ── Feature navigation cards ────────────────────────────────────── */}
+          {/* ── Quick access ────────────────────────────────────────────────── */}
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
-              Tools &amp; Reports
+              Quick Access
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+            {/* Primary tools */}
+            <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
               {[
-                { href: "/parent/report",            icon: "📊", title: "Weekly Report",    desc: "Sessions, skills, and time breakdown.",       color: C.violet },
-                { href: "/parent/quiz-review",        icon: "🔍", title: "Quiz Review",      desc: "Question-by-question session replay.",         color: C.mint },
-                { href: "/parent/suggestions",        icon: "🎯", title: "Learning Plan",    desc: "AI-recommended skills and push sessions.",    color: C.gold },
-                { href: "/parent/practice-planner",   icon: "📅", title: "Practice Planner", desc: "Schedule weekly learning goals.",              color: C.coral },
-                { href: "/parent/family",             icon: "👧", title: "Children",         desc: "Manage profiles, bands, and accounts.",       color: C.violet },
-                { href: "/parent/benchmarks",         icon: "ℹ️", title: "How It Works",     desc: "Bands, mastery scores, and stars explained.", color: C.mint },
+                { href: "/parent/report",     icon: "📊", title: "Weekly Report",  desc: "Skills & progress breakdown",  color: C.violet },
+                { href: "/parent/suggestions", icon: "🎯", title: "Learning Plan",  desc: "AI-recommended sessions",       color: C.gold   },
+                { href: "/parent/family",     icon: "👧", title: "Children",        desc: "Manage profiles & PINs",        color: C.mint   },
               ].map((card) => (
                 <Link key={card.href} href={card.href} style={{
-                  display: "block", padding: "16px 18px",
+                  flex: "1 1 160px", display: "flex", alignItems: "center", gap: 12,
+                  padding: "14px 16px",
                   background: "rgba(255,255,255,0.04)",
                   borderRadius: 14, border: "1px solid rgba(255,255,255,0.09)",
                   textDecoration: "none",
-                  borderTop: `3px solid ${card.color}40`,
-                  transition: "background 0.15s",
+                  borderLeft: `3px solid ${card.color}60`,
                 }}>
-                  <div style={{ fontSize: "1.3rem", marginBottom: 8 }}>{card.icon}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: card.color, marginBottom: 3 }}>{card.title}</div>
-                  <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.4 }}>{card.desc}</div>
+                  <span style={{ fontSize: "1.3rem", flexShrink: 0 }}>{card.icon}</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: card.color, marginBottom: 1 }}>{card.title}</div>
+                    <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.3 }}>{card.desc}</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            {/* Secondary tools */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                { href: "/parent/quiz-review",      icon: "🔍", title: "Quiz Review"      },
+                { href: "/parent/practice-planner", icon: "📅", title: "Practice Planner" },
+                { href: "/parent/benchmarks",       icon: "ℹ️", title: "How It Works"     },
+                { href: "/parent/account",          icon: "⚙️", title: "Settings"         },
+              ].map((item) => (
+                <Link key={item.href} href={item.href} style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 600,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.09)",
+                  color: C.muted, textDecoration: "none",
+                }}>
+                  <span>{item.icon}</span> {item.title}
                 </Link>
               ))}
             </div>
@@ -1878,11 +2041,13 @@ export default function ParentAccessPage() {
                       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                         {[
                           { key: "bunny_purple", emoji: "🐰", label: "Bunny" },
-                          { key: "bear_blue", emoji: "🐻", label: "Bear" },
-                          { key: "lion_gold", emoji: "🦁", label: "Lion" },
-                          { key: "fox_orange", emoji: "🦊", label: "Fox" },
-                          { key: "panda_white", emoji: "🐼", label: "Panda" },
-                          { key: "owl_teal", emoji: "🦉", label: "Owl" },
+                          { key: "cat_orange", emoji: "🐱", label: "Cat" },
+                          { key: "dog_blue", emoji: "🐶", label: "Dog" },
+                          { key: "fox_green", emoji: "🦊", label: "Fox" },
+                          { key: "owl_yellow", emoji: "🦉", label: "Owl" },
+                          { key: "panda_pink", emoji: "🐼", label: "Panda" },
+                          { key: "tiger_red", emoji: "🐯", label: "Tiger" },
+                          { key: "unicorn_teal", emoji: "🦄", label: "Unicorn" },
                         ].map((av) => (
                           <button
                             key={av.key}

@@ -1,5 +1,19 @@
 import { db } from "@/lib/db";
 import { isProficient, getBandCurriculum } from "@/lib/skill-curriculum";
+import {
+  EMA_RETAIN,
+  EMA_ALPHA,
+  MASTERY_TARGET_CORRECT_FIRST_TRY,
+  MASTERY_TARGET_CORRECT_RETRY,
+  MASTERY_TARGET_INCORRECT,
+  CONFIDENCE_DELTA_CORRECT_FIRST_TRY,
+  CONFIDENCE_DELTA_CORRECT_RETRY,
+  CONFIDENCE_DELTA_INCORRECT,
+  MASTERY_FLOOR,
+  MASTERY_CEILING,
+  CONFIDENCE_FLOOR,
+  CONFIDENCE_CEILING,
+} from "@/lib/mastery-config";
 
 type MasteryUpdateInput = {
   studentId: string;
@@ -46,27 +60,15 @@ function round1(value: number) {
 }
 
 function masteryTarget(input: Pick<MasteryUpdateInput, "correct" | "firstTry">) {
-  if (input.correct && input.firstTry) {
-    return 96;
-  }
-
-  if (input.correct) {
-    return 76;
-  }
-
-  return 28;
+  if (input.correct && input.firstTry) return MASTERY_TARGET_CORRECT_FIRST_TRY;
+  if (input.correct) return MASTERY_TARGET_CORRECT_RETRY;
+  return MASTERY_TARGET_INCORRECT;
 }
 
 function confidenceDelta(input: Pick<MasteryUpdateInput, "correct" | "firstTry">) {
-  if (input.correct && input.firstTry) {
-    return 8;
-  }
-
-  if (input.correct) {
-    return 5;
-  }
-
-  return -6;
+  if (input.correct && input.firstTry) return CONFIDENCE_DELTA_CORRECT_FIRST_TRY;
+  if (input.correct) return CONFIDENCE_DELTA_CORRECT_RETRY;
+  return CONFIDENCE_DELTA_INCORRECT;
 }
 
 function mapMasteryRow(row: Record<string, unknown>) {
@@ -164,10 +166,10 @@ export async function updateStudentSkillMastery(input: MasteryUpdateInput) {
   const currentMasteryScore = Number(row.mastery_score ?? 50);
   const currentConfidenceScore = Number(row.confidence_score ?? 0);
   const nextMasteryScore = round1(
-    currentMasteryScore * 0.82 + masteryTarget(input) * 0.18,
+    clamp(currentMasteryScore * EMA_RETAIN + masteryTarget(input) * EMA_ALPHA, MASTERY_FLOOR, MASTERY_CEILING),
   );
   const nextConfidenceScore = round1(
-    clamp(currentConfidenceScore + confidenceDelta(input), 0, 100),
+    clamp(currentConfidenceScore + confidenceDelta(input), CONFIDENCE_FLOOR, CONFIDENCE_CEILING),
   );
   const nextConsecutiveCorrect = input.correct
     ? Number(row.consecutive_correct ?? 0) + 1
