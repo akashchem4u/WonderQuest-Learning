@@ -41,7 +41,16 @@ const BANDS: Band[] = [
   { key: "g45",  label: "G4–5 Band",   sub: "Grades 4–5 · Inference, fractions, word problems", dot: "#ff7b6b", border: "rgba(255,123,107,0.5)", bg: "rgba(255,123,107,0.06)", selectedBg: "rgba(255,123,107,0.12)", textColor: "#ff7b6b" },
 ];
 
-const AVATARS = ["🦁", "🐼", "🦋", "🐸", "🦊", "🐳", "🦄", "🐢"];
+const AVATARS = [
+  { emoji: "🦁", label: "Lion" },
+  { emoji: "🐼", label: "Panda" },
+  { emoji: "🦋", label: "Butterfly" },
+  { emoji: "🐸", label: "Frog" },
+  { emoji: "🦊", label: "Fox" },
+  { emoji: "🐳", label: "Whale" },
+  { emoji: "🦄", label: "Unicorn" },
+  { emoji: "🐢", label: "Turtle" },
+];
 
 const GRADES = [
   "Pre-K (Age 4–5)",
@@ -318,7 +327,7 @@ export default function ParentLinkPage() {
   const [nameAvailability, setNameAvailability] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
   const [nameMessage, setNameMessage] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [avatar,     setAvatar]     = useState("🦁");
+  const [avatar,     setAvatar]     = useState(AVATARS[0].emoji);
   const [nickname,   setNickname]   = useState("");
 
   // Step 2 state
@@ -340,6 +349,7 @@ export default function ParentLinkPage() {
   const [pinError,    setPinError]    = useState("");
 
   // Submit state
+  const [coppaConsent, setCoppaConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [upgradeRequired, setUpgradeRequired] = useState<{ limit: number; plan: string } | null>(null);
@@ -474,27 +484,28 @@ export default function ParentLinkPage() {
                 <span style={{ font: "400 0.72rem system-ui", color: MUTED, marginLeft: 4 }}>(optional)</span>
               </FormLabel>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
-                {AVATARS.map((em) => (
+                {AVATARS.map((av) => (
                   <button
-                    key={em}
-                    onClick={() => setAvatar(em)}
+                    key={av.emoji}
+                    onClick={() => setAvatar(av.emoji)}
+                    aria-label={av.label}
                     style={{
                       width: 52,
                       height: 52,
                       borderRadius: "50%",
-                      background: avatar === em ? "rgba(155,114,255,0.2)" : SURFACE,
-                      border: `2.5px solid ${avatar === em ? VIOLET : "rgba(255,255,255,0.1)"}`,
+                      background: avatar === av.emoji ? "rgba(155,114,255,0.2)" : SURFACE,
+                      border: `2.5px solid ${avatar === av.emoji ? VIOLET : "rgba(255,255,255,0.1)"}`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       fontSize: "1.5rem",
                       cursor: "pointer",
                       transition: "all 0.15s",
-                      transform: avatar === em ? "scale(1.06)" : "scale(1)",
-                      boxShadow: avatar === em ? `0 0 0 3px rgba(155,114,255,0.2)` : "none",
+                      transform: avatar === av.emoji ? "scale(1.06)" : "scale(1)",
+                      boxShadow: avatar === av.emoji ? `0 0 0 3px rgba(155,114,255,0.2)` : "none",
                     }}
                   >
-                    {em}
+                    {av.emoji}
                   </button>
                 ))}
               </div>
@@ -955,7 +966,7 @@ export default function ParentLinkPage() {
             >
               {[
                 { key: "Quest name",     val: childName || "—"                  },
-                { key: "Avatar",         val: `${avatar} ${childName || "—"}` },
+                { key: "Avatar",         val: `${avatar} ${AVATARS.find(a => a.emoji === avatar)?.label ?? ""}` },
                 { key: "Grade",          val: `${grade}${age ? ` (Age ${age})` : ""}` },
                 { key: "Passcode",       val: "••••"                            },
                 { key: "Daily sessions", val: `${sessionLimit} (~${sessionLimit === "Unlimited" ? "unlimited" : "30–45"} min)` },
@@ -998,6 +1009,20 @@ export default function ParentLinkPage() {
               {childName || "Your child"}&apos;s first session will begin from the {selectedBandLabel}. WonderQuest will personalise as they play. They sign in with their quest name and passcode. You can always edit these settings from your dashboard.
             </div>
 
+            {/* COPPA consent */}
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginBottom: 20, padding: "12px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10, border: `1px solid ${coppaConsent ? "rgba(88,232,193,0.3)" : "rgba(255,255,255,0.08)"}` }}>
+              <input
+                type="checkbox"
+                checked={coppaConsent}
+                onChange={(e) => setCoppaConsent(e.target.checked)}
+                style={{ marginTop: 2, accentColor: VIOLET, width: 16, height: 16, flexShrink: 0 }}
+              />
+              <span style={{ font: "400 0.8rem/1.5 system-ui", color: "rgba(255,255,255,0.65)" }}>
+                I am the parent or legal guardian of this child and consent to creating their account in accordance with{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: VIOLET }}>WonderQuest&apos;s privacy policy</a>.
+              </span>
+            </label>
+
             {upgradeRequired && (
               <div style={{ marginBottom: 14 }}>
                 <UpgradePrompt reason="child_limit" limit={upgradeRequired.limit} />
@@ -1011,7 +1036,9 @@ export default function ParentLinkPage() {
 
             <PrimaryBtn
               fullWidth
+              disabled={!coppaConsent || submitting}
               onClick={async () => {
+                if (!coppaConsent) return;
                 setSubmitting(true);
                 setSubmitError("");
                 try {
@@ -1026,6 +1053,7 @@ export default function ParentLinkPage() {
                       birthYear,
                       pin,
                       launchBandCode: band.toUpperCase(),
+                      coppaConsent: true,
                     }),
                   });
                   if (!resp.ok) {
