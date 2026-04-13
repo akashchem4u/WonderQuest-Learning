@@ -78,6 +78,12 @@ export default function ParentAccessPage() {
   const [submitting, setSubmitting] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
   const [error, setError] = useState("");
+  const [guestCredentials, setGuestCredentials] = useState<{
+    childUsername: string;
+    childPin: string;
+    parentUsername: string;
+    parentPin: string;
+  } | null>(null);
 
   // On mount: if session already exists, redirect to dashboard
   useEffect(() => {
@@ -132,9 +138,18 @@ export default function ParentAccessPage() {
 
   async function handleGuestLogin() {
     setGuestLoading(true);
-    const res = await fetch("/api/parent/guest", { method: "POST" });
-    if (res.ok) router.push("/parent/dashboard");
-    else setGuestLoading(false);
+    try {
+      const res = await fetch("/api/parent/guest", { method: "POST" });
+      if (!res.ok) { setGuestLoading(false); return; }
+      const data = await res.json() as { credentials?: { parentUsername: string; parentPin: string; childUsername: string; childPin: string } };
+      if (data.credentials) {
+        setGuestCredentials(data.credentials);
+      } else {
+        router.push("/parent/dashboard");
+      }
+    } catch {
+      setGuestLoading(false);
+    }
   }
 
   async function handleRegister(event: React.FormEvent<HTMLFormElement>) {
@@ -310,6 +325,93 @@ export default function ParentAccessPage() {
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────────
+  // GUEST CREDENTIALS SCREEN — shown immediately after guest account creation
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  if (guestCredentials) {
+    return (
+      <AppFrame audience="home" currentPath="/parent">
+        <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #13103a 0%, #0e0b26 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", fontFamily: "system-ui" }}>
+          <div style={{ width: "100%", maxWidth: 480 }}>
+            {/* Header */}
+            <div style={{ textAlign: "center", marginBottom: 28 }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
+              <h1 style={{ fontSize: "1.6rem", fontWeight: 800, color: C.text, margin: 0, marginBottom: 8 }}>
+                Your guest account is ready!
+              </h1>
+              <p style={{ color: C.muted, fontSize: "0.9rem", margin: 0, lineHeight: 1.5 }}>
+                Save these credentials — your child will need them to sign in.
+              </p>
+            </div>
+
+            {/* Credentials card */}
+            <div style={{ background: "rgba(155,114,255,0.08)", border: "1.5px solid rgba(155,114,255,0.3)", borderRadius: 16, padding: "22px 24px", marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
+                🧒 Child sign-in (at Child Portal)
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Username</div>
+                  <div style={{ fontSize: "1.1rem", fontWeight: 800, color: C.mint, letterSpacing: "0.04em", fontFamily: "monospace" }}>{guestCredentials.childUsername}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>PIN</div>
+                  <div style={{ fontSize: "1.5rem", fontWeight: 900, color: C.mint, letterSpacing: "0.2em", fontFamily: "monospace" }}>{guestCredentials.childPin}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "14px 18px", marginBottom: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                👤 Parent sign-in (this dashboard)
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Username</div>
+                  <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "rgba(255,255,255,0.7)", fontFamily: "monospace" }}>{guestCredentials.parentUsername}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>PIN</div>
+                  <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "rgba(255,255,255,0.7)", fontFamily: "monospace", letterSpacing: "0.15em" }}>{guestCredentials.parentPin}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTAs */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <Link
+                href="/child"
+                style={{
+                  display: "block", width: "100%", padding: "14px", borderRadius: 12, textAlign: "center",
+                  background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
+                  color: "#fff", fontWeight: 700, fontSize: "0.95rem", textDecoration: "none",
+                  boxSizing: "border-box",
+                }}
+              >
+                🎮 Go to Child Portal — start learning now →
+              </Link>
+              <button
+                type="button"
+                onClick={() => router.push("/parent/dashboard")}
+                style={{
+                  width: "100%", padding: "12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)",
+                  background: "transparent", color: "rgba(255,255,255,0.6)", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer",
+                }}
+              >
+                View parent dashboard →
+              </button>
+            </div>
+
+            <p style={{ textAlign: "center", fontSize: "0.78rem", color: C.muted, marginTop: 20, lineHeight: 1.5 }}>
+              ⏳ Guest accounts last 24 hours. Convert to a free account to save progress permanently.
+            </p>
+          </div>
+        </div>
+      </AppFrame>
+    );
+  }
+
   // UNAUTHENTICATED — 2-col hero sign-in
   // ─────────────────────────────────────────────────────────────────────────────
 
