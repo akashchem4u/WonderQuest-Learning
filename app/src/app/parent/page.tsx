@@ -345,35 +345,42 @@ export default function ParentAccessPage() {
               </p>
             </div>
 
-            {/* Credentials card */}
-            <div style={{ background: "rgba(155,114,255,0.08)", border: "1.5px solid rgba(155,114,255,0.3)", borderRadius: 16, padding: "22px 24px", marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
-                🧒 Child sign-in (at Child Portal)
+            {/* STEP 1: Child credentials */}
+            <div style={{ background: "rgba(72,199,142,0.1)", border: "2px solid rgba(72,199,142,0.4)", borderRadius: 16, padding: "20px 22px", marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                <div style={{ background: "rgba(72,199,142,0.2)", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 800, color: "#48c78e", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  STEP 1 — For your child
+                </div>
+                <div style={{ fontSize: 11, color: C.muted }}>→ enter at <strong style={{ color: "rgba(255,255,255,0.7)" }}>wonderquest.app/child</strong></div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 <div>
-                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Username</div>
-                  <div style={{ fontSize: "1.1rem", fontWeight: 800, color: C.mint, letterSpacing: "0.04em", fontFamily: "monospace" }}>{guestCredentials.childUsername}</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>Child Username</div>
+                  <div style={{ fontSize: "1.25rem", fontWeight: 900, color: "#48c78e", letterSpacing: "0.04em", fontFamily: "monospace" }}>{guestCredentials.childUsername}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>PIN</div>
-                  <div style={{ fontSize: "1.5rem", fontWeight: 900, color: C.mint, letterSpacing: "0.2em", fontFamily: "monospace" }}>{guestCredentials.childPin}</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>Child PIN</div>
+                  <div style={{ fontSize: "1.5rem", fontWeight: 900, color: "#48c78e", letterSpacing: "0.2em", fontFamily: "monospace" }}>{guestCredentials.childPin}</div>
                 </div>
               </div>
             </div>
 
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "14px 18px", marginBottom: 24 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
-                👤 Parent sign-in (this dashboard)
+            {/* STEP 2: Parent credentials */}
+            <div style={{ background: "rgba(155,114,255,0.07)", border: "1px solid rgba(155,114,255,0.2)", borderRadius: 14, padding: "16px 20px", marginBottom: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <div style={{ background: "rgba(155,114,255,0.15)", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 800, color: C.violet, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  STEP 2 — For you (parent)
+                </div>
+                <div style={{ fontSize: 11, color: C.muted }}>→ enter at <strong style={{ color: "rgba(255,255,255,0.5)" }}>wonderquest.app/parent</strong></div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Username</div>
-                  <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "rgba(255,255,255,0.7)", fontFamily: "monospace" }}>{guestCredentials.parentUsername}</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Parent Username</div>
+                  <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "rgba(255,255,255,0.6)", fontFamily: "monospace" }}>{guestCredentials.parentUsername}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>PIN</div>
-                  <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "rgba(255,255,255,0.7)", fontFamily: "monospace", letterSpacing: "0.15em" }}>{guestCredentials.parentPin}</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Parent PIN</div>
+                  <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "rgba(255,255,255,0.6)", fontFamily: "monospace", letterSpacing: "0.15em" }}>{guestCredentials.parentPin}</div>
                 </div>
               </div>
             </div>
@@ -384,22 +391,22 @@ export default function ParentAccessPage() {
                 href="/child"
                 style={{
                   display: "block", width: "100%", padding: "14px", borderRadius: 12, textAlign: "center",
-                  background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
+                  background: "linear-gradient(135deg, #48c78e, #1a9c6c)",
                   color: "#fff", fontWeight: 700, fontSize: "0.95rem", textDecoration: "none",
                   boxSizing: "border-box",
                 }}
               >
-                🎮 Go to Child Portal — start learning now →
+                🎮 Open Child Portal (use child credentials above) →
               </Link>
               <button
                 type="button"
                 onClick={() => router.push("/parent/dashboard")}
                 style={{
-                  width: "100%", padding: "12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)",
-                  background: "transparent", color: "rgba(255,255,255,0.6)", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer",
+                  width: "100%", padding: "12px", borderRadius: 12, border: "1px solid rgba(155,114,255,0.25)",
+                  background: "transparent", color: "rgba(155,114,255,0.8)", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer",
                 }}
               >
-                View parent dashboard →
+                View parent dashboard (use parent credentials above) →
               </button>
             </div>
 

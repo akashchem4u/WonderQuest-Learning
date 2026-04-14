@@ -290,7 +290,14 @@ export async function accessChild(
   }
 
   if (!displayName || !avatarKey) {
-    throw new Error("Display name and avatar are required for first-time setup.");
+    // Give a targeted error when a guardian username (guest_*) is entered at the child portal
+    if (username.startsWith("guest_")) {
+      throw new Error(
+        "That username belongs to the parent dashboard, not the child portal. " +
+        "Your child's username starts with 'explorer_' — check your parent dashboard for the correct credentials."
+      );
+    }
+    throw new Error("Username not found. Check the username and try again. Child usernames start with 'explorer_'.");
   }
 
   const avatar = getAvatarByKey(avatarKey);

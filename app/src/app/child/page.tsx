@@ -690,9 +690,13 @@ export default function ChildAccessPage() {
                   {recoveryHint}
                 </p>
               )}
-              <p style={{ marginTop: 8, marginBottom: 0, fontWeight: 500, color: "rgba(252,165,165,0.5)", fontSize: 12 }}>
-                Tip: Your username and PIN were set up by your parent.
-              </p>
+              {!recoveryHint && (
+                <p style={{ marginTop: 8, marginBottom: 0, fontWeight: 500, color: "rgba(252,165,165,0.5)", fontSize: 12 }}>
+                  {error.includes("parent dashboard")
+                    ? "Child usernames start with 'explorer_' — check the credentials screen from the parent sign-up."
+                    : "Tip: Your username and PIN were set up by your parent."}
+                </p>
+              )}
             </div>
           )}
 
