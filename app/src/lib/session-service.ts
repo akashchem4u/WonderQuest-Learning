@@ -383,10 +383,12 @@ async function pickQuestion(
   skillCode: string,
   usedQuestionKeys: Set<string>,
   recentQuestionKeys: Set<string>,
+  modules?: string[],
 ) {
   const baseFilters = {
     launchBands: [launchBandCode],
     skillCodes: [skillCode],
+    modules,
     orderBy: "random" as const,
     limit: 1,
   };
@@ -1400,6 +1402,7 @@ export async function createPlaySession(input: PlaySessionInput) {
       pushedActivity.skill_code,
       new Set<string>(),
       new Set<string>(),
+      input.module ? [input.module] : undefined,
     );
 
     if (pushedQuestion) {
