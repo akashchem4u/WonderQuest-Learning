@@ -116,13 +116,18 @@ export async function GET(request: NextRequest) {
     // Sessions this week
     const sessionsRes = await db.query(
       `select count(*) as cnt,
-              sum(correct_count) as correct,
-              sum(total_questions) as total
-       from public.sessions
-       where student_id = $1
-         and started_at >= $2
-         and started_at < $3
-         and completed_at is not null`,
+              sum(sr_counts.correct_count) as correct,
+              sum(cs.total_questions) as total
+       from public.challenge_sessions cs
+       left join lateral (
+         select count(*) filter (where sr.correct) as correct_count
+         from public.session_results sr
+         where sr.session_id = cs.id
+       ) sr_counts on true
+       where cs.student_id = $1
+         and cs.started_at >= $2
+         and cs.started_at < $3
+         and cs.completed_at is not null`,
       [studentId, weekStart.toISOString(), weekEnd.toISOString()],
     );
     const sessionRow = sessionsRes.rows[0] as { cnt: string; correct: string; total: string };
@@ -134,12 +139,13 @@ export async function GET(request: NextRequest) {
     // Skills practiced this week — top by session involvement
     const skillsRes = await db.query(
       `select sk.display_name as skill_name, count(*) as cnt
-       from public.session_items si
-       join public.sessions s on s.id = si.session_id
-       join public.skills sk on sk.id = si.skill_id
-       where s.student_id = $1
-         and s.started_at >= $2
-         and s.started_at < $3
+       from public.session_results sr
+       join public.challenge_sessions cs on cs.id = sr.session_id
+       join public.example_items ei on ei.id = sr.example_item_id
+       join public.skills sk on sk.id = ei.skill_id
+       where cs.student_id = $1
+         and cs.started_at >= $2
+         and cs.started_at < $3
        group by sk.display_name
        order by cnt desc
        limit 5`,

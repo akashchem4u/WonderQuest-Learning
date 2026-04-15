@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
               quiet_hours_enabled,
               to_char(quiet_hours_start, 'HH24:MI') AS quiet_hours_start,
               to_char(quiet_hours_end,   'HH24:MI') AS quiet_hours_end
-       FROM public.notification_preferences
+       FROM public.guardian_notification_settings
        WHERE guardian_id = $1
        LIMIT 1`,
       [guardianId],
@@ -79,7 +79,7 @@ export async function PATCH(request: NextRequest) {
 
     // Ensure a row exists with defaults, then update only the changed fields
     await db.query(
-      `INSERT INTO public.notification_preferences (
+      `INSERT INTO public.guardian_notification_settings (
          guardian_id,
          email_weekly_digest, email_milestone_alerts, email_daily_summary,
          push_session_complete, push_streak_reminder,
@@ -109,7 +109,7 @@ export async function PATCH(request: NextRequest) {
     setClauses.push("updated_at = now()");
 
     await db.query(
-      `UPDATE public.notification_preferences
+      `UPDATE public.guardian_notification_settings
        SET ${setClauses.join(", ")}
        WHERE guardian_id = $1`,
       params,

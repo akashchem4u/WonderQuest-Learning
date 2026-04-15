@@ -24,9 +24,13 @@ export async function GET(request: NextRequest) {
     JOIN public.push_subscriptions ps ON ps.guardian_id = gsl.guardian_id
     LEFT JOIN public.challenge_sessions cs ON cs.student_id = sp.id
       AND cs.started_at >= CURRENT_DATE
-    LEFT JOIN public.notification_preferences np ON np.guardian_id = gsl.guardian_id
     WHERE cs.id IS NULL  -- no session today
-      AND (np.push_streak_reminder IS NULL OR np.push_streak_reminder = true)
+      AND NOT EXISTS (
+        SELECT 1 FROM public.notification_preferences np
+        WHERE np.guardian_id = gsl.guardian_id
+          AND np.notification_type = 'streak_reminder'
+          AND np.enabled = false
+      )
       AND EXISTS (
         SELECT 1 FROM public.challenge_sessions cs2
         WHERE cs2.student_id = sp.id

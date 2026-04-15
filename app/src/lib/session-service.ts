@@ -1501,12 +1501,13 @@ async function recordAnswerResult(input: {
         skill_id,
         correct,
         first_try,
+        hint_used,
         time_spent_ms,
         effective_time_ms,
         remediation_triggered,
         points_earned
       )
-      values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     `,
     [
       input.sessionId,
@@ -1514,6 +1515,7 @@ async function recordAnswerResult(input: {
       input.skillId,
       input.isCorrect,
       input.serverAttempt === 1,
+      false,
       input.timeSpentMs,
       input.isCorrect ? input.timeSpentMs : 0,
       !input.isCorrect,
